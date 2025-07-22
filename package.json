@@ -1,0 +1,41 @@
+{
+  "name": "jewelry-inventory-management",
+  "version": "1.0.0",
+  "description": "Mobile-first jewelry inventory management system with WhatsApp integration",
+  "private": true,
+  "workspaces": [
+    "backend",
+    "frontend"
+  ],
+  "scripts": {
+    "dev": "concurrently \"npm run dev:backend\" \"npm run dev:frontend\"",
+    "dev:backend": "npm run dev --workspace=backend",
+    "dev:frontend": "npm run dev --workspace=frontend",
+    "build": "npm run build --workspace=backend && npm run build --workspace=frontend",
+    "test": "npm run test --workspace=backend && npm run test --workspace=frontend",
+    "lint": "npm run lint --workspace=backend && npm run lint --workspace=frontend",
+    "setup": "npm install && npm run setup:backend && npm run setup:frontend",
+    "setup:backend": "npm run setup --workspace=backend",
+    "setup:frontend": "npm run setup --workspace=frontend"
+  },
+  "devDependencies": {
+    "@tanstack/react-query-devtools": "^5.83.0",
+    "concurrently": "^8.2.2"
+  },
+  "engines": {
+    "node": ">=20.0.0",
+    "npm": ">=10.0.0"
+  },
+  "keywords": [
+    "jewelry",
+    "inventory",
+    "management",
+    "whatsapp",
+    "mobile-first",
+    "typescript",
+    "react",
+    "node.js"
+  ],
+  "author": "Development Team",
+  "license": "MIT"
+}

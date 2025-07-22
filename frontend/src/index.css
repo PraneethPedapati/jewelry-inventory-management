@@ -1,0 +1,320 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Playfair+Display:wght@400;500;600;700&display=swap');
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Root CSS Custom Properties for Dynamic Theme System */
+:root {
+  /* Default theme colors (jewelry store elegant theme) */
+  --color-primary: #8B5CF6;
+  --color-secondary: #F59E0B;
+  --color-accent: #EC4899;
+  --color-background: #FFFFFF;
+  --color-foreground: #1F2937;
+  --color-card: #F9FAFB;
+  --color-card-foreground: #111827;
+  --color-border: #E5E7EB;
+  --color-input: #FFFFFF;
+  --color-ring: #8B5CF6;
+  --color-muted: #F3F4F6;
+  --color-muted-foreground: #6B7280;
+  --color-destructive: #EF4444;
+  --color-destructive-foreground: #FFFFFF;
+  --color-success: #10B981;
+  --color-success-foreground: #FFFFFF;
+  --color-warning: #F59E0B;
+  --color-warning-foreground: #FFFFFF;
+  
+  /* UI variables */
+  --radius: 0.5rem;
+  
+  /* Font variables */
+  --font-sans: 'Inter', system-ui, sans-serif;
+  --font-heading: 'Playfair Display', serif;
+}
+
+/* Base layer styles */
+@layer base {
+  * {
+    @apply border-border;
+  }
+  
+  body {
+    @apply bg-background text-foreground;
+    font-family: var(--font-sans);
+    font-feature-settings: "rlig" 1, "calt" 1;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  /* Mobile-first responsive typography */
+  h1, h2, h3, h4, h5, h6 {
+    font-family: var(--font-heading);
+    font-weight: 600;
+    line-height: 1.2;
+  }
+
+  h1 {
+    @apply text-3xl md:text-4xl lg:text-5xl;
+  }
+
+  h2 {
+    @apply text-2xl md:text-3xl lg:text-4xl;
+  }
+
+  h3 {
+    @apply text-xl md:text-2xl lg:text-3xl;
+  }
+
+  h4 {
+    @apply text-lg md:text-xl lg:text-2xl;
+  }
+
+  /* Focus styles for accessibility */
+  *:focus-visible {
+    @apply outline-none ring-2 ring-ring ring-offset-2;
+  }
+
+  /* Remove focus for mouse users */
+  *:focus:not(:focus-visible) {
+    @apply outline-none;
+  }
+
+  /* Smooth scrolling */
+  html {
+    scroll-behavior: smooth;
+  }
+
+  /* Mobile viewport fixes */
+  html, body {
+    overflow-x: hidden;
+  }
+
+  /* iOS safe area support */
+  @supports (padding: env(safe-area-inset-top)) {
+    body {
+      padding-top: env(safe-area-inset-top);
+      padding-bottom: env(safe-area-inset-bottom);
+      padding-left: env(safe-area-inset-left);
+      padding-right: env(safe-area-inset-right);
+    }
+  }
+}
+
+/* Component layer styles */
+@layer components {
+  /* Custom button variants for jewelry store */
+  .btn-jewelry {
+    @apply inline-flex items-center justify-center rounded-md text-sm font-medium 
+           transition-colors focus-visible:outline-none focus-visible:ring-2 
+           focus-visible:ring-ring focus-visible:ring-offset-2 disabled:opacity-50 
+           disabled:pointer-events-none ring-offset-background;
+  }
+
+  .btn-jewelry-primary {
+    @apply btn-jewelry bg-primary text-white hover:bg-primary/90 
+           active:bg-primary/95 touch-target;
+  }
+
+  .btn-jewelry-secondary {
+    @apply btn-jewelry bg-secondary text-white hover:bg-secondary/90 
+           active:bg-secondary/95 touch-target;
+  }
+
+  .btn-jewelry-outline {
+    @apply btn-jewelry border border-border bg-background hover:bg-accent 
+           hover:text-accent-foreground touch-target;
+  }
+
+  /* Card component for jewelry products */
+  .jewelry-card {
+    @apply bg-card text-card-foreground rounded-lg border shadow-sm 
+           hover:shadow-md transition-shadow duration-200;
+  }
+
+  /* Product grid responsive layout */
+  .product-grid {
+    @apply grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 
+           gap-4 md:gap-6;
+  }
+
+  /* Mobile-first navigation */
+  .mobile-nav {
+    @apply fixed bottom-0 left-0 right-0 bg-card border-t border-border 
+           flex items-center justify-around py-2 px-4 touch-target-large;
+  }
+
+  /* Loading shimmer effect */
+  .shimmer {
+    @apply relative overflow-hidden bg-muted;
+  }
+
+  .shimmer::after {
+    @apply absolute inset-0 -translate-x-full animate-shimmer 
+           bg-gradient-to-r from-transparent via-white/20 to-transparent;
+    content: '';
+  }
+
+  /* Jewelry-specific design elements */
+  .jewelry-divider {
+    @apply relative text-center;
+  }
+
+  .jewelry-divider::before {
+    @apply absolute top-1/2 left-0 right-0 h-px bg-border;
+    content: '';
+  }
+
+  .jewelry-divider span {
+    @apply bg-background px-4 text-muted-foreground;
+  }
+
+  /* WhatsApp floating button */
+  .whatsapp-float {
+    @apply fixed bottom-6 right-6 z-50 bg-green-500 text-white 
+           rounded-full p-4 shadow-lg hover:bg-green-600 
+           transition-colors touch-target-large;
+  }
+
+  /* Image aspect ratios for products */
+  .aspect-jewelry {
+    aspect-ratio: 1 / 1;
+  }
+
+  .aspect-jewelry-wide {
+    aspect-ratio: 4 / 3;
+  }
+
+  /* Responsive container */
+  .container-jewelry {
+    @apply container mx-auto px-4 sm:px-6 lg:px-8;
+  }
+}
+
+/* Utility layer styles */
+@layer utilities {
+  /* Text utilities for jewelry store */
+  .text-jewelry-gradient {
+    @apply bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent;
+  }
+
+  /* Mobile touch improvements */
+  .touch-action-pan-x {
+    touch-action: pan-x;
+  }
+
+  .touch-action-pan-y {
+    touch-action: pan-y;
+  }
+
+  /* Hide scrollbar but keep functionality */
+  .scrollbar-hide {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+
+  .scrollbar-hide::-webkit-scrollbar {
+    display: none;
+  }
+
+  /* Glassmorphism effect */
+  .glass {
+    @apply backdrop-blur-md bg-white/80 border border-white/20;
+  }
+
+  /* Safe area utilities */
+  .pt-safe {
+    padding-top: env(safe-area-inset-top);
+  }
+
+  .pb-safe {
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+
+  .pl-safe {
+    padding-left: env(safe-area-inset-left);
+  }
+
+  .pr-safe {
+    padding-right: env(safe-area-inset-right);
+  }
+
+  /* Animation utilities */
+  .animate-fade-in-up {
+    animation: fade-in-up 0.6s ease-out;
+  }
+
+  @keyframes fade-in-up {
+    from {
+      opacity: 0;
+      transform: translateY(20px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  /* Line clamp utilities */
+  .line-clamp-1 {
+    overflow: hidden;
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 1;
+  }
+
+  .line-clamp-2 {
+    overflow: hidden;
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
+  }
+
+  .line-clamp-3 {
+    overflow: hidden;
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 3;
+  }
+}
+
+/* Print styles */
+@media print {
+  .no-print {
+    display: none !important;
+  }
+}
+
+/* Reduced motion preferences */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* High contrast mode support */
+@media (prefers-contrast: high) {
+  :root {
+    --color-border: #000000;
+    --color-ring: #000000;
+  }
+}
+
+/* Dark mode support (for future implementation) */
+@media (prefers-color-scheme: dark) {
+  .dark {
+    --color-background: #0F172A;
+    --color-foreground: #F8FAFC;
+    --color-card: #1E293B;
+    --color-card-foreground: #F8FAFC;
+    --color-border: #334155;
+    --color-input: #1E293B;
+    --color-muted: #1E293B;
+    --color-muted-foreground: #94A3B8;
+  }
+} 
