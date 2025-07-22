@@ -7,8 +7,12 @@ import { healthService } from './services/api';
 import CustomerLayout from './pages/customer/CustomerLayout';
 import ProductCatalog from './pages/customer/ProductCatalog';
 import AdminLogin from './pages/admin/AdminLogin';
+import AdminLayout from './components/admin/AdminLayout';
 import AdminDashboard from './pages/admin/AdminDashboard';
-import AdminThemes from './pages/admin/AdminThemes';
+import AdminSettings from './pages/admin/AdminSettings';
+import AdminProducts from './pages/admin/AdminProducts';
+import AdminOrders from './pages/admin/AdminOrders';
+import AdminAnalytics from './pages/admin/AdminAnalytics';
 
 // Demo/Landing page
 import LandingPage from './pages/LandingPage';
@@ -41,6 +45,13 @@ function App() {
         // Check if admin is logged in (basic localStorage check for demo)
         const adminToken = localStorage.getItem('admin_token');
         setIsAuthenticated(!!adminToken);
+
+        // Apply saved font
+        const savedFont = localStorage.getItem('selected-font');
+        if (savedFont) {
+          document.documentElement.style.setProperty('--font-family', `'${savedFont}', 'Inter', system-ui, sans-serif`);
+          document.body.style.fontFamily = `'${savedFont}', 'Inter', system-ui, sans-serif`;
+        }
       } catch (error) {
         console.error('Failed to initialize app:', error);
         setIsApiConnected(false);
@@ -83,13 +94,16 @@ function App() {
           element={!isAuthenticated ? <AdminLogin onLogin={setIsAuthenticated} /> : <Navigate to="/admin/dashboard" />}
         />
         <Route
-          path="/admin/dashboard"
-          element={isAuthenticated ? <AdminDashboard /> : <Navigate to="/admin/login" />}
-        />
-        <Route
-          path="/admin/themes"
-          element={isAuthenticated ? <AdminThemes /> : <Navigate to="/admin/login" />}
-        />
+          path="/admin"
+          element={isAuthenticated ? <AdminLayout /> : <Navigate to="/admin/login" />}
+        >
+          <Route path="dashboard" element={<AdminDashboard />} />
+          <Route path="settings" element={<AdminSettings />} />
+          <Route path="products" element={<AdminProducts />} />
+          <Route path="orders" element={<AdminOrders />} />
+          <Route path="analytics" element={<AdminAnalytics />} />
+          <Route index element={<Navigate to="/admin/dashboard" />} />
+        </Route>
 
         {/* Catch all - redirect to landing */}
         <Route path="*" element={<Navigate to="/" />} />
