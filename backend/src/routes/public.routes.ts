@@ -1,6 +1,11 @@
 import { Router } from 'express';
+import { createOrder } from '@/controllers/public/order.controller.js';
+import { orderRateLimit, publicApiRateLimit } from '@/middleware/rate-limit.middleware.js';
 
 const router = Router();
+
+// Apply general rate limiting to all public routes
+router.use(publicApiRateLimit);
 
 // Public routes for customers
 router.get('/products', (req, res) => {
@@ -23,15 +28,8 @@ router.get('/products/:id', (req, res) => {
   });
 });
 
-router.post('/orders', (req, res) => {
-  res.json({
-    success: true,
-    data: {
-      order: null,
-      message: 'Order creation - implementation in progress'
-    }
-  });
-});
+// Order creation with stricter rate limiting and CAPTCHA
+router.post('/orders', orderRateLimit, createOrder);
 
 router.get('/themes', (req, res) => {
   res.json({

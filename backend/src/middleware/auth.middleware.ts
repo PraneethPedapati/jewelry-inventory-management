@@ -1,5 +1,5 @@
 import { Request, Response, NextFunction } from 'express';
-import { verify } from 'jose';
+import { jwtVerify } from 'jose';
 import rateLimit from 'express-rate-limit';
 import { db } from '@/db/connection.js';
 import { admins } from '@/db/schema.js';
@@ -43,7 +43,7 @@ export const authenticateAdmin = async (
 
     // Verify JWT token
     const secret = new TextEncoder().encode(config.JWT_SECRET);
-    const { payload } = await verify(token, secret);
+    const { payload } = await jwtVerify(token, secret);
 
     if (!payload.sub || typeof payload.sub !== 'string') {
       throw new UnauthorizedError('Invalid token payload');

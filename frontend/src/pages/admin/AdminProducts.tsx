@@ -1,7 +1,7 @@
-import React, { useState } from 'react';
-import { Package, Plus, Search, Filter, MoreHorizontal, Edit, Eye, Upload, X, Trash2, TrendingUp, ShoppingBag, AlertTriangle } from 'lucide-react';
+import React, { useState, useMemo } from 'react';
+import { Package, Plus, Search, Edit, Upload, X, Trash2, TrendingUp, ShoppingBag, AlertTriangle, ChevronLeft, ChevronRight } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
@@ -11,9 +11,11 @@ interface Product {
   name: string;
   category: 'chain' | 'bracelet-anklet';
   price: string;
+  originalPrice?: string;
   stock: 'In Stock' | 'Out of Stock';
   description: string;
   image: string;
+  createdAt?: string;
 }
 
 const AdminProducts: React.FC = () => {
@@ -21,7 +23,7 @@ const AdminProducts: React.FC = () => {
   const [showEditModal, setShowEditModal] = useState(false);
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
-  const [uploading, setUploading] = useState(false);
+  // const [uploading, setUploading] = useState(false);
 
   const handleCreateProduct = () => {
     setSelectedImage(null);
@@ -41,35 +43,35 @@ const AdminProducts: React.FC = () => {
     }
   };
 
-  // Imgur upload function
-  const uploadToImgur = async (file: File): Promise<string> => {
-    setUploading(true);
-    try {
-      const formData = new FormData();
-      formData.append('image', file);
+  // Imgur upload function (commented out for demo)
+  // const uploadToImgur = async (file: File): Promise<string> => {
+  //   setUploading(true);
+  //   try {
+  //     const formData = new FormData();
+  //     formData.append('image', file);
 
-      const response = await fetch('https://api.imgur.com/3/image', {
-        method: 'POST',
-        headers: {
-          'Authorization': 'Client-ID 546c25a59c58ad7', // Demo client ID - replace with your actual one
-        },
-        body: formData,
-      });
+  //     const response = await fetch('https://api.imgur.com/3/image', {
+  //       method: 'POST',
+  //       headers: {
+  //         'Authorization': 'Client-ID 546c25a59c58ad7', // Demo client ID - replace with your actual one
+  //       },
+  //       body: formData,
+  //     });
 
-      const data = await response.json();
+  //     const data = await response.json();
 
-      if (data.success) {
-        return data.data.link;
-      } else {
-        throw new Error('Upload failed');
-      }
-    } catch (error) {
-      console.error('Imgur upload error:', error);
-      throw error;
-    } finally {
-      setUploading(false);
-    }
-  };
+  //     if (data.success) {
+  //       return data.data.link;
+  //     } else {
+  //       throw new Error('Upload failed');
+  //     }
+  //   } catch (error) {
+  //     console.error('Imgur upload error:', error);
+  //     throw error;
+  //   } finally {
+  //     setUploading(false);
+  //   }
+  // };
 
   const handleImageUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
@@ -106,6 +108,8 @@ const AdminProducts: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [filterStatus, setFilterStatus] = useState('All');
   const [filterCategory, setFilterCategory] = useState('All');
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 8;
 
   const [products, setProducts] = useState<Product[]>([
     {
@@ -113,9 +117,11 @@ const AdminProducts: React.FC = () => {
       name: 'Diamond Solitaire Chain',
       category: 'chain',
       price: '₹2,04,999',
+      originalPrice: '₹2,59,999',
       stock: 'In Stock',
       description: 'Elegant 1-carat diamond solitaire charm with sterling silver chain.',
-      image: 'https://picsum.photos/300/300?random=1'
+      image: 'https://picsum.photos/300/300?random=1',
+      createdAt: '2024-01-10T10:00:00Z'
     },
     {
       id: 2,
@@ -124,16 +130,19 @@ const AdminProducts: React.FC = () => {
       price: '₹73,999',
       stock: 'In Stock',
       description: 'Beautiful 18k gold heart charm bracelet with intricate link design.',
-      image: 'https://picsum.photos/300/300?random=2'
+      image: 'https://picsum.photos/300/300?random=2',
+      createdAt: '2024-01-01T10:00:00Z'
     },
     {
       id: 3,
       name: 'Silver Moon Anklet',
       category: 'bracelet-anklet',
       price: '₹16,499',
+      originalPrice: '₹21,999',
       stock: 'Out of Stock',
       description: 'Classic sterling silver moon charm anklet with polished finish.',
-      image: 'https://picsum.photos/300/300?random=3'
+      image: 'https://picsum.photos/300/300?random=3',
+      createdAt: '2024-01-08T10:00:00Z'
     },
     {
       id: 4,
@@ -142,7 +151,8 @@ const AdminProducts: React.FC = () => {
       price: '₹28,999',
       stock: 'In Stock',
       description: 'Lustrous freshwater pearl charm bracelet with sterling silver clasp.',
-      image: 'https://picsum.photos/300/300?random=4'
+      image: 'https://picsum.photos/300/300?random=4',
+      createdAt: '2024-01-12T10:00:00Z'
     },
     {
       id: 5,
@@ -151,7 +161,8 @@ const AdminProducts: React.FC = () => {
       price: '₹2,72,999',
       stock: 'In Stock',
       description: 'Stunning blue sapphire pendant with diamonds on platinum chain.',
-      image: 'https://picsum.photos/300/300?random=5'
+      image: 'https://picsum.photos/300/300?random=5',
+      createdAt: '2024-01-11T10:00:00Z'
     },
     {
       id: 6,
@@ -160,7 +171,8 @@ const AdminProducts: React.FC = () => {
       price: '₹1,56,999',
       stock: 'Out of Stock',
       description: 'Luxury rose gold charm anklet with delicate chain design.',
-      image: 'https://picsum.photos/300/300?random=6'
+      image: 'https://picsum.photos/300/300?random=6',
+      createdAt: '2023-12-25T10:00:00Z'
     }
   ]);
 
@@ -187,15 +199,34 @@ const AdminProducts: React.FC = () => {
   };
 
   // Filter products based on search, status, and category
-  const filteredProducts = products.filter(product => {
-    const matchesSearch = product.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      product.description.toLowerCase().includes(searchTerm.toLowerCase());
+  const filteredProducts = useMemo(() => {
+    return products.filter(product => {
+      const matchesSearch = product.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        product.description.toLowerCase().includes(searchTerm.toLowerCase());
 
-    const matchesStatus = filterStatus === 'All' || product.stock === filterStatus;
-    const matchesCategory = filterCategory === 'All' || product.category === filterCategory;
+      const matchesStatus = filterStatus === 'All' || product.stock === filterStatus;
+      const matchesCategory = filterCategory === 'All' || product.category === filterCategory;
 
-    return matchesSearch && matchesStatus && matchesCategory;
-  });
+      return matchesSearch && matchesStatus && matchesCategory;
+    });
+  }, [products, searchTerm, filterStatus, filterCategory]);
+
+  // Pagination logic
+  const totalPages = Math.ceil(filteredProducts.length / itemsPerPage);
+  const paginatedProducts = useMemo(() => {
+    const startIndex = (currentPage - 1) * itemsPerPage;
+    return filteredProducts.slice(startIndex, startIndex + itemsPerPage);
+  }, [filteredProducts, currentPage]);
+
+  // Reset to first page when filters change
+  React.useEffect(() => {
+    setCurrentPage(1);
+  }, [searchTerm, filterStatus, filterCategory]);
+
+  const handlePageChange = (page: number) => {
+    setCurrentPage(page);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
 
   const categoryDisplayNames = {
     'chain': 'Chain',
@@ -206,8 +237,6 @@ const AdminProducts: React.FC = () => {
   const totalProducts = products.length;
   const inStockProducts = products.filter(p => p.stock === 'In Stock').length;
   const outOfStockProducts = products.filter(p => p.stock === 'Out of Stock').length;
-  const chainProducts = products.filter(p => p.category === 'chain').length;
-  const braceletAnkletProducts = products.filter(p => p.category === 'bracelet-anklet').length;
   const avgPrice = products.reduce((sum, p) => sum + parseFloat(p.price.replace('₹', '').replace(/,/g, '')), 0) / totalProducts;
 
   return (
@@ -360,12 +389,19 @@ const AdminProducts: React.FC = () => {
       <div>
         <div className="flex items-center justify-between mb-4">
           <h2 className="text-xl font-semibold">Product Inventory</h2>
-          <p className="text-muted-foreground">
-            {filteredProducts.length} of {products.length} products
-            {searchTerm && ` matching "${searchTerm}"`}
-            {filterStatus !== 'All' && ` (${filterStatus})`}
-            {filterCategory !== 'All' && ` in ${categoryDisplayNames[filterCategory as keyof typeof categoryDisplayNames]}`}
-          </p>
+          <div className="text-right">
+            <p className="text-muted-foreground">
+              {filteredProducts.length} of {products.length} products
+              {searchTerm && ` matching "${searchTerm}"`}
+              {filterStatus !== 'All' && ` (${filterStatus})`}
+              {filterCategory !== 'All' && ` in ${categoryDisplayNames[filterCategory as keyof typeof categoryDisplayNames]}`}
+            </p>
+            {totalPages > 1 && (
+              <p className="text-sm text-muted-foreground">
+                Page {currentPage} of {totalPages}
+              </p>
+            )}
+          </div>
         </div>
 
         {filteredProducts.length === 0 ? (
@@ -380,7 +416,7 @@ const AdminProducts: React.FC = () => {
           </div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-            {filteredProducts.map((product) => (
+            {paginatedProducts.map((product) => (
               <Card key={product.id} className="overflow-hidden hover:shadow-lg transition-shadow duration-200">
                 <div className="aspect-square relative bg-muted">
                   <img
@@ -391,13 +427,18 @@ const AdminProducts: React.FC = () => {
                       e.currentTarget.src = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMzAwIiBoZWlnaHQ9IjMwMCIgdmlld0JveD0iMCAwIDMwMCAzMDAiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+CjxyZWN0IHdpZHRoPSIzMDAiIGhlaWdodD0iMzAwIiBmaWxsPSIjRjNGNEY2Ii8+CjxjaXJjbGUgY3g9IjE1MCIgY3k9IjEyMCIgcj0iNDAiIGZpbGw9IiM5Q0E4QjQiLz4KPHJlY3QgeD0iMTEwIiB5PSIxODAiIHdpZHRoPSI4MCIgaGVpZ2h0PSI4MCIgZmlsbD0iIzlDQThCNCIvPgo8L3N2Zz4=';
                     }}
                   />
-                  <div className="absolute top-2 right-2">
+                  <div className="absolute top-2 right-2 flex flex-col gap-1">
                     <Badge
                       variant={product.stock === 'In Stock' ? 'default' : 'destructive'}
                       className={`text-xs ${product.stock === 'In Stock' ? 'bg-green-500 hover:bg-green-600' : ''}`}
                     >
                       {product.stock}
                     </Badge>
+                    {product.originalPrice && (
+                      <Badge variant="destructive" className="text-xs">
+                        Sale
+                      </Badge>
+                    )}
                   </div>
                   <div className="absolute top-2 left-2">
                     <Badge variant="outline" className="text-xs capitalize">
@@ -411,7 +452,14 @@ const AdminProducts: React.FC = () => {
                     <h3 className="font-semibold text-lg line-clamp-1 mt-3" title={product.name}>{product.name}</h3>
                     <p className="text-sm text-muted-foreground line-clamp-2 min-h-[2.5rem]" title={product.description}>{product.description}</p>
                     <div className="flex items-center justify-between pt-2">
-                      <span className="text-lg font-bold text-primary">{product.price}</span>
+                      <div className="flex items-center space-x-2">
+                        <span className="text-lg font-bold text-primary">{product.price}</span>
+                        {product.originalPrice && (
+                          <span className="text-sm text-muted-foreground line-through">
+                            {product.originalPrice}
+                          </span>
+                        )}
+                      </div>
                       <div className="flex gap-2">
                         <Button
                           variant="outline"
@@ -439,6 +487,64 @@ const AdminProducts: React.FC = () => {
             ))}
           </div>
         )}
+
+        {/* Pagination */}
+        {totalPages > 1 && (
+          <div className="flex items-center justify-center mt-8 gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => handlePageChange(currentPage - 1)}
+              disabled={currentPage === 1}
+              className="h-10 px-3"
+            >
+              <ChevronLeft className="w-4 h-4" />
+            </Button>
+
+            <div className="flex items-center gap-1">
+              {[...Array(totalPages)].map((_, index) => {
+                const page = index + 1;
+                // Show first page, last page, current page, and pages around current
+                const showPage = page === 1 ||
+                  page === totalPages ||
+                  Math.abs(page - currentPage) <= 1;
+
+                if (!showPage) {
+                  // Show dots for gaps
+                  if (page === 2 && currentPage > 4) {
+                    return <span key={page} className="px-2 text-muted-foreground">...</span>;
+                  }
+                  if (page === totalPages - 1 && currentPage < totalPages - 3) {
+                    return <span key={page} className="px-2 text-muted-foreground">...</span>;
+                  }
+                  return null;
+                }
+
+                return (
+                  <Button
+                    key={page}
+                    variant={currentPage === page ? "default" : "outline"}
+                    size="sm"
+                    onClick={() => handlePageChange(page)}
+                    className="h-10 w-10 p-0"
+                  >
+                    {page}
+                  </Button>
+                );
+              })}
+            </div>
+
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => handlePageChange(currentPage + 1)}
+              disabled={currentPage === totalPages}
+              className="h-10 px-3"
+            >
+              <ChevronRight className="w-4 h-4" />
+            </Button>
+          </div>
+        )}
       </div>
 
       {/* Create Product Modal */}
@@ -453,7 +559,7 @@ const AdminProducts: React.FC = () => {
           selectedImage={selectedImage}
           setSelectedImage={setSelectedImage}
           handleImageUpload={handleImageUpload}
-          uploading={uploading}
+          uploading={false}
         />
       )}
 
@@ -471,7 +577,7 @@ const AdminProducts: React.FC = () => {
           selectedImage={selectedImage}
           setSelectedImage={setSelectedImage}
           handleImageUpload={handleImageUpload}
-          uploading={uploading}
+          uploading={false}
         />
       )}
     </div>
@@ -504,18 +610,21 @@ const ProductModal: React.FC<ProductModalProps> = ({
     name: product?.name || '',
     category: product?.category || 'chain' as 'chain' | 'bracelet-anklet',
     price: product?.price.replace('₹', '').replace(/,/g, '') || '',
+    originalPrice: product?.originalPrice?.replace('₹', '').replace(/,/g, '') || '',
     stock: product?.stock || 'In Stock' as 'In Stock' | 'Out of Stock',
     description: product?.description || ''
   });
 
   const handleSubmit = () => {
-    const productData: Omit<Product, 'id'> = {
+    const productData: any = {
       name: formData.name,
       category: formData.category,
       price: `₹${Number(formData.price).toLocaleString()}`,
+      originalPrice: formData.originalPrice ? `₹${Number(formData.originalPrice).toLocaleString()}` : undefined,
       stock: formData.stock,
       description: formData.description,
-      image: selectedImage || '/api/placeholder/300/300'
+      image: selectedImage || '/api/placeholder/300/300',
+      createdAt: new Date().toISOString()
     };
 
     onSave(productData);
@@ -626,6 +735,20 @@ const ProductModal: React.FC<ProductModalProps> = ({
                 onChange={(e) => setFormData({ ...formData, price: e.target.value })}
                 placeholder="Enter price"
               />
+            </div>
+
+            <div>
+              <Label htmlFor="product-original-price">Original Price (for discounts)</Label>
+              <Input
+                id="product-original-price"
+                type="number"
+                value={formData.originalPrice}
+                onChange={(e) => setFormData({ ...formData, originalPrice: e.target.value })}
+                placeholder="Enter original price (optional)"
+              />
+              <p className="text-xs text-muted-foreground mt-1">
+                Leave empty if no discount. Sale badge will show if original price is higher than price.
+              </p>
             </div>
 
             <div>

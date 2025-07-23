@@ -2,10 +2,12 @@ import React, { useEffect, useState } from 'react';
 import { Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import { useThemeStore } from './stores/theme.store';
 import { healthService } from './services/api';
+import { CartProvider } from './context/CartContext';
 
 // Import pages
 import CustomerLayout from './pages/customer/CustomerLayout';
 import ProductCatalog from './pages/customer/ProductCatalog';
+import Cart from './components/Cart';
 import AdminLogin from './pages/admin/AdminLogin';
 import AdminLayout from './components/admin/AdminLayout';
 import AdminDashboard from './pages/admin/AdminDashboard';
@@ -76,41 +78,43 @@ function App() {
   }
 
   return (
-    <div className="min-h-screen bg-background text-foreground">
-      <Routes>
-        {/* Landing/Demo Page */}
-        <Route path="/" element={<LandingPage isApiConnected={isApiConnected} />} />
+    <CartProvider>
+      <div className="min-h-screen bg-background text-foreground">
+        <Routes>
+          {/* Landing/Demo Page */}
+          <Route path="/" element={<LandingPage isApiConnected={isApiConnected} />} />
 
-        {/* Customer-facing pages */}
-        <Route path="/shop" element={<CustomerLayout />}>
-          <Route index element={<ProductCatalog />} />
-          <Route path="products" element={<ProductCatalog />} />
-          <Route path="cart" element={<div className="p-8">Shopping Cart (Coming Soon)</div>} />
-          <Route path="orders" element={<div className="p-8">Order History (Coming Soon)</div>} />
-        </Route>
+          {/* Customer-facing pages */}
+          <Route path="/shop" element={<CustomerLayout />}>
+            <Route index element={<ProductCatalog />} />
+            <Route path="products" element={<ProductCatalog />} />
+            <Route path="cart" element={<Cart />} />
+            <Route path="orders" element={<div className="p-8">Order History (Coming Soon)</div>} />
+          </Route>
 
-        {/* Admin routes */}
-        <Route
-          path="/admin/login"
-          element={!isAuthenticated ? <AdminLogin onLogin={setIsAuthenticated} /> : <Navigate to="/admin/dashboard" />}
-        />
-        <Route
-          path="/admin"
-          element={isAuthenticated ? <AdminLayout /> : <Navigate to="/admin/login" />}
-        >
-          <Route path="dashboard" element={<AdminDashboard />} />
-          <Route path="settings" element={<AdminSettings />} />
-          <Route path="products" element={<AdminProducts />} />
-          <Route path="orders" element={<AdminOrders />} />
-          <Route path="expenses" element={<AdminExpenses />} />
-          <Route path="analytics" element={<AdminAnalytics />} />
-          <Route index element={<Navigate to="/admin/dashboard" />} />
-        </Route>
+          {/* Admin routes */}
+          <Route
+            path="/admin/login"
+            element={!isAuthenticated ? <AdminLogin onLogin={setIsAuthenticated} /> : <Navigate to="/admin/dashboard" />}
+          />
+          <Route
+            path="/admin"
+            element={isAuthenticated ? <AdminLayout /> : <Navigate to="/admin/login" />}
+          >
+            <Route path="dashboard" element={<AdminDashboard />} />
+            <Route path="settings" element={<AdminSettings />} />
+            <Route path="products" element={<AdminProducts />} />
+            <Route path="orders" element={<AdminOrders />} />
+            <Route path="expenses" element={<AdminExpenses />} />
+            <Route path="analytics" element={<AdminAnalytics />} />
+            <Route index element={<Navigate to="/admin/dashboard" />} />
+          </Route>
 
-        {/* Catch all - redirect to landing */}
-        <Route path="*" element={<Navigate to="/" />} />
-      </Routes>
-    </div>
+          {/* Catch all - redirect to landing */}
+          <Route path="*" element={<Navigate to="/" />} />
+        </Routes>
+      </div>
+    </CartProvider>
   );
 }
 
