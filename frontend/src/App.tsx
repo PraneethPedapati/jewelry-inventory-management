@@ -12,6 +12,7 @@ import AdminDashboard from './pages/admin/AdminDashboard';
 import AdminSettings from './pages/admin/AdminSettings';
 import AdminProducts from './pages/admin/AdminProducts';
 import AdminOrders from './pages/admin/AdminOrders';
+import AdminExpenses from './pages/admin/AdminExpenses';
 import AdminAnalytics from './pages/admin/AdminAnalytics';
 
 // Demo/Landing page
@@ -101,6 +102,7 @@ function App() {
           <Route path="settings" element={<AdminSettings />} />
           <Route path="products" element={<AdminProducts />} />
           <Route path="orders" element={<AdminOrders />} />
+          <Route path="expenses" element={<AdminExpenses />} />
           <Route path="analytics" element={<AdminAnalytics />} />
           <Route index element={<Navigate to="/admin/dashboard" />} />
         </Route>

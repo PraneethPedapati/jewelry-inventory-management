@@ -8,7 +8,9 @@ import {
   Settings,
   LogOut,
   ChevronLeft,
-  ChevronRight
+  ChevronRight,
+  User,
+  Receipt
 } from 'lucide-react';
 
 const AdminLayout: React.FC = () => {
@@ -38,6 +40,11 @@ const AdminLayout: React.FC = () => {
       icon: ShoppingCart,
     },
     {
+      title: 'Expenses',
+      href: '/admin/expenses',
+      icon: Receipt,
+    },
+    {
       title: 'Analytics',
       href: '/admin/analytics',
       icon: BarChart3,
@@ -56,16 +63,19 @@ const AdminLayout: React.FC = () => {
   return (
     <div className="min-h-screen bg-background">
       {/* Header */}
-      <header className="bg-card border-b border-border">
+      <header className="bg-card border-b border-border fixed top-0 left-0 right-0 z-30">
         <div className="px-6 py-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-4">
-              <Link to="/" className="flex items-center space-x-2">
-                <div className="w-8 h-8 bg-primary rounded-full flex items-center justify-center">
-                  <span className="text-white font-bold text-sm">J</span>
+              <div className="flex items-center space-x-3">
+                <div className="w-10 h-10 bg-primary rounded-lg flex items-center justify-center">
+                  <span className="text-white font-bold text-lg">JS</span>
                 </div>
-                <span className="font-semibold text-foreground">Admin Panel</span>
-              </Link>
+                <div>
+                  <h1 className="font-bold text-foreground text-lg">Jewelry Store</h1>
+                  <p className="text-xs text-muted-foreground">Admin Panel</p>
+                </div>
+              </div>
             </div>
 
             <div className="flex items-center space-x-4">
@@ -80,17 +90,17 @@ const AdminLayout: React.FC = () => {
         </div>
       </header>
 
-      <div className="flex">
-        {/* Collapsible Sidebar */}
+      <div className="flex pt-20">
+        {/* Fixed Sidebar */}
         <aside
-          className={`bg-card border-r border-border min-h-screen transition-all duration-300 ease-in-out ${isSidebarExpanded ? 'w-64' : 'w-16'
-            } group`}
+          className={`bg-card border-r border-border fixed left-0 top-20 bottom-0 transition-all duration-300 ease-in-out ${isSidebarExpanded ? 'w-64' : 'w-16'
+            } group z-20`}
           onMouseEnter={() => setIsSidebarExpanded(true)}
           onMouseLeave={() => setIsSidebarExpanded(false)}
         >
           <div className="flex flex-col h-full">
             {/* Navigation Menu */}
-            <nav className="flex-1 p-3 space-y-1">
+            <nav className="flex-1 p-3 space-y-1 overflow-y-auto">
               {menuItems.map((item) => {
                 const Icon = item.icon;
                 const isActive = isActiveRoute(item.href);
@@ -100,8 +110,8 @@ const AdminLayout: React.FC = () => {
                     key={item.href}
                     to={item.href}
                     className={`flex items-center space-x-3 px-3 py-3 rounded-md transition-all duration-200 ${isActive
-                        ? 'text-primary bg-primary/10'
-                        : 'text-muted-foreground hover:text-foreground hover:bg-muted'
+                      ? 'text-primary bg-primary/10'
+                      : 'text-muted-foreground hover:text-foreground hover:bg-muted'
                       }`}
                     title={!isSidebarExpanded ? item.title : undefined}
                   >
@@ -117,11 +127,25 @@ const AdminLayout: React.FC = () => {
               })}
             </nav>
 
-            {/* Logout Button at Bottom */}
+            {/* Admin Profile Section */}
             <div className="p-3 border-t border-border">
+              <div className={`flex items-center px-3 py-3 text-muted-foreground ${!isSidebarExpanded ? 'justify-center' : 'space-x-3'}`}>
+                <div className="w-8 h-8 bg-primary/10 rounded-full flex items-center justify-center flex-shrink-0">
+                  <User className="w-4 h-4 text-primary" />
+                </div>
+                <div
+                  className={`transition-all duration-300 ${isSidebarExpanded ? 'opacity-100 w-auto' : 'opacity-0 w-0 overflow-hidden'
+                    }`}
+                >
+                  <p className="text-sm font-medium text-foreground">Admin User</p>
+                  <p className="text-xs text-muted-foreground">Store Administrator</p>
+                </div>
+              </div>
+
+              {/* Logout Button */}
               <button
                 onClick={handleLogout}
-                className="flex items-center space-x-3 px-3 py-3 w-full text-muted-foreground hover:text-foreground hover:bg-muted rounded-md transition-all duration-200"
+                className={`flex items-center w-full px-3 py-3 text-muted-foreground hover:text-foreground hover:bg-muted rounded-md transition-all duration-200 mt-2 ${!isSidebarExpanded ? 'justify-center' : 'space-x-3'}`}
                 title={!isSidebarExpanded ? 'Logout' : undefined}
               >
                 <LogOut className="w-5 h-5 flex-shrink-0" />
@@ -148,7 +172,7 @@ const AdminLayout: React.FC = () => {
         </aside>
 
         {/* Main Content */}
-        <main className="flex-1 overflow-auto">
+        <main className={`flex-1 transition-all duration-300 ${isSidebarExpanded ? 'ml-64' : 'ml-16'} overflow-auto`}>
           <Outlet />
         </main>
       </div>

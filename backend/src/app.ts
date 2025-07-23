@@ -4,6 +4,8 @@ import helmet from 'helmet';
 import compression from 'compression';
 import dotenv from 'dotenv';
 import { getThemes, getActiveTheme, setActiveTheme } from '@/controllers/theme.controller.js';
+import adminRoutes from '@/routes/admin.routes.js';
+import publicRoutes from '@/routes/public.routes.js';
 
 // Load environment variables
 dotenv.config();
@@ -62,7 +64,7 @@ class Application {
         timestamp: new Date().toISOString(),
         version: '1.0.0',
         environment: process.env.NODE_ENV || 'development',
-        message: '🎨 Jewelry Inventory Management API - Color Palettes Ready!'
+        message: '🎨 Jewelry Inventory Management API - Ready for Business!'
       });
     });
 
@@ -71,32 +73,11 @@ class Application {
     this.app.get('/api/themes/active', getActiveTheme);
     this.app.post('/api/themes/activate', setActiveTheme);
 
-    this.app.get('/api/products', (req, res) => {
-      res.json({
-        success: true,
-        data: {
-          products: [
-            {
-              id: '1',
-              name: 'Butterfly Dream Chain',
-              charmDescription: 'Delicate butterfly charm with crystal accents',
-              chainDescription: 'Sterling silver curb chain',
-              basePrice: 45.00,
-              images: ['https://images.unsplash.com/photo-1515562141207-7a88fb7ce338?w=400']
-            },
-            {
-              id: '2',
-              name: 'Heart Lock Bracelet',
-              charmDescription: 'Heart-shaped lock charm with key detail',
-              chainDescription: 'Rose gold plated cable chain',
-              basePrice: 35.00,
-              images: ['https://images.unsplash.com/photo-1611955167811-4711904bb9f8?w=400']
-            }
-          ],
-          message: 'Sample jewelry products (database connection pending)'
-        }
-      });
-    });
+    // Admin routes
+    this.app.use('/api/admin', adminRoutes);
+
+    // Public routes
+    this.app.use('/api', publicRoutes);
 
     // 404 handler
     this.app.use('*', (req, res) => {

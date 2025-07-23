@@ -5,9 +5,11 @@ import {
   productTypes,
   products,
   productSpecifications,
-  systemConfigs
+  systemConfigs,
+  expenseCategories
 } from './schema.js';
 import { hash } from 'argon2';
+import { eq } from 'drizzle-orm';
 
 const seedDatabase = async (): Promise<void> => {
   try {
@@ -273,63 +275,75 @@ const seedDatabase = async (): Promise<void> => {
 
     await db.insert(productSpecifications).values(specifications);
 
-    // 6. Create system configurations
-    console.log('⚙️ Creating system configurations...');
+    // 6. Configure system settings
+    console.log('⚙️ Configuring system settings...');
     await db.insert(systemConfigs).values([
       {
         key: 'store_name',
-        value: { value: 'Elegant Jewelry Store' },
-        description: 'Store display name'
-      },
-      {
-        key: 'store_description',
-        value: { value: 'Handcrafted jewelry with love and precision' },
-        description: 'Store description for customers'
-      },
-      {
-        key: 'default_currency',
-        value: { value: 'USD' },
-        description: 'Default currency for pricing'
-      },
-      {
-        key: 'active_theme',
-        value: { themeId: 'default' },
-        description: 'Currently active color theme'
+        value: JSON.stringify('Elegant Jewelry Store'),
+        description: 'Display name for the jewelry store'
       },
       {
         key: 'whatsapp_enabled',
-        value: { enabled: true },
-        description: 'Enable WhatsApp integration'
+        value: JSON.stringify(true),
+        description: 'Enable WhatsApp notifications for orders'
       },
       {
-        key: 'low_stock_threshold',
-        value: { threshold: 5 },
-        description: 'Default low stock alert threshold'
+        key: 'default_currency',
+        value: JSON.stringify('INR'),
+        description: 'Default currency for pricing'
+      }
+    ]).onConflictDoNothing();
+
+    // 7. Create default expense categories
+    console.log('💰 Creating expense categories...');
+    await db.insert(expenseCategories).values([
+      {
+        name: 'Raw Materials',
+        description: 'Gold, silver, gemstones, and other raw materials for jewelry making'
+      },
+      {
+        name: 'Equipment & Tools',
+        description: 'Jewelry making tools, equipment, and machinery'
+      },
+      {
+        name: 'Marketing & Advertising',
+        description: 'Social media ads, photography, promotional materials'
+      },
+      {
+        name: 'Packaging & Shipping',
+        description: 'Jewelry boxes, shipping materials, courier charges'
+      },
+      {
+        name: 'Rent & Utilities',
+        description: 'Store rent, electricity, internet, and utility bills'
+      },
+      {
+        name: 'Professional Services',
+        description: 'Accounting, legal, design, and consultation fees'
+      },
+      {
+        name: 'Miscellaneous',
+        description: 'Other business-related expenses'
       }
     ]).onConflictDoNothing();
 
     console.log('✅ Database seeding completed successfully!');
-    console.log('📊 Created:');
-    console.log('   • 1 admin user (admin@jewelrystore.com / admin123!@#)');
-    console.log('   • 3 color themes (default, valentine, luxury)');
-    console.log('   • 3 product types (chain, bracelet, anklet)');
-    console.log(`   • ${insertedProducts.length} sample jewelry products`);
-    console.log(`   • ${specifications.length} product specifications`);
-    console.log('   • 6 system configurations');
-    console.log('');
-    console.log('🔐 Admin Login Credentials:');
-    console.log('   Email: admin@jewelrystore.com');
-    console.log('   Password: admin123!@#');
-    console.log('   ⚠️  Please change the admin password in production!');
+    console.log(`
+📊 Summary:
+- ✅ Admin user created (admin@jewelrystore.com / admin123!@#)
+- ✅ ${Object.keys(themeConfigs).length} color themes configured
+- ✅ 3 product types created (chain, bracelet, anklet)
+- ✅ ${sampleProducts.length} sample products with specifications
+- ✅ System configurations initialized
+- ✅ 7 expense categories created
+    `);
 
   } catch (error) {
-    console.error('❌ Seeding failed:', error);
+    console.error('❌ Database seeding failed:', error);
     throw error;
   }
 };
-
-// Import eq function for WHERE clauses
-import { eq } from 'drizzle-orm';
 
 // Run seeding if this script is called directly
 if (import.meta.url === `file://${process.argv[1]}`) {

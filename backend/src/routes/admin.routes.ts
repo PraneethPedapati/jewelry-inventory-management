@@ -1,5 +1,31 @@
 import { Router } from 'express';
 import { login, getProfile, changePassword } from '@/controllers/admin/auth.controller.js';
+import {
+  getProducts,
+  getProductById,
+  createProduct,
+  updateProduct,
+  deleteProduct,
+  getProductCategories
+} from '@/controllers/admin/product.controller.js';
+import {
+  getOrders,
+  getOrderById,
+  createOrder,
+  updateOrder,
+  deleteOrder,
+  getOrderStats,
+  exportOrders
+} from '@/controllers/admin/order.controller.js';
+import {
+  getExpenses,
+  getExpenseById,
+  createExpense,
+  updateExpense,
+  deleteExpense,
+  getExpenseCategories,
+  getExpenseStats
+} from '@/controllers/admin/expense.controller.js';
 import { authenticateAdmin, authRateLimit } from '@/middleware/auth.middleware.js';
 
 const router = Router();
@@ -7,17 +33,32 @@ const router = Router();
 // Auth routes
 router.post('/auth/login', authRateLimit, login);
 router.get('/auth/profile', authenticateAdmin, getProfile);
-router.put('/auth/password', authenticateAdmin, changePassword);
+router.post('/auth/change-password', authenticateAdmin, changePassword);
 
-// Placeholder for other admin routes
-router.get('/dashboard', authenticateAdmin, (req, res) => {
-  res.json({
-    success: true,
-    data: {
-      message: 'Admin dashboard - implementation in progress',
-      admin: req.admin
-    }
-  });
-});
+// Product routes
+router.get('/products', getProducts);
+router.get('/products/categories', getProductCategories);
+router.get('/products/:id', getProductById);
+router.post('/products', authenticateAdmin, createProduct);
+router.put('/products/:id', authenticateAdmin, updateProduct);
+router.delete('/products/:id', authenticateAdmin, deleteProduct);
+
+// Order routes
+router.get('/orders', getOrders);
+router.get('/orders/stats', getOrderStats);
+router.get('/orders/export', exportOrders);
+router.get('/orders/:id', getOrderById);
+router.post('/orders', authenticateAdmin, createOrder);
+router.put('/orders/:id', authenticateAdmin, updateOrder);
+router.delete('/orders/:id', authenticateAdmin, deleteOrder);
+
+// Expense routes
+router.get('/expenses', getExpenses);
+router.get('/expenses/categories', getExpenseCategories);
+router.get('/expenses/stats', getExpenseStats);
+router.get('/expenses/:id', getExpenseById);
+router.post('/expenses', authenticateAdmin, createExpense);
+router.put('/expenses/:id', authenticateAdmin, updateExpense);
+router.delete('/expenses/:id', authenticateAdmin, deleteExpense);
 
 export default router; 

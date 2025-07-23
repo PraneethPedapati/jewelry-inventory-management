@@ -121,6 +121,32 @@ export const orderStatusHistory = pgTable('order_status_history', {
   createdAt: timestamp('created_at', { withTimezone: true }).defaultNow(),
 });
 
+// Expense Categories
+export const expenseCategories = pgTable('expense_categories', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  name: varchar('name', { length: 100 }).notNull().unique(),
+  description: text('description'),
+  isActive: boolean('is_active').default(true),
+  createdAt: timestamp('created_at', { withTimezone: true }).defaultNow(),
+});
+
+// Expenses
+export const expenses = pgTable('expenses', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  title: varchar('title', { length: 200 }).notNull(),
+  description: text('description'),
+  amount: decimal('amount', { precision: 10, scale: 2 }).notNull(),
+  categoryId: uuid('category_id').notNull().references(() => expenseCategories.id),
+  expenseDate: timestamp('expense_date', { withTimezone: true }).notNull(),
+  receipt: varchar('receipt', { length: 500 }), // URL to receipt image
+  addedBy: uuid('added_by').notNull().references(() => admins.id),
+  tags: jsonb('tags').default(sql`'[]'::jsonb`),
+  createdAt: timestamp('created_at', { withTimezone: true }).defaultNow(),
+  updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow(),
+}, (table) => ({
+  checkAmount: check('amount_check', sql`${table.amount} > 0`),
+}));
+
 // System Configurations
 export const systemConfigs = pgTable('system_configs', {
   key: varchar('key', { length: 100 }).primaryKey(),
@@ -132,6 +158,7 @@ export const systemConfigs = pgTable('system_configs', {
 // Relations
 export const adminsRelations = relations(admins, ({ many }) => ({
   statusChanges: many(orderStatusHistory),
+  addedExpenses: many(expenses),
 }));
 
 export const colorThemesRelations = relations(colorThemes, ({ many }) => ({
@@ -190,6 +217,21 @@ export const orderStatusHistoryRelations = relations(orderStatusHistory, ({ one 
   }),
 }));
 
+export const expenseCategoriesRelations = relations(expenseCategories, ({ many }) => ({
+  expenses: many(expenses),
+}));
+
+export const expensesRelations = relations(expenses, ({ one }) => ({
+  category: one(expenseCategories, {
+    fields: [expenses.categoryId],
+    references: [expenseCategories.id],
+  }),
+  addedBy: one(admins, {
+    fields: [expenses.addedBy],
+    references: [admins.id],
+  }),
+}));
+
 // Export types for use in other files
 export type Admin = typeof admins.$inferSelect;
 export type NewAdmin = typeof admins.$inferInsert;
@@ -214,6 +256,12 @@ export type NewOrderItem = typeof orderItems.$inferInsert;
 
 export type OrderStatusHistory = typeof orderStatusHistory.$inferSelect;
 export type NewOrderStatusHistory = typeof orderStatusHistory.$inferInsert;
+
+export type ExpenseCategory = typeof expenseCategories.$inferSelect;
+export type NewExpenseCategory = typeof expenseCategories.$inferInsert;
+
+export type Expense = typeof expenses.$inferSelect;
+export type NewExpense = typeof expenses.$inferInsert;
 
 export type SystemConfig = typeof systemConfigs.$inferSelect;
 export type NewSystemConfig = typeof systemConfigs.$inferInsert; 
