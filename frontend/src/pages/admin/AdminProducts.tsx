@@ -339,8 +339,7 @@ const AdminProducts: React.FC = () => {
           >
             <option value="All">All Categories</option>
             <option value="chain">Chain</option>
-            <option value="bracelet">Bracelet</option>
-            <option value="anklet">Anklet</option>
+            <option value="bracelet-anklet">Bracelet & Anklet</option>
           </select>
           <div className="absolute right-3 top-1/2 transform -translate-y-1/2 pointer-events-none">
             <svg className="w-4 h-4 text-muted-foreground" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -684,7 +683,7 @@ const ProductModal: React.FC<ProductModalProps> = ({
 }) => {
   const [formData, setFormData] = useState({
     name: product?.name || '',
-    category: (product?.productType?.name as 'chain' | 'bracelet') || 'chain',
+    category: (product?.productType?.name as 'chain' | 'bracelet-anklet') || 'chain',
     charmDescription: product?.charmDescription || '',
     basePrice: product?.basePrice || '',
     discountedPrice: '',
@@ -791,11 +790,11 @@ const ProductModal: React.FC<ProductModalProps> = ({
                   <select
                     id="product-category"
                     value={formData.category}
-                    onChange={(e) => setFormData({ ...formData, category: e.target.value as 'chain' | 'bracelet' })}
+                    onChange={(e) => setFormData({ ...formData, category: e.target.value as 'chain' | 'bracelet-anklet' })}
                     className="appearance-none bg-background border border-border rounded-lg px-4 py-2 pr-10 text-foreground font-medium focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent w-full"
                   >
                     <option value="chain">Chain</option>
-                    <option value="bracelet">Bracelet/Anklet</option>
+                    <option value="bracelet-anklet">Bracelet/Anklet</option>
                   </select>
                   <div className="absolute right-3 top-1/2 transform -translate-y-1/2 pointer-events-none">
                     <svg className="w-4 h-4 text-muted-foreground" fill="none" stroke="currentColor" viewBox="0 0 24 24">

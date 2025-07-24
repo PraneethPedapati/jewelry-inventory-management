@@ -168,10 +168,10 @@ export const traceBusinessLogic = async <T>(
 
 // Trace WhatsApp operations specifically for jewelry store
 export const traceWhatsAppOperation = async <T>(
-  operation: 'generate_order_message' | 'generate_status_message' | 'send_message',
+  operation: 'generate_order_message' | 'generate_status_message' | 'send_message' | 'generate_admin_notification',
   orderId?: string,
   fn?: () => Promise<T>
-): Promise<T | void> => {
+): Promise<T> => {
   return createSpan(`whatsapp.${operation}`, async (span) => {
     span.setAttributes({
       'component': 'whatsapp-integration',
@@ -182,6 +182,7 @@ export const traceWhatsAppOperation = async <T>(
     if (fn) {
       return fn();
     }
+    throw new Error(`WhatsApp operation ${operation} requires a callback function`);
   });
 };
 

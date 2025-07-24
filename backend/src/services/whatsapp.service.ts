@@ -1,34 +1,99 @@
 import { config } from '../config/app.js';
 import { Order, OrderItem } from '../types/api.js';
 import { traceWhatsAppOperation } from '../utils/tracing.js';
+import { db } from '../db/connection.js';
+import { systemConfigs } from '../db/schema.js';
+import { eq } from 'drizzle-orm';
 
 export class WhatsAppService {
   private static readonly BUSINESS_PHONE = config.WHATSAPP_BUSINESS_PHONE;
 
+  // Cache for company name to avoid repeated database calls
+  private static companyNameCache: string | null = null;
+  private static lastCacheTime: number = 0;
+  private static readonly CACHE_DURATION = 5 * 60 * 1000; // 5 minutes
+
+  /**
+   * Initialize the company name cache
+   */
+  static async initializeCache(): Promise<void> {
+    try {
+      await this.getCompanyName();
+    } catch (error) {
+      console.error('Failed to initialize company name cache:', error);
+    }
+  }
+
+  /**
+   * Get company name from brand configuration (cached)
+   */
+  private static async getCompanyName(): Promise<string> {
+    const now = Date.now();
+
+    // Return cached value if still valid
+    if (this.companyNameCache && (now - this.lastCacheTime) < this.CACHE_DURATION) {
+      return this.companyNameCache;
+    }
+
+    try {
+      const brandConfigs = await db
+        .select()
+        .from(systemConfigs)
+        .where(eq(systemConfigs.key, 'brand_config'));
+
+      if (brandConfigs.length > 0) {
+        const config = JSON.parse(brandConfigs[0]?.value as string);
+        const companyName = config.companyName || 'Elegant Jewelry Store';
+
+        // Update cache
+        this.companyNameCache = companyName;
+        this.lastCacheTime = now;
+
+        return companyName;
+      }
+    } catch (error) {
+      console.error('Error fetching brand config:', error);
+    }
+
+    // Return cached value or default
+    return this.companyNameCache || 'Elegant Jewelry Store';
+  }
+
+  /**
+   * Get company name synchronously (uses cached value or default)
+   */
+  private static getCompanyNameSync(): string {
+    return this.companyNameCache || 'Elegant Jewelry Store';
+  }
+
   /**
    * Generate WhatsApp URL for new order message
+   * Note: Using explicit await pattern to resolve TypeScript type inference issues
    */
   static async generateOrderMessage(order: Order): Promise<{ url: string; message: string }> {
-    return traceWhatsAppOperation('generate_order_message', order.id, async () => {
+    const result = await traceWhatsAppOperation('generate_order_message', order.id, async () => {
       const message = this.formatOrderMessage(order);
       const encodedMessage = encodeURIComponent(message);
       const url = `https://wa.me/${this.BUSINESS_PHONE}?text=${encodedMessage}`;
 
       return { url, message };
     });
+    return result;
   }
 
   /**
    * Generate WhatsApp notification to admin about new order
+   * Note: Using explicit await pattern to resolve TypeScript type inference issues
    */
   static async generateAdminOrderNotification(order: Order): Promise<{ url: string; message: string }> {
-    return traceWhatsAppOperation('generate_admin_notification', order.id, async () => {
+    const result = await traceWhatsAppOperation('generate_admin_notification', order.id, async () => {
       const message = this.formatAdminOrderNotification(order);
       const encodedMessage = encodeURIComponent(message);
       const url = `https://wa.me/${this.BUSINESS_PHONE}?text=${encodedMessage}`;
 
       return { url, message };
     });
+    return result;
   }
 
   /**
@@ -125,7 +190,7 @@ We can't wait for you to see your beautiful new jewelry pieces! 💎
 
 Questions? Just reply to this message!
 
-_Your Jewelry Store Team_`;
+_${this.getCompanyNameSync()}_`;
   }
 
   /**
@@ -152,7 +217,7 @@ Don't miss out on these stunning jewelry pieces! ✨
 
 Visit our store or reply to this message to place your order.
 
-_Your Jewelry Store Team_ 💎`;
+_${this.getCompanyNameSync()}_ 💎`;
   }
 
   /**
@@ -167,7 +232,7 @@ Alert Threshold: ${threshold}
 
 Please restock this popular jewelry item soon!
 
-_Jewelry Inventory System_`;
+_${this.getCompanyNameSync()}_`;
   }
 
   /**
@@ -299,7 +364,7 @@ ${itemsList}
 
 Need help or have questions? Just reply to this message! We're here to help. 💫
 
-_Your Jewelry Store Team_`;
+_${this.getCompanyNameSync()}_`;
   }
 
   /**

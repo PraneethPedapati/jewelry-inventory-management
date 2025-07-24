@@ -1,6 +1,7 @@
 import React from 'react';
 import { Outlet, Link, useLocation } from 'react-router-dom';
-import { ShoppingBag, Home, ShoppingCart, User } from 'lucide-react';
+import { ShoppingBag, ShoppingCart, User } from 'lucide-react';
+import Logo from '@/components/ui/Logo';
 
 const CustomerLayout: React.FC = () => {
   const location = useLocation();
@@ -16,11 +17,8 @@ const CustomerLayout: React.FC = () => {
       <header className="bg-card border-b border-border">
         <div className="container mx-auto px-4">
           <div className="flex items-center justify-between h-16">
-            <Link to="/" className="flex items-center space-x-2">
-              <div className="w-8 h-8 bg-primary rounded-full flex items-center justify-center">
-                <span className="text-white font-bold text-sm">J</span>
-              </div>
-              <span className="font-semibold text-foreground">Jewelry Store</span>
+            <Link to="/shop/products" className="flex items-center space-x-2">
+              <Logo size="md" variant="full" />
             </Link>
 
             {/* Desktop Navigation */}
@@ -44,14 +42,14 @@ const CustomerLayout: React.FC = () => {
               })}
             </nav>
 
-            {/* User actions */}
+            {/* Login Button */}
             <div className="flex items-center space-x-4">
               <Link
-                to="/"
+                to="/admin/login"
                 className="flex items-center space-x-2 text-muted-foreground hover:text-foreground transition-colors"
               >
-                <Home className="w-4 h-4" />
-                <span className="hidden sm:block">Home</span>
+                <User className="w-4 h-4" />
+                <span className="hidden sm:block">Login</span>
               </Link>
             </div>
           </div>
@@ -82,11 +80,11 @@ const CustomerLayout: React.FC = () => {
             );
           })}
           <Link
-            to="/"
+            to="/admin/login"
             className="flex flex-col items-center py-2 px-1 text-xs text-muted-foreground"
           >
-            <Home className="w-5 h-5 mb-1" />
-            <span>Home</span>
+            <User className="w-5 h-5 mb-1" />
+            <span>Login</span>
           </Link>
         </div>
       </nav>

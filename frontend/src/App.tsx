@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import { useThemeStore } from './stores/theme.store';
+import { useBrandStore } from './stores/brand.store';
 import { healthService } from './services/api';
 import { CartProvider } from './context/CartContext';
 
@@ -17,11 +18,9 @@ import AdminOrders from './pages/admin/AdminOrders';
 import AdminExpenses from './pages/admin/AdminExpenses';
 import AdminAnalytics from './pages/admin/AdminAnalytics';
 
-// Demo/Landing page
-import LandingPage from './pages/LandingPage';
-
 function App() {
   const { activeTheme, loadThemes, applyTheme } = useThemeStore();
+  const { loadFromServer: loadBrandConfig } = useBrandStore();
   const [isApiConnected, setIsApiConnected] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
@@ -39,6 +38,9 @@ function App() {
 
         // Load themes from database
         await loadThemes();
+
+        // Load brand configuration from server
+        await loadBrandConfig();
 
         // Apply the active theme if it exists
         if (activeTheme) {
@@ -64,7 +66,13 @@ function App() {
     };
 
     initializeApp();
-  }, [loadThemes, applyTheme]);
+  }, [loadThemes, applyTheme, loadBrandConfig]);
+
+  // Handle logout
+  const handleLogout = () => {
+    localStorage.removeItem('admin_token');
+    setIsAuthenticated(false);
+  };
 
   if (isLoading) {
     return (
@@ -81,14 +89,14 @@ function App() {
     <CartProvider>
       <div className="min-h-screen bg-background text-foreground">
         <Routes>
-          {/* Landing/Demo Page */}
-          <Route path="/" element={<LandingPage isApiConnected={isApiConnected} />} />
+          {/* Root redirects directly to products */}
+          <Route path="/" element={<Navigate to="/shop/products" />} />
 
           {/* Customer-facing pages */}
           <Route path="/shop" element={<CustomerLayout />}>
-            <Route index element={<ProductCatalog />} />
             <Route path="products" element={<ProductCatalog />} />
             <Route path="cart" element={<Cart />} />
+            <Route index element={<Navigate to="/shop/products" />} />
           </Route>
 
           {/* Admin routes */}
@@ -98,7 +106,7 @@ function App() {
           />
           <Route
             path="/admin"
-            element={isAuthenticated ? <AdminLayout /> : <Navigate to="/admin/login" />}
+            element={isAuthenticated ? <AdminLayout onLogout={handleLogout} /> : <Navigate to="/admin/login" />}
           >
             <Route path="dashboard" element={<AdminDashboard />} />
             <Route path="settings" element={<AdminSettings />} />
@@ -109,8 +117,8 @@ function App() {
             <Route index element={<Navigate to="/admin/dashboard" />} />
           </Route>
 
-          {/* Catch all - redirect to landing */}
-          <Route path="*" element={<Navigate to="/" />} />
+          {/* Catch all - redirect to products */}
+          <Route path="*" element={<Navigate to="/shop/products" />} />
         </Routes>
       </div>
     </CartProvider>

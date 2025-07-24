@@ -172,23 +172,17 @@ const seedDatabase = async (): Promise<void> => {
         specificationType: 'layer'
       },
       {
-        name: 'bracelet',
-        displayName: 'Bracelet',
-        specificationType: 'size'
-      },
-      {
-        name: 'anklet',
-        displayName: 'Anklet',
+        name: 'bracelet-anklet',
+        displayName: 'Bracelet & Anklet',
         specificationType: 'size'
       }
     ]);
 
     // Get product type IDs for foreign key references
     const [chainType] = await db.select().from(productTypes).where(eq(productTypes.name, 'chain'));
-    const [braceletType] = await db.select().from(productTypes).where(eq(productTypes.name, 'bracelet'));
-    const [ankletType] = await db.select().from(productTypes).where(eq(productTypes.name, 'anklet'));
+    const [braceletAnkletType] = await db.select().from(productTypes).where(eq(productTypes.name, 'bracelet-anklet'));
 
-    if (!chainType || !braceletType || !ankletType) {
+    if (!chainType || !braceletAnkletType) {
       throw new Error('Failed to create product types');
     }
 
@@ -211,7 +205,7 @@ const seedDatabase = async (): Promise<void> => {
         name: 'Heart Lock Bracelet',
         charmDescription: 'Heart-shaped lock charm with key detail and engraved initials',
         chainDescription: 'Rose gold plated cable chain with secure clasp',
-        productTypeId: braceletType.id,
+        productTypeId: braceletAnkletType.id,
         basePrice: '35.00',
         sku: 'HLB001',
         images: [
@@ -234,7 +228,7 @@ const seedDatabase = async (): Promise<void> => {
         name: 'Ocean Pearl Anklet',
         charmDescription: 'Natural pearl charm with ocean wave design',
         chainDescription: 'Sterling silver snake chain with extension',
-        productTypeId: ankletType.id,
+        productTypeId: braceletAnkletType.id,
         basePrice: '28.00',
         sku: 'OPA001',
         images: [
@@ -245,7 +239,7 @@ const seedDatabase = async (): Promise<void> => {
         name: 'Vintage Rose Bracelet',
         charmDescription: 'Antique rose charm with detailed petals and leaves',
         chainDescription: 'Vintage-style brass chain with patina finish',
-        productTypeId: braceletType.id,
+        productTypeId: braceletAnkletType.id,
         basePrice: '42.00',
         sku: 'VRB001',
         images: [
@@ -267,7 +261,7 @@ const seedDatabase = async (): Promise<void> => {
         name: 'Golden Leaf Bracelet',
         charmDescription: 'Autumn leaf charm with gold plated detailing',
         chainDescription: 'Gold filled figaro chain with secure toggle clasp',
-        productTypeId: braceletType.id,
+        productTypeId: braceletAnkletType.id,
         basePrice: '39.00',
         sku: 'GLB001',
         images: [
@@ -289,7 +283,7 @@ const seedDatabase = async (): Promise<void> => {
         name: 'Sunset Anklet',
         charmDescription: 'Gradient orange-pink charm resembling sunset colors',
         chainDescription: 'Delicate rose gold chain with adjustable length',
-        productTypeId: ankletType.id,
+        productTypeId: braceletAnkletType.id,
         basePrice: '32.00',
         sku: 'SUA001',
         images: [
@@ -300,7 +294,7 @@ const seedDatabase = async (): Promise<void> => {
         name: 'Celtic Knot Bracelet',
         charmDescription: 'Traditional Celtic knot charm symbolizing eternal love',
         chainDescription: 'Antique silver chain with Celtic-inspired links',
-        productTypeId: braceletType.id,
+        productTypeId: braceletAnkletType.id,
         basePrice: '44.00',
         sku: 'CKB001',
         images: [
@@ -322,7 +316,7 @@ const seedDatabase = async (): Promise<void> => {
         name: 'Flower Power Anklet',
         charmDescription: 'Delicate flower charm with enamel petals',
         chainDescription: 'Sterling silver box chain with spring ring clasp',
-        productTypeId: ankletType.id,
+        productTypeId: braceletAnkletType.id,
         basePrice: '26.00',
         sku: 'FPA001',
         images: [
@@ -333,7 +327,7 @@ const seedDatabase = async (): Promise<void> => {
         name: 'Infinity Love Bracelet',
         charmDescription: 'Infinity symbol charm with engraved love message',
         chainDescription: 'Rose gold cable chain with magnetic clasp',
-        productTypeId: braceletType.id,
+        productTypeId: braceletAnkletType.id,
         basePrice: '48.00',
         sku: 'ILB001',
         images: [
@@ -355,7 +349,7 @@ const seedDatabase = async (): Promise<void> => {
         name: 'Beach Vibes Anklet',
         charmDescription: 'Seashell and starfish charm cluster',
         chainDescription: 'Waterproof stainless steel chain',
-        productTypeId: ankletType.id,
+        productTypeId: braceletAnkletType.id,
         basePrice: '30.00',
         sku: 'BVA001',
         images: [
@@ -366,7 +360,7 @@ const seedDatabase = async (): Promise<void> => {
         name: 'Royal Crown Bracelet',
         charmDescription: 'Miniature crown charm with faux ruby centerpiece',
         chainDescription: 'Gold plated curb chain with royal styling',
-        productTypeId: braceletType.id,
+        productTypeId: braceletAnkletType.id,
         basePrice: '52.00',
         sku: 'RCB001',
         images: [
@@ -388,7 +382,7 @@ const seedDatabase = async (): Promise<void> => {
         name: 'Zen Garden Anklet',
         charmDescription: 'Peaceful lotus flower charm with jade accent',
         chainDescription: 'Minimalist silver chain with zen-inspired design',
-        productTypeId: ankletType.id,
+        productTypeId: braceletAnkletType.id,
         basePrice: '34.00',
         sku: 'ZGA001',
         images: [
@@ -399,7 +393,7 @@ const seedDatabase = async (): Promise<void> => {
         name: 'Fairy Tale Bracelet',
         charmDescription: 'Magical fairy charm with glittering wings',
         chainDescription: 'Delicate silver chain with fairy dust finish',
-        productTypeId: braceletType.id,
+        productTypeId: braceletAnkletType.id,
         basePrice: '37.00',
         sku: 'FTB001',
         images: [
@@ -426,7 +420,7 @@ const seedDatabase = async (): Promise<void> => {
     const specifications = [];
 
     for (const product of insertedProducts) {
-      const productType = [chainType, braceletType, ankletType].find(type => type.id === product.productTypeId);
+      const productType = [chainType, braceletAnkletType].find(type => type.id === product.productTypeId);
 
       if (productType?.specificationType === 'layer') {
         // Chain specifications (layers)

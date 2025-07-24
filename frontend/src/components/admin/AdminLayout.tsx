@@ -12,14 +12,19 @@ import {
   User,
   Receipt
 } from 'lucide-react';
+import Logo from '@/components/ui/Logo';
 
-const AdminLayout: React.FC = () => {
+interface AdminLayoutProps {
+  onLogout: () => void;
+}
+
+const AdminLayout: React.FC<AdminLayoutProps> = ({ onLogout }) => {
   const navigate = useNavigate();
   const location = useLocation();
   const [isSidebarExpanded, setIsSidebarExpanded] = useState(false);
 
   const handleLogout = () => {
-    localStorage.removeItem('admin_token');
+    onLogout();
     navigate('/admin/login');
   };
 
@@ -68,11 +73,8 @@ const AdminLayout: React.FC = () => {
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-4">
               <div className="flex items-center space-x-3">
-                <div className="w-10 h-10 bg-primary rounded-lg flex items-center justify-center">
-                  <span className="text-white font-bold text-lg">JS</span>
-                </div>
+                <Logo size="lg" variant="full" />
                 <div>
-                  <h1 className="font-bold text-foreground text-lg">Jewelry Store</h1>
                   <p className="text-xs text-muted-foreground">Admin Panel</p>
                 </div>
               </div>

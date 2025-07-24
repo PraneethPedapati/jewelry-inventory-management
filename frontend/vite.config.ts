@@ -10,9 +10,9 @@ export default defineConfig({
       registerType: 'prompt',
       includeAssets: ['favicon.ico', 'apple-touch-icon.png', 'masked-icon.svg'],
       manifest: {
-        name: 'Jewelry Inventory Management',
-        short_name: 'Jewelry App',
-        description: 'Mobile-first jewelry inventory management with WhatsApp integration',
+        name: 'Elegant Jewelry Store',
+        short_name: 'EJS',
+        description: 'Premium jewelry collection with elegant designs',
         theme_color: '#6366f1',
         background_color: '#ffffff',
         display: 'standalone',

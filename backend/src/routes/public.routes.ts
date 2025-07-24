@@ -10,6 +10,11 @@ import {
   getProductSpecifications,
   getProductTypes
 } from '../controllers/public/product.controller.js';
+import {
+  getBrandConfig,
+  updateBrandConfig,
+  resetBrandConfig
+} from '../controllers/config.controller.js';
 
 const router = Router();
 
@@ -24,6 +29,11 @@ router.get('/product-types', getProductTypes);
 
 // Order creation with stricter rate limiting and CAPTCHA
 router.post('/orders', orderRateLimit, createOrder);
+
+// Brand configuration routes
+router.get('/config/brand', getBrandConfig);
+router.post('/config/brand', updateBrandConfig);
+router.delete('/config/brand', resetBrandConfig);
 
 router.get('/themes', (req, res) => {
   res.json({

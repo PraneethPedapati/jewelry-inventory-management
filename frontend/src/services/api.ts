@@ -154,7 +154,7 @@ export interface ExpenseCategory {
 
 export interface CreateProductRequest {
   name: string;
-  category: 'chain' | 'bracelet' | 'anklet';
+  category: 'chain' | 'bracelet-anklet';
   charmDescription: string;
   chainDescription: string;
   basePrice: number;
