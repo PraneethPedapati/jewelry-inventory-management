@@ -1,5 +1,11 @@
 import { Router } from 'express';
 import { createOrder } from '@/controllers/public/order.controller.js';
+import {
+  getProducts,
+  getProductById,
+  getProductSpecifications,
+  getProductTypes
+} from '@/controllers/public/product.controller.js';
 import { orderRateLimit, publicApiRateLimit } from '@/middleware/rate-limit.middleware.js';
 
 const router = Router();
@@ -8,25 +14,10 @@ const router = Router();
 router.use(publicApiRateLimit);
 
 // Public routes for customers
-router.get('/products', (req, res) => {
-  res.json({
-    success: true,
-    data: {
-      products: [],
-      message: 'Product catalog - implementation in progress'
-    }
-  });
-});
-
-router.get('/products/:id', (req, res) => {
-  res.json({
-    success: true,
-    data: {
-      product: null,
-      message: `Product ${req.params.id} - implementation in progress`
-    }
-  });
-});
+router.get('/products', getProducts);
+router.get('/products/:id', getProductById);
+router.get('/products/:id/specifications', getProductSpecifications);
+router.get('/product-types', getProductTypes);
 
 // Order creation with stricter rate limiting and CAPTCHA
 router.post('/orders', orderRateLimit, createOrder);

@@ -1,6 +1,6 @@
 import React from 'react';
 import { Outlet, Link, useLocation } from 'react-router-dom';
-import { ShoppingBag, Home, ShoppingCart, Clock, User } from 'lucide-react';
+import { ShoppingBag, Home, ShoppingCart, User } from 'lucide-react';
 
 const CustomerLayout: React.FC = () => {
   const location = useLocation();
@@ -8,7 +8,6 @@ const CustomerLayout: React.FC = () => {
   const navigation = [
     { name: 'Products', href: '/shop/products', icon: ShoppingBag },
     { name: 'Cart', href: '/shop/cart', icon: ShoppingCart },
-    { name: 'Orders', href: '/shop/orders', icon: Clock },
   ];
 
   return (
@@ -66,7 +65,7 @@ const CustomerLayout: React.FC = () => {
 
       {/* Mobile Navigation */}
       <nav className="md:hidden fixed bottom-0 left-0 right-0 bg-card border-t border-border">
-        <div className="grid grid-cols-4 gap-1">
+        <div className="grid grid-cols-3 gap-1">
           {navigation.map((item) => {
             const Icon = item.icon;
             const isActive = location.pathname === item.href;

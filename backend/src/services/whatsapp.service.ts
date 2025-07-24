@@ -19,121 +19,59 @@ export class WhatsAppService {
   }
 
   /**
-   * Generate WhatsApp URL for status update message to customer
+   * Generate WhatsApp notification to admin about new order
    */
-  static async generateStatusMessage(
-    order: Order,
-    customMessage?: string
-  ): Promise<{ url: string; message: string }> {
-    return traceWhatsAppOperation('generate_status_message', order.id, async () => {
-      const message = customMessage || this.formatStatusMessage(order);
+  static async generateAdminOrderNotification(order: Order): Promise<{ url: string; message: string }> {
+    return traceWhatsAppOperation('generate_admin_notification', order.id, async () => {
+      const message = this.formatAdminOrderNotification(order);
       const encodedMessage = encodeURIComponent(message);
-      const url = `https://wa.me/${order.customerPhone}?text=${encodedMessage}`;
+      const url = `https://wa.me/${this.BUSINESS_PHONE}?text=${encodedMessage}`;
 
       return { url, message };
     });
   }
 
   /**
-   * Format complete order message for jewelry store
+   * Generate payment QR code URL using free UPI service
    */
-  private static formatOrderMessage(order: Order): string {
-    const items = order.items.map(item => {
-      const spec = this.getSpecificationDisplay(item);
-      return `• ${item.productSnapshot.name}${spec ? ` (${spec})` : ''} × ${item.quantity} - $${item.totalPrice.toFixed(2)}`;
-    }).join('\n');
+  static generatePaymentQR(order: Order, upiId: string = 'yourstore@paytm'): string {
+    const amount = parseFloat(order.totalAmount.toString());
+    const note = `Payment for Order ${order.orderNumber}`;
 
-    const orderDate = new Date(order.createdAt).toLocaleDateString('en-US', {
-      weekday: 'long',
-      year: 'numeric',
-      month: 'long',
-      day: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit'
-    });
+    // UPI URL scheme - works with all Indian payment apps
+    const upiUrl = `upi://pay?pa=${upiId}&pn=YourJewelryStore&am=${amount}&tn=${encodeURIComponent(note)}&cu=INR`;
 
-    return `💎 *New Jewelry Order*
+    // Generate QR code using free service
+    const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=${encodeURIComponent(upiUrl)}`;
 
-*Order #:* ${order.orderNumber}
-*Date:* ${orderDate}
-
-*Customer Details:*
-👤 Name: ${order.customerName}
-📧 Email: ${order.customerEmail}
-📱 Phone: ${order.customerPhone}
-🏠 Address: ${order.customerAddress}
-
-*Jewelry Items Ordered:*
-${items}
-
-*💰 Total Amount: $${order.totalAmount.toFixed(2)}*
-
-Thank you for choosing our jewelry! We'll send you the payment QR code shortly. ✨
-
-_This is an automated message from our jewelry inventory system._`;
+    return qrUrl;
   }
 
   /**
-   * Format status update message for customers
+   * Generate payment request message with QR code
    */
-  private static formatStatusMessage(order: Order): string {
-    const statusMessages = {
-      pending: '⏳ Your jewelry order has been received and is being reviewed by our team.',
-      confirmed: '✅ Your order has been confirmed! We\'re carefully preparing your beautiful jewelry pieces.',
-      processing: '🔨 Your jewelry is being crafted with love and attention to detail by our skilled artisans.',
-      shipped: '📦 Your jewelry order has been shipped! You\'ll receive tracking details soon. Almost there! ✨',
-      delivered: '🎉 Your jewelry order has been delivered! We hope you absolutely love your new pieces! 💎',
-      cancelled: '❌ Your order has been cancelled. Please contact us if you have any questions about this decision.'
-    };
+  static generatePaymentRequestMessage(order: Order, upiId: string = 'yourstore@paytm'): string {
+    const qrUrl = this.generatePaymentQR(order, upiId);
 
-    const itemsList = order.items.map(item => {
-      const spec = this.getSpecificationDisplay(item);
-      return `• ${item.productSnapshot.name}${spec ? ` (${spec})` : ''} × ${item.quantity}`;
-    }).join('\n');
+    return `💳 *Payment Request - Order #${order.orderNumber}*
 
-    const statusEmoji = {
-      pending: '⏳',
-      confirmed: '✅',
-      processing: '🔨',
-      shipped: '📦',
-      delivered: '🎉',
-      cancelled: '❌'
-    };
+Hello ${order.customerName}! ✨
 
-    return `${statusEmoji[order.status]} *Order Update - #${order.orderNumber}*
+Your jewelry order is confirmed and ready for payment.
 
-Hi ${order.customerName}! 👋
+*💰 Order Total: ₹${parseFloat(order.totalAmount.toString()).toLocaleString('en-IN')}*
 
-${statusMessages[order.status]}
+*📱 Payment Options:*
+1. Scan QR code: ${qrUrl}
+2. UPI ID: ${upiId}
+3. Google Pay/PhonePe: ${upiId}
 
-*Your Jewelry Order:*
-${itemsList}
+✅ After payment, please send payment screenshot here
+⏰ Order valid for 24 hours
 
-*Total: $${order.totalAmount.toFixed(2)}*
-*Status: ${order.status.charAt(0).toUpperCase() + order.status.slice(1)}*
+Your beautiful jewelry will be crafted once payment is confirmed! 💎
 
-Need help or have questions? Just reply to this message! We're here to help. 💫
-
-_Your Jewelry Store Team_`;
-  }
-
-  /**
-   * Get formatted specification display for order items
-   */
-  private static getSpecificationDisplay(item: OrderItem): string {
-    // Extract specification info from product snapshot
-    const product = item.productSnapshot;
-
-    // Try to determine the specification type from the product
-    if (product.productType?.specificationType === 'size') {
-      // For bracelets/anklets - show size
-      return `Size: S/M/L`; // This would be replaced with actual spec data
-    } else if (product.productType?.specificationType === 'layer') {
-      // For chains - show layer
-      return `Layers: Single/Double/Triple`; // This would be replaced with actual spec data
-    }
-
-    return '';
+Need help? Just reply here! 🙋‍♀️`;
   }
 
   /**
@@ -279,5 +217,224 @@ Items:
 ${items}
 
 WhatsApp sent to customer ✅`;
+  }
+
+  /**
+   * Format complete order message for jewelry store
+   */
+  private static formatOrderMessage(order: Order): string {
+    const items = order.items.map(item => {
+      const spec = this.getSpecificationDisplay(item);
+      return `• ${item.productSnapshot.name}${spec ? ` (${spec})` : ''} × ${item.quantity} - $${item.totalPrice.toFixed(2)}`;
+    }).join('\n');
+
+    const orderDate = new Date(order.createdAt).toLocaleDateString('en-US', {
+      weekday: 'long',
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit'
+    });
+
+    return `💎 *New Jewelry Order*
+
+*Order #:* ${order.orderNumber}
+*Date:* ${orderDate}
+
+*Customer Details:*
+👤 Name: ${order.customerName}
+📧 Email: ${order.customerEmail}
+📱 Phone: ${order.customerPhone}
+🏠 Address: ${order.customerAddress}
+
+*Jewelry Items Ordered:*
+${items}
+
+*💰 Total Amount: $${order.totalAmount.toFixed(2)}*
+
+Thank you for choosing our jewelry! We'll send you the payment QR code shortly. ✨
+
+_This is an automated message from our jewelry inventory system._`;
+  }
+
+  /**
+   * Format status update message for customers
+   */
+  private static formatStatusMessage(order: Order): string {
+    const statusMessages = {
+      pending: '⏳ Your jewelry order has been received and is being reviewed by our team.',
+      confirmed: '✅ Your order has been confirmed! We\'re carefully preparing your beautiful jewelry pieces.',
+      processing: '🔨 Your jewelry is being crafted with love and attention to detail by our skilled artisans.',
+      shipped: '📦 Your jewelry order has been shipped! You\'ll receive tracking details soon. Almost there! ✨',
+      delivered: '🎉 Your jewelry order has been delivered! We hope you absolutely love your new pieces! 💎',
+      cancelled: '❌ Your order has been cancelled. Please contact us if you have any questions about this decision.'
+    };
+
+    const itemsList = order.items.map(item => {
+      const spec = this.getSpecificationDisplay(item);
+      return `• ${item.productSnapshot.name}${spec ? ` (${spec})` : ''} × ${item.quantity}`;
+    }).join('\n');
+
+    const statusEmoji = {
+      pending: '⏳',
+      confirmed: '✅',
+      processing: '🔨',
+      shipped: '📦',
+      delivered: '🎉',
+      cancelled: '❌'
+    };
+
+    return `${statusEmoji[order.status]} *Order Update - #${order.orderNumber}*
+
+Hi ${order.customerName}! 👋
+
+${statusMessages[order.status]}
+
+*Your Jewelry Order:*
+${itemsList}
+
+*Total: $${order.totalAmount.toFixed(2)}*
+*Status: ${order.status.charAt(0).toUpperCase() + order.status.slice(1)}*
+
+Need help or have questions? Just reply to this message! We're here to help. 💫
+
+_Your Jewelry Store Team_`;
+  }
+
+  /**
+   * Format admin notification for new orders
+   */
+  private static formatAdminOrderNotification(order: Order): string {
+    const items = order.items.map(item => {
+      const spec = this.getSpecificationDisplay(item);
+      return `• ${item.productSnapshot.name}${spec ? ` (${spec})` : ''} × ${item.quantity} - ₹${parseFloat(item.totalPrice.toString()).toLocaleString('en-IN')}`;
+    }).join('\n');
+
+    const orderDate = new Date(order.createdAt).toLocaleDateString('en-IN', {
+      weekday: 'long',
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit'
+    });
+
+    return `🚨 *NEW ORDER ALERT* 🚨
+
+*Order #:* ${order.orderNumber}
+*Date:* ${orderDate}
+
+*💎 Customer Details:*
+👤 Name: ${order.customerName}
+📱 Phone: ${order.customerPhone}
+🏠 Address: ${order.customerAddress}
+
+*🛍️ Items Ordered:*
+${items}
+
+*💰 Total Amount: ₹${parseFloat(order.totalAmount.toString()).toLocaleString('en-IN')}*
+
+*📋 Action Required:*
+✅ Review order details
+💳 Send payment QR if approved
+📞 Contact customer if needed
+
+*Quick Actions:*
+• Reply "APPROVE ${order.orderNumber}" to approve
+• Reply "MODIFY ${order.orderNumber}" to request changes
+
+_Automated order notification from jewelry inventory system_`;
+  }
+
+  /**
+   * Generate order approval confirmation
+   */
+  static generateOrderApprovalMessage(order: Order, paymentQR?: string): string {
+    let paymentSection = '';
+    if (paymentQR) {
+      paymentSection = `
+
+*💳 Payment QR Code:*
+${paymentQR}
+
+*Payment Instructions:*
+1. Scan the QR code above
+2. Enter amount: ₹${parseFloat(order.totalAmount.toString()).toLocaleString('en-IN')}
+3. Complete payment
+4. Send screenshot as confirmation`;
+    }
+
+    return `✅ *ORDER APPROVED - #${order.orderNumber}*
+
+Dear ${order.customerName}! 🎉
+
+Great news! Your jewelry order has been approved and is ready for payment.
+
+*📋 Order Summary:*
+${order.items.map(item =>
+      `• ${item.productSnapshot.name} × ${item.quantity}`
+    ).join('\n')}
+
+*💰 Total: ₹${parseFloat(order.totalAmount.toString()).toLocaleString('en-IN')}*
+${paymentSection}
+
+*📅 Next Steps:*
+1. Complete payment using details above
+2. Send payment confirmation screenshot
+3. We'll start crafting your jewelry immediately! ✨
+
+*📞 Questions?* Just reply to this message!
+
+Thank you for choosing our jewelry! 💎`;
+  }
+
+  /**
+   * Generate order confirmation after payment
+   */
+  static generatePaymentConfirmationMessage(order: Order): string {
+    return `🎉 *PAYMENT CONFIRMED - Order #${order.orderNumber}*
+
+Thank you ${order.customerName}! 💖
+
+*✅ Payment Status: CONFIRMED*
+*🎯 Order Status: Processing*
+*📦 Estimated Delivery: 5-7 days*
+
+*💎 Your Jewelry Order:*
+${order.items.map(item =>
+      `• ${item.productSnapshot.name} × ${item.quantity}`
+    ).join('\n')}
+
+*📍 Delivery Address:*
+${order.customerAddress}
+
+*📲 What's Next:*
+• Your jewelry is now being carefully crafted
+• We'll send updates on WhatsApp
+• Tracking details will follow once shipped
+
+Your beautiful jewelry pieces are on their way! ✨
+
+_Automated confirmation from jewelry inventory system_`;
+  }
+
+  /**
+   * Get formatted specification display for order items
+   */
+  private static getSpecificationDisplay(item: OrderItem): string {
+    // Extract specification info from product snapshot
+    const product = item.productSnapshot;
+
+    // Try to determine the specification type from the product
+    if (product.productType?.specificationType === 'size') {
+      // For bracelets/anklets - show size
+      return `Size: S/M/L`; // This would be replaced with actual spec data
+    } else if (product.productType?.specificationType === 'layer') {
+      // For chains - show layer
+      return `Layers: Single/Double/Triple`; // This would be replaced with actual spec data
+    }
+
+    return '';
   }
 } 

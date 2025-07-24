@@ -15,7 +15,11 @@ import {
   updateOrder,
   deleteOrder,
   getOrderStats,
-  exportOrders
+  exportOrders,
+  approveOrder,
+  sendPaymentQR,
+  confirmPayment,
+  sendWhatsAppMessage
 } from '@/controllers/admin/order.controller.js';
 import {
   getExpenses,
@@ -44,13 +48,19 @@ router.put('/products/:id', authenticateAdmin, updateProduct);
 router.delete('/products/:id', authenticateAdmin, deleteProduct);
 
 // Order routes
-router.get('/orders', getOrders);
-router.get('/orders/stats', getOrderStats);
-router.get('/orders/export', exportOrders);
-router.get('/orders/:id', getOrderById);
+router.get('/orders', authenticateAdmin, getOrders);
+router.get('/orders/stats', authenticateAdmin, getOrderStats);
+router.get('/orders/export', authenticateAdmin, exportOrders);
+router.get('/orders/:id', authenticateAdmin, getOrderById);
 router.post('/orders', authenticateAdmin, createOrder);
 router.put('/orders/:id', authenticateAdmin, updateOrder);
 router.delete('/orders/:id', authenticateAdmin, deleteOrder);
+
+// Order management routes with new hybrid functionality
+router.post('/orders/:id/approve', authenticateAdmin, approveOrder);
+router.post('/orders/:id/send-payment-qr', authenticateAdmin, sendPaymentQR);
+router.post('/orders/:id/confirm-payment', authenticateAdmin, confirmPayment);
+router.post('/orders/:id/send-whatsapp', authenticateAdmin, sendWhatsAppMessage);
 
 // Expense routes
 router.get('/expenses', getExpenses);

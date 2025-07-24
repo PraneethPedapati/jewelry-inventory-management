@@ -1,18 +1,33 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { ShoppingCart, Filter, Search, ChevronLeft, ChevronRight, Plus, Minus, X } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { useCart } from '@/context/CartContext';
 
 interface Product {
-  id: number;
+  id: string; // Changed to string for UUID
   name: string;
   price: number;
   originalPrice?: number;
   image: string;
+  images: string[];
   category: 'chain' | 'bracelet-anklet';
   description: string;
+  charmDescription: string;
+  chainDescription: string;
+  sku: string;
   createdAt: string; // ISO date string
+  specifications?: ProductSpecification[];
+}
+
+interface ProductSpecification {
+  id: string;
+  displayName: string;
+  value: string;
+  type: 'size' | 'layer';
+  priceModifier: number;
+  stockQuantity: number;
+  isAvailable: boolean;
 }
 
 const ProductCatalog: React.FC = () => {
@@ -26,6 +41,12 @@ const ProductCatalog: React.FC = () => {
   const [selectedSize, setSelectedSize] = useState('');
   const [quantity, setQuantity] = useState(1);
 
+  // New state for API data
+  const [products, setProducts] = useState<Product[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [totalPages, setTotalPages] = useState(1);
+
   const itemsPerPage = 8;
 
   // Helper function to check if product is new (created within last week)
@@ -36,102 +57,63 @@ const ProductCatalog: React.FC = () => {
     return creationDate > oneWeekAgo;
   };
 
-  // Updated jewelry products with creation dates and proper pricing
-  const products: Product[] = [
-    {
-      id: 1,
-      name: 'Diamond Solitaire Chain',
-      price: 204999,
-      originalPrice: 259999,
-      image: 'https://images.unsplash.com/photo-1605100804763-247f67b3557e?w=400&h=400&fit=crop',
-      category: 'chain',
-      description: 'Elegant diamond solitaire pendant with sterling silver chain',
-      createdAt: '2024-01-10T10:00:00Z' // 5 days ago - should be new
-    },
-    {
-      id: 2,
-      name: 'Pearl Charm Chain',
-      price: 73999,
-      image: 'https://images.unsplash.com/photo-1515562141207-7a88fb7ce338?w=400&h=400&fit=crop',
-      category: 'chain',
-      description: 'Beautiful pearl charm with delicate gold chain',
-      createdAt: '2024-01-01T10:00:00Z' // 2 weeks ago - not new
-    },
-    {
-      id: 3,
-      name: 'Gold Charm Bracelet',
-      price: 156999,
-      image: 'https://images.unsplash.com/photo-1611652022408-a03f2b3734ec?w=400&h=400&fit=crop',
-      category: 'bracelet-anklet',
-      description: 'Luxury 18k gold charm bracelet with intricate design',
-      createdAt: '2024-01-12T10:00:00Z' // 3 days ago - should be new
-    },
-    {
-      id: 4,
-      name: 'Emerald Chain Necklace',
-      price: 328999,
-      image: 'https://images.unsplash.com/photo-1535632066927-ab7c9ab60908?w=400&h=400&fit=crop',
-      category: 'chain',
-      description: 'Stunning emerald pendant chain with platinum setting',
-      createdAt: '2023-12-20T10:00:00Z' // 3 weeks ago - not new
-    },
-    {
-      id: 5,
-      name: 'Silver Charm Anklet',
-      price: 28999,
-      originalPrice: 34999,
-      image: 'https://images.unsplash.com/photo-1506630448388-4e683c67ddb0?w=400&h=400&fit=crop',
-      category: 'bracelet-anklet',
-      description: 'Classic sterling silver charm anklet with delicate links',
-      createdAt: '2024-01-08T10:00:00Z' // 1 week ago - not new
-    },
-    {
-      id: 6,
-      name: 'Ruby Tennis Bracelet',
-      price: 487999,
-      image: 'https://images.unsplash.com/photo-1573408301185-9146fe634ad0?w=400&h=400&fit=crop',
-      category: 'bracelet-anklet',
-      description: 'Exquisite ruby tennis bracelet with white gold setting',
-      createdAt: '2024-01-13T10:00:00Z' // 2 days ago - should be new
-    },
-    {
-      id: 7,
-      name: 'Sapphire Pendant Chain',
-      price: 567999,
-      image: 'https://images.unsplash.com/photo-1542291026-7eec264c27ff?w=400&h=400&fit=crop',
-      category: 'chain',
-      description: 'Blue sapphire pendant with diamond accents on platinum chain',
-      createdAt: '2024-01-11T10:00:00Z' // 4 days ago - should be new
-    },
-    {
-      id: 8,
-      name: 'Rose Gold Charm Bracelet',
-      price: 198999,
-      originalPrice: 234999,
-      image: 'https://images.unsplash.com/photo-1599643478518-a784e5dc4c8f?w=400&h=400&fit=crop',
-      category: 'bracelet-anklet',
-      description: 'Elegant rose gold charm bracelet with heart pendants',
-      createdAt: '2023-12-25T10:00:00Z' // 3 weeks ago - not new
-    },
-    {
-      id: 9,
-      name: 'Diamond Tennis Bracelet',
-      price: 892999,
-      image: 'https://images.unsplash.com/photo-1515562141207-7a88fb7ce338?w=400&h=400&fit=crop',
-      category: 'bracelet-anklet',
-      description: 'Premium diamond tennis bracelet with platinum setting',
-      createdAt: '2024-01-14T10:00:00Z' // 1 day ago - should be new
-    },
-    {
-      id: 10,
-      name: 'Gold Layered Chain',
-      price: 134999,
-      image: 'https://images.unsplash.com/photo-1611652022408-a03f2b3734ec?w=400&h=400&fit=crop',
-      category: 'chain',
-      description: 'Multi-layered gold chain with varying pendant charms',
-      createdAt: '2024-01-05T10:00:00Z' // 10 days ago - not new
+  // Fetch products from API
+  const fetchProducts = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+
+      const params = new URLSearchParams({
+        page: currentPage.toString(),
+        limit: itemsPerPage.toString()
+      });
+
+      if (searchTerm) params.append('search', searchTerm);
+      if (selectedCategory !== 'All') params.append('category', selectedCategory);
+
+      const response = await fetch(`${import.meta.env.VITE_API_URL}/api/products?${params}`);
+
+      if (!response.ok) {
+        throw new Error('Failed to fetch products');
+      }
+
+      const data = await response.json();
+
+      if (data.success) {
+        setProducts(data.data.products || []);
+        setTotalPages(data.data.pagination?.totalPages || 1);
+      } else {
+        throw new Error(data.error || 'Failed to load products');
+      }
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'An error occurred');
+      setProducts([]);
+    } finally {
+      setLoading(false);
     }
-  ];
+  };
+
+  // Fetch product specifications when needed
+  const fetchProductSpecifications = async (productId: string): Promise<ProductSpecification[]> => {
+    try {
+      const response = await fetch(`${import.meta.env.VITE_API_URL}/api/products/${productId}/specifications`);
+
+      if (!response.ok) {
+        throw new Error('Failed to fetch specifications');
+      }
+
+      const data = await response.json();
+      return data.success ? data.data : [];
+    } catch (err) {
+      console.error('Error fetching specifications:', err);
+      return [];
+    }
+  };
+
+  // Load products when component mounts or filters change
+  useEffect(() => {
+    fetchProducts();
+  }, [currentPage, searchTerm, selectedCategory]);
 
   const categories = [
     { value: 'All', label: 'All Products' },
@@ -139,33 +121,11 @@ const ProductCatalog: React.FC = () => {
     { value: 'bracelet-anklet', label: 'Bracelets & Anklets' }
   ];
 
-  const sizes = [
-    { value: 'S', label: 'Small (6-7 inches / 15-18 cm)' },
-    { value: 'M', label: 'Medium (7-8 inches / 18-20 cm)' },
-    { value: 'L', label: 'Large (8-9 inches / 20-23 cm)' }
-  ];
-
-  // Filter and search logic
-  const filteredProducts = useMemo(() => {
-    return products.filter(product => {
-      const matchesSearch = product.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        product.description.toLowerCase().includes(searchTerm.toLowerCase());
-      const matchesCategory = selectedCategory === 'All' || product.category === selectedCategory;
-      return matchesSearch && matchesCategory;
-    });
-  }, [searchTerm, selectedCategory]);
-
-  // Pagination logic
-  const totalPages = Math.ceil(filteredProducts.length / itemsPerPage);
-  const paginatedProducts = useMemo(() => {
-    const startIndex = (currentPage - 1) * itemsPerPage;
-    return filteredProducts.slice(startIndex, startIndex + itemsPerPage);
-  }, [filteredProducts, currentPage]);
-
-  // Reset to first page when filters change
-  React.useEffect(() => {
-    setCurrentPage(1);
-  }, [searchTerm, selectedCategory]);
+  // Handle search with debouncing
+  const handleSearchChange = (value: string) => {
+    setSearchTerm(value);
+    setCurrentPage(1); // Reset to first page when searching
+  };
 
   const formatPrice = (price: number) => {
     return `₹${price.toLocaleString('en-IN')}`;
@@ -173,6 +133,7 @@ const ProductCatalog: React.FC = () => {
 
   const handleCategoryChange = (category: string) => {
     setSelectedCategory(category);
+    setCurrentPage(1); // Reset to first page when changing category
     setShowFilters(false);
   };
 
@@ -181,49 +142,69 @@ const ProductCatalog: React.FC = () => {
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
-  const handleAddToCart = (product: Product) => {
+  const handleAddToCart = async (product: Product) => {
     if (product.category === 'bracelet-anklet') {
-      setSelectedProduct(product);
+      // Fetch specifications for this product
+      const specifications = await fetchProductSpecifications(product.id);
+      const updatedProduct = { ...product, specifications };
+      setSelectedProduct(updatedProduct);
       setQuantity(1);
       setSelectedSize('');
       setShowSizeModal(true);
     } else {
-      // Direct add to cart for chains
-      addToCart(product, 1);
+      // For chains, fetch specifications and use the first available one
+      const specifications = await fetchProductSpecifications(product.id);
+      const defaultSpec = specifications.find(spec => spec.isAvailable) || {
+        id: `default-${product.id}`,
+        displayName: 'Standard',
+        value: 'standard',
+        type: 'layer' as const,
+        priceModifier: 0,
+        stockQuantity: 1,
+        isAvailable: true
+      };
+
+      addToCart(product, 1, defaultSpec);
     }
   };
 
-  const addToCart = (product: Product, qty: number, size?: string) => {
+  const addToCart = (product: Product, qty: number, specification: ProductSpecification) => {
     // Convert ProductCatalog Product to CartContext Product format
     const cartProduct = {
       id: product.id,
       name: product.name,
-      images: [product.image], // Convert single image to array
+      images: product.images,
       category: product.category,
       description: product.description
     };
 
-    // Create appropriate specification based on product type
-    const specification = {
-      id: Date.now(), // Use timestamp for unique specification ID
-      displayName: size ? `Size: ${size}` : 'Standard',
-      value: size || 'standard',
-      type: (product.category === 'bracelet-anklet' ? 'size' : 'layer') as 'size' | 'layer'
+    // Convert to CartContext specification format
+    const cartSpecification = {
+      id: specification.id,
+      displayName: specification.displayName,
+      value: specification.value,
+      type: specification.type
     };
 
+    // Calculate final price including specification modifier
+    const finalPrice = product.price + specification.priceModifier;
+
     // Add to cart using the context
-    addToCartContext(cartProduct, specification, qty, product.price);
+    addToCartContext(cartProduct, cartSpecification, qty, finalPrice);
 
     setShowSizeModal(false);
     setSelectedProduct(null);
 
     // Show success message
-    alert(`Added ${qty} ${product.name}${size ? ` (Size: ${size})` : ''} to cart!`);
+    alert(`Added ${qty} ${product.name} (${specification.displayName}) to cart!`);
   };
 
   const handleSizeModalSubmit = () => {
     if (selectedProduct && selectedSize && quantity > 0) {
-      addToCart(selectedProduct, quantity, selectedSize);
+      const selectedSpec = selectedProduct.specifications?.find(spec => spec.value === selectedSize);
+      if (selectedSpec) {
+        addToCart(selectedProduct, quantity, selectedSpec);
+      }
     }
   };
 
@@ -244,7 +225,7 @@ const ProductCatalog: React.FC = () => {
             placeholder="Search jewelry..."
             className="pl-10 h-12 text-base"
             value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
+            onChange={(e) => handleSearchChange(e.target.value)}
           />
         </div>
 
@@ -285,7 +266,7 @@ const ProductCatalog: React.FC = () => {
         {/* Results Summary */}
         <div className="flex items-center justify-between text-sm text-muted-foreground">
           <span>
-            {filteredProducts.length} product{filteredProducts.length !== 1 ? 's' : ''} found
+            {products.length} product{products.length !== 1 ? 's' : ''} found
             {searchTerm && ` for "${searchTerm}"`}
           </span>
           {totalPages > 1 && (
@@ -296,8 +277,28 @@ const ProductCatalog: React.FC = () => {
         </div>
       </div>
 
+      {/* Loading State */}
+      {loading && (
+        <div className="flex justify-center items-center py-12">
+          <div className="text-center">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-purple-600 mx-auto mb-4"></div>
+            <p className="text-gray-600">Loading products...</p>
+          </div>
+        </div>
+      )}
+
+      {/* Error State */}
+      {error && (
+        <div className="text-center py-12">
+          <p className="text-red-600 mb-4">{error}</p>
+          <Button onClick={fetchProducts} variant="outline">
+            Try Again
+          </Button>
+        </div>
+      )}
+
       {/* Product Grid */}
-      {paginatedProducts.length === 0 ? (
+      {!loading && !error && products.length === 0 ? (
         <div className="text-center py-12">
           <div className="text-muted-foreground mb-4">
             <ShoppingCart className="w-12 h-12 mx-auto mb-2 opacity-50" />
@@ -305,9 +306,9 @@ const ProductCatalog: React.FC = () => {
             <p className="text-sm">Try adjusting your search or filter criteria</p>
           </div>
         </div>
-      ) : (
+      ) : !loading && !error ? (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 md:gap-6">
-          {paginatedProducts.map((product) => (
+          {products.map((product) => (
             <div key={product.id} className="bg-card rounded-lg border shadow-sm hover:shadow-md transition-shadow duration-200">
               {/* Product Image */}
               <div className="relative aspect-square">
@@ -367,7 +368,7 @@ const ProductCatalog: React.FC = () => {
             </div>
           ))}
         </div>
-      )}
+      ) : null}
 
       {/* Pagination */}
       {totalPages > 1 && (
@@ -447,21 +448,28 @@ const ProductCatalog: React.FC = () => {
                 <p className="text-lg font-bold text-primary">{formatPrice(selectedProduct.price)}</p>
               </div>
 
-              {/* Size Selection */}
+              {/* Size/Specification Selection */}
               <div>
-                <label className="block text-sm font-medium mb-2">Select Size:</label>
+                <label className="block text-sm font-medium mb-2">
+                  Select {selectedProduct.category === 'bracelet-anklet' ? 'Size' : 'Option'}:
+                </label>
                 <div className="space-y-2">
-                  {sizes.map((size) => (
-                    <label key={size.value} className="flex items-center space-x-2 cursor-pointer">
+                  {selectedProduct.specifications?.map((spec) => (
+                    <label key={spec.id} className="flex items-center space-x-2 cursor-pointer">
                       <input
                         type="radio"
-                        name="size"
-                        value={size.value}
-                        checked={selectedSize === size.value}
+                        name="specification"
+                        value={spec.value}
+                        checked={selectedSize === spec.value}
                         onChange={(e) => setSelectedSize(e.target.value)}
                         className="text-primary"
                       />
-                      <span className="text-sm">{size.label}</span>
+                      <span className="text-sm flex-1">{spec.displayName}</span>
+                      {spec.priceModifier > 0 && (
+                        <span className="text-sm text-primary font-medium">
+                          +{formatPrice(spec.priceModifier)}
+                        </span>
+                      )}
                     </label>
                   ))}
                 </div>
@@ -496,7 +504,11 @@ const ProductCatalog: React.FC = () => {
                 <div className="flex justify-between items-center">
                   <span className="font-medium">Total:</span>
                   <span className="text-lg font-bold text-primary">
-                    {formatPrice(selectedProduct.price * quantity)}
+                    {formatPrice((() => {
+                      const selectedSpec = selectedProduct.specifications?.find(spec => spec.value === selectedSize);
+                      const finalPrice = selectedProduct.price + (selectedSpec?.priceModifier || 0);
+                      return finalPrice * quantity;
+                    })())}
                   </span>
                 </div>
               </div>

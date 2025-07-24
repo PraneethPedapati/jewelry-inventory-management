@@ -89,7 +89,6 @@ function App() {
             <Route index element={<ProductCatalog />} />
             <Route path="products" element={<ProductCatalog />} />
             <Route path="cart" element={<Cart />} />
-            <Route path="orders" element={<div className="p-8">Order History (Coming Soon)</div>} />
           </Route>
 
           {/* Admin routes */}

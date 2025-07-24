@@ -2,7 +2,7 @@ import React, { createContext, useContext, useState, useCallback } from 'react';
 
 // Types for cart items and products
 export interface Product {
-  id: number;
+  id: string; // Changed to string for UUID compatibility
   name: string;
   images: string[];
   category: string;
@@ -10,7 +10,7 @@ export interface Product {
 }
 
 export interface ProductSpecification {
-  id: number;
+  id: string; // Changed to string for UUID compatibility
   displayName: string;
   value: string;
   type: 'size' | 'layer' | 'material' | 'color';
@@ -27,12 +27,12 @@ export interface CartItem {
 interface CartContextType {
   cart: CartItem[];
   addToCart: (product: Product, specification: ProductSpecification, quantity: number, price: number) => void;
-  updateQuantity: (productId: number, specificationId: number, newQuantity: number) => void;
-  removeFromCart: (productId: number, specificationId: number) => void;
+  updateQuantity: (productId: string, specificationId: string, newQuantity: number) => void;
+  removeFromCart: (productId: string, specificationId: string) => void;
   getTotalPrice: () => number;
   getTotalItems: () => number;
   clearCart: () => void;
-  isInCart: (productId: number, specificationId: number) => boolean;
+  isInCart: (productId: string, specificationId: string) => boolean;
 }
 
 // Create context
@@ -74,7 +74,7 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
   }, []);
 
   // Update quantity of existing item
-  const updateQuantity = useCallback((productId: number, specificationId: number, newQuantity: number) => {
+  const updateQuantity = useCallback((productId: string, specificationId: string, newQuantity: number) => {
     if (newQuantity <= 0) {
       removeFromCart(productId, specificationId);
       return;
@@ -90,7 +90,7 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
   }, []);
 
   // Remove item from cart
-  const removeFromCart = useCallback((productId: number, specificationId: number) => {
+  const removeFromCart = useCallback((productId: string, specificationId: string) => {
     setCart(prevCart =>
       prevCart.filter(
         item => !(item.product.id === productId && item.specification.id === specificationId)
@@ -114,7 +114,7 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
   }, []);
 
   // Check if item is in cart
-  const isInCart = useCallback((productId: number, specificationId: number) => {
+  const isInCart = useCallback((productId: string, specificationId: string) => {
     return cart.some(
       item => item.product.id === productId && item.specification.id === specificationId
     );

@@ -4,6 +4,7 @@ import { db } from '@/db/connection.js';
 import { orders, orderItems, products, productSpecifications } from '@/db/schema.js';
 import { eq, desc, and, like, or, gte, lte, count } from 'drizzle-orm';
 import { asyncHandler } from '@/middleware/error-handler.middleware.js';
+import { WhatsAppService } from '@/services/whatsapp.service.js';
 
 // Validation schemas
 const CreateOrderSchema = z.object({
@@ -13,8 +14,8 @@ const CreateOrderSchema = z.object({
     customerPhone: z.string().min(1, 'Phone number is required'),
     customerAddress: z.string().min(1, 'Address is required'),
     items: z.array(z.object({
-      productId: z.string().uuid(),
-      specificationId: z.string().uuid(),
+      productId: z.string().min(1, 'Product ID is required'),
+      specificationId: z.string().min(1, 'Specification ID is required'),
       quantity: z.number().positive()
     })).min(1, 'At least one item is required'),
     notes: z.string().optional()
@@ -37,6 +38,38 @@ const UpdateOrderSchema = z.object({
   })
 });
 
+// New validation schemas for hybrid flow
+const ApproveOrderSchema = z.object({
+  params: z.object({
+    id: z.string().uuid('Valid order ID is required')
+  }),
+  body: z.object({
+    upiId: z.string().optional().default('yourstore@paytm'),
+    sendPaymentQR: z.boolean().optional().default(true),
+    customMessage: z.string().optional()
+  })
+});
+
+const SendPaymentQRSchema = z.object({
+  params: z.object({
+    id: z.string().uuid('Valid order ID is required')
+  }),
+  body: z.object({
+    upiId: z.string().optional().default('yourstore@paytm'),
+    customMessage: z.string().optional()
+  })
+});
+
+const ConfirmPaymentSchema = z.object({
+  params: z.object({
+    id: z.string().uuid('Valid order ID is required')
+  }),
+  body: z.object({
+    paymentReference: z.string().optional(),
+    notes: z.string().optional()
+  })
+});
+
 /**
  * Get all orders with filters
  * GET /api/admin/orders
@@ -50,25 +83,6 @@ export const getOrders = asyncHandler(async (req: Request, res: Response) => {
     dateFrom,
     dateTo
   } = req.query;
-
-  let query = db
-    .select({
-      id: orders.id,
-      orderNumber: orders.orderNumber,
-      customerName: orders.customerName,
-      customerEmail: orders.customerEmail,
-      customerPhone: orders.customerPhone,
-      customerAddress: orders.customerAddress,
-      totalAmount: orders.totalAmount,
-      status: orders.status,
-      whatsappMessageSent: orders.whatsappMessageSent,
-      paymentReceived: orders.paymentReceived,
-      notes: orders.notes,
-      createdAt: orders.createdAt,
-      updatedAt: orders.updatedAt
-    })
-    .from(orders)
-    .orderBy(desc(orders.createdAt));
 
   // Apply filters
   const conditions = [];
@@ -95,9 +109,28 @@ export const getOrders = asyncHandler(async (req: Request, res: Response) => {
     conditions.push(lte(orders.createdAt, new Date(dateTo)));
   }
 
-  if (conditions.length > 0) {
-    query = query.where(and(...conditions));
-  }
+  // Build query with proper structure
+  const baseQuery = db
+    .select({
+      id: orders.id,
+      orderNumber: orders.orderNumber,
+      customerName: orders.customerName,
+      customerEmail: orders.customerEmail,
+      customerPhone: orders.customerPhone,
+      customerAddress: orders.customerAddress,
+      totalAmount: orders.totalAmount,
+      status: orders.status,
+      whatsappMessageSent: orders.whatsappMessageSent,
+      paymentReceived: orders.paymentReceived,
+      notes: orders.notes,
+      createdAt: orders.createdAt,
+      updatedAt: orders.updatedAt
+    })
+    .from(orders);
+
+  const query = conditions.length > 0
+    ? baseQuery.where(and(...conditions)).orderBy(desc(orders.createdAt))
+    : baseQuery.orderBy(desc(orders.createdAt));
 
   // Pagination
   const pageNum = Math.max(1, Number(page));
@@ -221,13 +254,26 @@ export const createOrder = asyncHandler(async (req: Request, res: Response) => {
       .limit(1);
 
     if (!product.length || !specification.length) {
+      console.error(`Product lookup failed - ProductID: ${item.productId}, SpecificationID: ${item.specificationId}`);
       return res.status(400).json({
         success: false,
-        error: 'Invalid product or specification'
+        error: 'Invalid product or specification. Please ensure you are using valid product and specification IDs from the database.'
       });
     }
 
-    const unitPrice = parseFloat(product[0].basePrice) + parseFloat(specification[0].priceModifier);
+    const productData = product[0];
+    const specData = specification[0];
+
+    if (!productData || !specData) {
+      return res.status(400).json({
+        success: false,
+        error: 'Invalid product or specification data'
+      });
+    }
+
+    const basePrice = productData.basePrice ? parseFloat(productData.basePrice) : 0;
+    const priceModifier = specData.priceModifier ? parseFloat(specData.priceModifier) : 0;
+    const unitPrice = basePrice + priceModifier;
     const itemTotal = unitPrice * item.quantity;
     totalAmount += itemTotal;
 
@@ -237,8 +283,8 @@ export const createOrder = asyncHandler(async (req: Request, res: Response) => {
       quantity: item.quantity,
       unitPrice: unitPrice.toString(),
       productSnapshot: {
-        product: product[0],
-        specification: specification[0]
+        product: productData,
+        specification: specData
       }
     });
   }
@@ -257,17 +303,26 @@ export const createOrder = asyncHandler(async (req: Request, res: Response) => {
     })
     .returning();
 
+  if (!newOrder.length || !newOrder[0]) {
+    return res.status(500).json({
+      success: false,
+      error: 'Failed to create order'
+    });
+  }
+
+  const createdOrder = newOrder[0];
+
   // Create order items
   const orderItemsWithOrderId = orderItemsData.map(item => ({
     ...item,
-    orderId: newOrder[0].id
+    orderId: createdOrder.id
   }));
 
   await db.insert(orderItems).values(orderItemsWithOrderId);
 
   res.status(201).json({
     success: true,
-    data: newOrder[0],
+    data: createdOrder,
     message: 'Order created successfully'
   });
 });
@@ -311,6 +366,13 @@ export const updateOrder = asyncHandler(async (req: Request, res: Response) => {
     .set(updateData)
     .where(eq(orders.id, params.id))
     .returning();
+
+  if (!updatedOrder.length || !updatedOrder[0]) {
+    return res.status(500).json({
+      success: false,
+      error: 'Failed to update order'
+    });
+  }
 
   res.json({
     success: true,
@@ -368,7 +430,8 @@ export const getOrderStats = asyncHandler(async (req: Request, res: Response) =>
     .from(orders);
 
   const statusCounts = stats.reduce((acc: any, order) => {
-    acc[order.status] = (acc[order.status] || 0) + 1;
+    const status = order.status || 'unknown';
+    acc[status] = (acc[status] || 0) + 1;
     return acc;
   }, {});
 
@@ -392,11 +455,6 @@ export const getOrderStats = asyncHandler(async (req: Request, res: Response) =>
 export const exportOrders = asyncHandler(async (req: Request, res: Response) => {
   const { format = 'csv', dateFrom, dateTo } = req.query;
 
-  let query = db
-    .select()
-    .from(orders)
-    .orderBy(desc(orders.createdAt));
-
   // Apply date filters
   const conditions = [];
   if (dateFrom && typeof dateFrom === 'string') {
@@ -406,9 +464,13 @@ export const exportOrders = asyncHandler(async (req: Request, res: Response) => 
     conditions.push(lte(orders.createdAt, new Date(dateTo)));
   }
 
-  if (conditions.length > 0) {
-    query = query.where(and(...conditions));
-  }
+  const baseQuery = db
+    .select()
+    .from(orders);
+
+  const query = conditions.length > 0
+    ? baseQuery.where(and(...conditions)).orderBy(desc(orders.createdAt))
+    : baseQuery.orderBy(desc(orders.createdAt));
 
   const ordersData = await query;
 
@@ -422,7 +484,7 @@ export const exportOrders = asyncHandler(async (req: Request, res: Response) => 
         order.customerPhone,
         order.totalAmount,
         order.status,
-        order.createdAt.toISOString().split('T')[0]
+        order.createdAt ? order.createdAt.toISOString().split('T')[0] : 'N/A'
       ].join(','))
     ].join('\n');
 
@@ -434,6 +496,431 @@ export const exportOrders = asyncHandler(async (req: Request, res: Response) => 
       success: true,
       data: ordersData,
       message: 'Orders exported successfully'
+    });
+  }
+});
+
+/**
+ * Approve order and optionally send payment QR
+ * POST /api/admin/orders/:id/approve
+ */
+export const approveOrder = asyncHandler(async (req: Request, res: Response) => {
+  const { params, body } = ApproveOrderSchema.parse({ params: req.params, body: req.body });
+
+  // Get order with items
+  const order = await db
+    .select()
+    .from(orders)
+    .where(eq(orders.id, params.id))
+    .limit(1);
+
+  if (!order.length) {
+    return res.status(404).json({
+      success: false,
+      error: 'Order not found'
+    });
+  }
+
+  const currentOrder = order[0];
+  if (!currentOrder) {
+    return res.status(404).json({
+      success: false,
+      error: 'Order data not found'
+    });
+  }
+
+  if (currentOrder.status !== 'pending') {
+    return res.status(400).json({
+      success: false,
+      error: `Order is already ${currentOrder.status}. Can only approve pending orders.`
+    });
+  }
+
+  // Get order items
+  const items = await db
+    .select({
+      id: orderItems.id,
+      quantity: orderItems.quantity,
+      unitPrice: orderItems.unitPrice,
+      totalPrice: orderItems.totalPrice,
+      productSnapshot: orderItems.productSnapshot
+    })
+    .from(orderItems)
+    .where(eq(orderItems.orderId, params.id));
+
+  const completeOrder = {
+    id: currentOrder.id,
+    orderNumber: currentOrder.orderNumber || '',
+    customerName: currentOrder.customerName || '',
+    customerEmail: currentOrder.customerEmail || '',
+    customerPhone: currentOrder.customerPhone || '',
+    customerAddress: currentOrder.customerAddress || '',
+    totalAmount: parseFloat(currentOrder.totalAmount),
+    status: (currentOrder.status as 'pending' | 'confirmed' | 'processing' | 'shipped' | 'delivered' | 'cancelled') || 'pending',
+    whatsappMessageSent: currentOrder.whatsappMessageSent || false,
+    paymentReceived: currentOrder.paymentReceived || false,
+    notes: currentOrder.notes || '',
+    createdAt: currentOrder.createdAt?.toISOString() || new Date().toISOString(),
+    updatedAt: currentOrder.updatedAt?.toISOString() || new Date().toISOString(),
+    items: items.map(item => ({
+      ...item,
+      unitPrice: parseFloat(item.unitPrice),
+      totalPrice: parseFloat(item.totalPrice || '0'),
+      productSnapshot: item.productSnapshot as any
+    }))
+  };
+
+  // Update order status to confirmed
+  await db
+    .update(orders)
+    .set({
+      status: 'confirmed',
+      updatedAt: new Date(),
+      notes: `${currentOrder.notes || ''}\nOrder approved by admin.`
+    })
+    .where(eq(orders.id, params.id));
+
+  let paymentQR = '';
+  let whatsappUrl = '';
+  let message = 'Order approved successfully';
+
+  if (body.sendPaymentQR) {
+    try {
+      // Generate payment QR
+      paymentQR = WhatsAppService.generatePaymentQR(completeOrder as any, body.upiId);
+
+      // Generate approval message with payment QR
+      const approvalMessage = body.customMessage ||
+        WhatsAppService.generateOrderApprovalMessage(completeOrder as any, paymentQR);
+
+      // Create WhatsApp URL for sending to customer
+      const encodedMessage = encodeURIComponent(approvalMessage);
+      whatsappUrl = `https://wa.me/${completeOrder.customerPhone}?text=${encodedMessage}`;
+
+      message = 'Order approved and payment QR generated successfully';
+    } catch (error) {
+      console.error('Failed to generate payment QR:', error);
+      message = 'Order approved, but failed to generate payment QR';
+    }
+  }
+
+  res.json({
+    success: true,
+    data: {
+      order: completeOrder,
+      paymentQR: paymentQR,
+      whatsappUrl: whatsappUrl,
+      actions: {
+        sendPaymentQR: body.sendPaymentQR,
+        paymentPending: true
+      }
+    },
+    message
+  });
+});
+
+/**
+ * Send payment QR to customer
+ * POST /api/admin/orders/:id/send-payment-qr
+ */
+export const sendPaymentQR = asyncHandler(async (req: Request, res: Response) => {
+  const { params, body } = SendPaymentQRSchema.parse({ params: req.params, body: req.body });
+
+  // Get order
+  const order = await db
+    .select()
+    .from(orders)
+    .where(eq(orders.id, params.id))
+    .limit(1);
+
+  if (!order.length) {
+    return res.status(404).json({
+      success: false,
+      error: 'Order not found'
+    });
+  }
+
+  const currentOrder = order[0];
+  if (!currentOrder) {
+    return res.status(404).json({
+      success: false,
+      error: 'Order data not found'
+    });
+  }
+
+  if (currentOrder.paymentReceived) {
+    return res.status(400).json({
+      success: false,
+      error: 'Payment already received for this order'
+    });
+  }
+
+  // Get order items
+  const items = await db
+    .select({
+      id: orderItems.id,
+      quantity: orderItems.quantity,
+      unitPrice: orderItems.unitPrice,
+      totalPrice: orderItems.totalPrice,
+      productSnapshot: orderItems.productSnapshot
+    })
+    .from(orderItems)
+    .where(eq(orderItems.orderId, params.id));
+
+  const completeOrder = {
+    id: currentOrder.id,
+    orderNumber: currentOrder.orderNumber || '',
+    customerName: currentOrder.customerName || '',
+    customerEmail: currentOrder.customerEmail || '',
+    customerPhone: currentOrder.customerPhone || '',
+    customerAddress: currentOrder.customerAddress || '',
+    totalAmount: parseFloat(currentOrder.totalAmount),
+    status: currentOrder.status || 'pending',
+    whatsappMessageSent: currentOrder.whatsappMessageSent || false,
+    paymentReceived: currentOrder.paymentReceived || false,
+    notes: currentOrder.notes || '',
+    createdAt: currentOrder.createdAt?.toISOString() || new Date().toISOString(),
+    updatedAt: currentOrder.updatedAt?.toISOString() || new Date().toISOString(),
+    items: items.map(item => ({
+      ...item,
+      unitPrice: parseFloat(item.unitPrice),
+      totalPrice: parseFloat(item.totalPrice || '0'),
+      productSnapshot: item.productSnapshot as any
+    }))
+  };
+
+  try {
+    // Generate payment request message
+    const paymentMessage = body.customMessage ||
+      WhatsAppService.generatePaymentRequestMessage(completeOrder as any, body.upiId);
+
+    const paymentQR = WhatsAppService.generatePaymentQR(completeOrder as any, body.upiId);
+
+    // Create WhatsApp URL
+    const encodedMessage = encodeURIComponent(paymentMessage);
+    const whatsappUrl = `https://wa.me/${completeOrder.customerPhone}?text=${encodedMessage}`;
+
+    res.json({
+      success: true,
+      data: {
+        paymentQR: paymentQR,
+        whatsappUrl: whatsappUrl,
+        upiId: body.upiId,
+        amount: parseFloat(currentOrder.totalAmount),
+        orderNumber: currentOrder.orderNumber
+      },
+      message: 'Payment QR generated successfully'
+    });
+
+  } catch (error) {
+    console.error('Failed to generate payment QR:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to generate payment QR'
+    });
+  }
+});
+
+/**
+ * Confirm payment received
+ * POST /api/admin/orders/:id/confirm-payment
+ */
+export const confirmPayment = asyncHandler(async (req: Request, res: Response) => {
+  const { params, body } = ConfirmPaymentSchema.parse({ params: req.params, body: req.body });
+
+  // Get order
+  const order = await db
+    .select()
+    .from(orders)
+    .where(eq(orders.id, params.id))
+    .limit(1);
+
+  if (!order.length) {
+    return res.status(404).json({
+      success: false,
+      error: 'Order not found'
+    });
+  }
+
+  const currentOrder = order[0];
+  if (!currentOrder) {
+    return res.status(404).json({
+      success: false,
+      error: 'Order data not found'
+    });
+  }
+
+  if (currentOrder.paymentReceived) {
+    return res.status(400).json({
+      success: false,
+      error: 'Payment already confirmed for this order'
+    });
+  }
+
+  // Get order items
+  const items = await db
+    .select({
+      id: orderItems.id,
+      quantity: orderItems.quantity,
+      unitPrice: orderItems.unitPrice,
+      totalPrice: orderItems.totalPrice,
+      productSnapshot: orderItems.productSnapshot
+    })
+    .from(orderItems)
+    .where(eq(orderItems.orderId, params.id));
+
+  const completeOrder = {
+    id: currentOrder.id,
+    orderNumber: currentOrder.orderNumber || '',
+    customerName: currentOrder.customerName || '',
+    customerEmail: currentOrder.customerEmail || '',
+    customerPhone: currentOrder.customerPhone || '',
+    customerAddress: currentOrder.customerAddress || '',
+    totalAmount: parseFloat(currentOrder.totalAmount),
+    status: currentOrder.status || 'pending',
+    whatsappMessageSent: currentOrder.whatsappMessageSent || false,
+    paymentReceived: currentOrder.paymentReceived || false,
+    notes: currentOrder.notes || '',
+    createdAt: currentOrder.createdAt?.toISOString() || new Date().toISOString(),
+    updatedAt: currentOrder.updatedAt?.toISOString() || new Date().toISOString(),
+    items: items.map(item => ({
+      ...item,
+      unitPrice: parseFloat(item.unitPrice),
+      totalPrice: parseFloat(item.totalPrice || '0'),
+      productSnapshot: item.productSnapshot as any
+    }))
+  };
+
+  // Update order - mark payment received and status as processing
+  const updateNotes = `${currentOrder.notes || ''}\nPayment confirmed by admin.`;
+  const updateNotesWithRef = body.paymentReference
+    ? `${updateNotes} Reference: ${body.paymentReference}`
+    : updateNotes;
+
+  await db
+    .update(orders)
+    .set({
+      paymentReceived: true,
+      status: 'processing',
+      updatedAt: new Date(),
+      notes: updateNotesWithRef
+    })
+    .where(eq(orders.id, params.id));
+
+  let whatsappUrl = '';
+  try {
+    // Generate payment confirmation message
+    const confirmationMessage = WhatsAppService.generatePaymentConfirmationMessage(completeOrder as any);
+
+    // Create WhatsApp URL for sending confirmation to customer
+    const encodedMessage = encodeURIComponent(confirmationMessage);
+    whatsappUrl = `https://wa.me/${completeOrder.customerPhone}?text=${encodedMessage}`;
+
+  } catch (error) {
+    console.error('Failed to generate confirmation message:', error);
+  }
+
+  res.json({
+    success: true,
+    data: {
+      order: {
+        ...completeOrder,
+        paymentReceived: true,
+        status: 'processing'
+      },
+      whatsappUrl: whatsappUrl,
+      paymentReference: body.paymentReference,
+      actions: {
+        paymentConfirmed: true,
+        orderInProduction: true
+      }
+    },
+    message: 'Payment confirmed successfully. Order moved to processing.'
+  });
+});
+
+/**
+ * Send custom WhatsApp message to customer
+ * POST /api/admin/orders/:id/send-whatsapp
+ */
+export const sendWhatsAppMessage = asyncHandler(async (req: Request, res: Response) => {
+  const { id } = req.params;
+  const { message, messageType = 'custom' } = req.body;
+
+  if (!id) {
+    return res.status(400).json({
+      success: false,
+      error: 'Order ID is required'
+    });
+  }
+
+  if (!message || typeof message !== 'string') {
+    return res.status(400).json({
+      success: false,
+      error: 'Message content is required'
+    });
+  }
+
+  // Get order
+  const order = await db
+    .select()
+    .from(orders)
+    .where(eq(orders.id, id))
+    .limit(1);
+
+  if (!order.length) {
+    return res.status(404).json({
+      success: false,
+      error: 'Order not found'
+    });
+  }
+
+  const currentOrder = order[0];
+  if (!currentOrder) {
+    return res.status(404).json({
+      success: false,
+      error: 'Order data not found'
+    });
+  }
+
+  const customerPhone = currentOrder.customerPhone || '';
+
+  if (!customerPhone) {
+    return res.status(400).json({
+      success: false,
+      error: 'Customer phone number not available'
+    });
+  }
+
+  try {
+    const encodedMessage = encodeURIComponent(message);
+    const whatsappUrl = `https://wa.me/${customerPhone}?text=${encodedMessage}`;
+
+    // Log the WhatsApp message in order notes
+    await db
+      .update(orders)
+      .set({
+        notes: `${currentOrder.notes || ''}\nWhatsApp message sent: ${messageType}`,
+        updatedAt: new Date()
+      })
+      .where(eq(orders.id, id));
+
+    res.json({
+      success: true,
+      data: {
+        whatsappUrl: whatsappUrl,
+        messageType: messageType,
+        customerPhone: customerPhone,
+        orderNumber: currentOrder.orderNumber
+      },
+      message: 'WhatsApp message URL generated successfully'
+    });
+
+  } catch (error) {
+    console.error('Failed to generate WhatsApp message:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to generate WhatsApp message'
     });
   }
 }); 
