@@ -1,21 +1,18 @@
-import React, { useState } from 'react';
-import { ShoppingCart, Edit, Search, Download, ChevronLeft, ChevronRight, Calendar, X } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { ShoppingCart, Search, Edit, Download, Eye, ChevronLeft, ChevronRight, Clock, User, MapPin, Phone, Mail, Package } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
+import { Badge } from '@/components/ui/badge';
+import { toast } from 'sonner';
+import ConfirmationDialog from '@/components/ui/confirmation-dialog';
+import { orderService, type Order, type OrderItem } from '@/services/api';
 
-interface Order {
-  id: string;
-  customer: string;
-  item: string;
-  amount: string;
-  status: 'Pending' | 'Processing' | 'Shipped' | 'Delivered' | 'Cancelled';
-  date: string;
-  email: string;
-  phone: string;
-  address: string;
+interface OrderModalProps {
+  order: Order | null;
+  isOpen: boolean;
+  onClose: () => void;
+  onSave: (orderData: Partial<Order>) => void;
 }
 
 const AdminOrders: React.FC = () => {
@@ -27,249 +24,166 @@ const AdminOrders: React.FC = () => {
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage] = useState(10);
 
+  // API state
+  const [orders, setOrders] = useState<Order[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [updating, setUpdating] = useState(false);
+  const [exporting, setExporting] = useState(false);
+
+  // Pagination state
+  const [totalPages, setTotalPages] = useState(1);
+  const [totalOrders, setTotalOrders] = useState(0);
+
   // Export date range
   const [exportDateFrom, setExportDateFrom] = useState('');
   const [exportDateTo, setExportDateTo] = useState('');
+
+  // Load orders from API
+  const loadOrders = async () => {
+    try {
+      setLoading(true);
+      const params: {
+        search?: string;
+        status?: string;
+        page?: number;
+        limit?: number;
+      } = {
+        page: currentPage,
+        limit: itemsPerPage
+      };
+
+      if (searchTerm) params.search = searchTerm;
+      if (filterStatus !== 'All') params.status = filterStatus.toLowerCase();
+
+      const data = await orderService.getOrders(params);
+      setOrders(data.orders);
+      setTotalPages(data.pagination.totalPages);
+      setTotalOrders(data.pagination.total);
+    } catch (error) {
+      console.error('Failed to load orders:', error);
+      toast.error('Failed to load orders. Please try again.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Load orders on component mount and when filters change
+  useEffect(() => {
+    loadOrders();
+  }, [searchTerm, filterStatus, currentPage]);
+
+  // Reset to first page when filters change
+  useEffect(() => {
+    if (currentPage !== 1) {
+      setCurrentPage(1);
+    }
+  }, [searchTerm, filterStatus]);
 
   const handleEditOrder = (order: Order) => {
     setSelectedOrder(order);
     setShowEditModal(true);
   };
 
-  const handleUpdateOrder = (orderData: Partial<Order>) => {
-    if (selectedOrder) {
-      const updatedOrders = allOrders.map(order =>
-        order.id === selectedOrder.id ? { ...order, ...orderData } : order
-      );
-      setAllOrders(updatedOrders);
+  const handleUpdateOrder = async (orderData: Partial<Order>) => {
+    if (!selectedOrder) return;
+
+    try {
+      setUpdating(true);
+      await orderService.updateOrder(selectedOrder.id, orderData);
+      toast.success('Order updated successfully!');
       setShowEditModal(false);
       setSelectedOrder(null);
+      await loadOrders(); // Refresh the list
+    } catch (error) {
+      console.error('Failed to update order:', error);
+      toast.error('Failed to update order. Please try again.');
+    } finally {
+      setUpdating(false);
+    }
+  };
+
+  const handleExportOrders = async () => {
+    try {
+      setExporting(true);
+      // This would typically download a CSV/Excel file
+      // For now, we'll just show a success message
+      toast.success('Orders export feature will be implemented soon!');
+      setShowExportModal(false);
+    } catch (error) {
+      console.error('Failed to export orders:', error);
+      toast.error('Failed to export orders. Please try again.');
+    } finally {
+      setExporting(false);
     }
   };
 
   const getStatusVariant = (status: string) => {
-    switch (status) {
-      case 'Pending':
+    switch (status.toLowerCase()) {
+      case 'pending':
         return 'secondary';
-      case 'Processing':
+      case 'confirmed':
+      case 'processing':
         return 'default';
-      case 'Shipped':
+      case 'shipped':
         return 'outline';
-      case 'Delivered':
+      case 'delivered':
         return 'default';
-      case 'Cancelled':
+      case 'cancelled':
         return 'destructive';
       default:
         return 'default';
     }
   };
 
-  // Expanded sample orders data
-  const [allOrders, setAllOrders] = useState<Order[]>([
-    { id: '#ORD-001', customer: 'Sarah Johnson', item: 'Diamond Solitaire Ring', amount: '₹2,04,999', status: 'Pending', date: '2024-01-15', email: 'sarah@email.com', phone: '+91 9876543210', address: '123 Main St, Mumbai, MH 400001' },
-    { id: '#ORD-002', customer: 'Michael Chen', item: 'Gold Chain Necklace', amount: '₹73,999', status: 'Processing', date: '2024-01-15', email: 'michael@email.com', phone: '+91 9876543211', address: '456 Oak Ave, Delhi, DL 110001' },
-    { id: '#ORD-003', customer: 'Emily Davis', item: 'Pearl Bracelet', amount: '₹28,999', status: 'Shipped', date: '2024-01-14', email: 'emily@email.com', phone: '+91 9876543212', address: '789 Pine Rd, Bangalore, KA 560001' },
-    { id: '#ORD-004', customer: 'Robert Wilson', item: 'Silver Watch', amount: '₹1,07,499', status: 'Delivered', date: '2024-01-14', email: 'robert@email.com', phone: '+91 9876543213', address: '321 Elm St, Chennai, TN 600001' },
-    { id: '#ORD-005', customer: 'Lisa Brown', item: 'Emerald Earrings', amount: '₹1,56,999', status: 'Pending', date: '2024-01-13', email: 'lisa@email.com', phone: '+91 9876543214', address: '654 Maple Dr, Pune, MH 411001' },
-    { id: '#ORD-006', customer: 'David Lee', item: 'Ruby Ring', amount: '₹89,999', status: 'Processing', date: '2024-01-13', email: 'david@email.com', phone: '+91 9876543215', address: '987 Cedar Ln, Hyderabad, TS 500001' },
-    { id: '#ORD-007', customer: 'Anna Smith', item: 'Platinum Bracelet', amount: '₹2,45,999', status: 'Shipped', date: '2024-01-12', email: 'anna@email.com', phone: '+91 9876543216', address: '159 Birch St, Kolkata, WB 700001' },
-    { id: '#ORD-008', customer: 'James Miller', item: 'Diamond Earrings', amount: '₹1,89,999', status: 'Delivered', date: '2024-01-12', email: 'james@email.com', phone: '+91 9876543217', address: '753 Walnut Ave, Ahmedabad, GJ 380001' },
-    { id: '#ORD-009', customer: 'Sophie Wilson', item: 'Gold Anklet', amount: '₹45,999', status: 'Pending', date: '2024-01-11', email: 'sophie@email.com', phone: '+91 9876543218', address: '951 Spruce Rd, Jaipur, RJ 302001' },
-    { id: '#ORD-010', customer: 'Mark Johnson', item: 'Silver Chain', amount: '₹35,999', status: 'Cancelled', date: '2024-01-11', email: 'mark@email.com', phone: '+91 9876543219', address: '357 Ash Dr, Lucknow, UP 226001' },
-    { id: '#ORD-011', customer: 'Rachel Green', item: 'Pearl Necklace', amount: '₹95,999', status: 'Processing', date: '2024-01-10', email: 'rachel@email.com', phone: '+91 9876543220', address: '246 Oak St, Bhopal, MP 462001' },
-    { id: '#ORD-012', customer: 'John Doe', item: 'Diamond Ring', amount: '₹3,25,999', status: 'Shipped', date: '2024-01-10', email: 'john@email.com', phone: '+91 9876543221', address: '135 Pine Ave, Indore, MP 452001' },
-    { id: '#ORD-013', customer: 'Monica Ross', item: 'Emerald Bracelet', amount: '₹1,75,999', status: 'Delivered', date: '2024-01-09', email: 'monica@email.com', phone: '+91 9876543222', address: '864 Elm Rd, Nagpur, MH 440001' },
-    { id: '#ORD-014', customer: 'Ross Geller', item: 'Gold Ring', amount: '₹65,999', status: 'Pending', date: '2024-01-09', email: 'ross@email.com', phone: '+91 9876543223', address: '579 Maple St, Surat, GJ 395001' },
-    { id: '#ORD-015', customer: 'Chandler Bing', item: 'Silver Bracelet', amount: '₹42,999', status: 'Processing', date: '2024-01-08', email: 'chandler@email.com', phone: '+91 9876543224', address: '792 Cedar Ave, Visakhapatnam, AP 530001' }
-  ]);
+  const getStatusColor = (status: string) => {
+    switch (status.toLowerCase()) {
+      case 'pending':
+        return 'text-yellow-600 bg-yellow-50 border-yellow-200';
+      case 'confirmed':
+        return 'text-blue-600 bg-blue-50 border-blue-200';
+      case 'processing':
+        return 'text-purple-600 bg-purple-50 border-purple-200';
+      case 'shipped':
+        return 'text-orange-600 bg-orange-50 border-orange-200';
+      case 'delivered':
+        return 'text-green-600 bg-green-50 border-green-200';
+      case 'cancelled':
+        return 'text-red-600 bg-red-50 border-red-200';
+      default:
+        return 'text-gray-600 bg-gray-50 border-gray-200';
+    }
+  };
 
-  // Filter orders based on search and filter
-  const filteredOrders = allOrders.filter(order => {
-    const matchesSearch = order.id.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      order.customer.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      order.item.toLowerCase().includes(searchTerm.toLowerCase());
+  const formatDate = (dateString: string) => {
+    return new Date(dateString).toLocaleDateString('en-US', {
+      year: 'numeric',
+      month: 'short',
+      day: 'numeric'
+    });
+  };
 
-    const matchesFilter = filterStatus === 'All' || order.status === filterStatus;
-
-    return matchesSearch && matchesFilter;
-  });
-
-  // Pagination
-  const totalPages = Math.ceil(filteredOrders.length / itemsPerPage);
-  const startIndex = (currentPage - 1) * itemsPerPage;
-  const endIndex = startIndex + itemsPerPage;
-  const currentOrders = filteredOrders.slice(startIndex, endIndex);
+  const formatCurrency = (amount: string | number) => {
+    const num = typeof amount === 'string' ? parseFloat(amount) : amount;
+    return `₹${num.toLocaleString()}`;
+  };
 
   const handlePageChange = (page: number) => {
     setCurrentPage(page);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
-  // Export functionality
-  const handleExport = (format: 'csv' | 'xlsx') => {
-    // Validate date fields are provided
-    if (!exportDateFrom || !exportDateTo) {
-      alert('Please select both From Date and To Date for export.');
-      return;
-    }
-
-    const fromDate = new Date(exportDateFrom);
-    const toDate = new Date(exportDateTo);
-
-    if (fromDate > toDate) {
-      alert('From Date cannot be later than To Date.');
-      return;
-    }
-
-    const ordersToExport = allOrders.filter(order => {
-      const orderDate = new Date(order.date);
-      return orderDate >= fromDate && orderDate <= toDate;
-    });
-
-    if (ordersToExport.length === 0) {
-      alert('No orders found in the selected date range.');
-      return;
-    }
-
-    if (format === 'csv') {
-      exportToCSV(ordersToExport);
-    } else {
-      exportToXLSX(ordersToExport);
-    }
-    setShowExportModal(false);
-  };
-
-  const exportToCSV = (orders: Order[]) => {
-    const headers = ['Order ID', 'Customer', 'Item', 'Amount', 'Status', 'Date', 'Email', 'Phone', 'Address'];
-    const csvContent = [
-      headers.join(','),
-      ...orders.map(order => [
-        order.id,
-        `"${order.customer}"`,
-        `"${order.item}"`,
-        order.amount,
-        order.status,
-        order.date,
-        order.email,
-        order.phone,
-        `"${order.address}"`
-      ].join(','))
-    ].join('\n');
-
-    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-    const link = document.createElement('a');
-    link.href = URL.createObjectURL(blob);
-    link.download = `orders_${exportDateFrom}_to_${exportDateTo}.csv`;
-    link.click();
-  };
-
-  const exportToXLSX = (orders: Order[]) => {
-    // Create proper XLSX content using HTML table format with company header
-    const headers = ['Order ID', 'Customer', 'Item', 'Amount', 'Status', 'Date', 'Email', 'Phone', 'Address'];
-
-    let xlsxContent = `
-      <html>
-        <head>
-          <meta charset="UTF-8">
-          <style>
-            .company-header { 
-              text-align: center; 
-              margin-bottom: 30px; 
-              padding: 20px;
-              border-bottom: 2px solid #333;
-            }
-            .company-logo { 
-              font-size: 24px; 
-              font-weight: bold; 
-              color: #333;
-              margin-bottom: 10px;
-            }
-            .company-name { 
-              font-size: 20px; 
-              color: #666;
-              margin-bottom: 5px;
-            }
-            .export-date { 
-              font-size: 12px; 
-              color: #888;
-            }
-            table { 
-              border-collapse: collapse; 
-              width: 100%; 
-              margin-top: 20px;
-            }
-            th, td { 
-              border: 1px solid #ddd; 
-              padding: 12px; 
-              text-align: left; 
-            }
-            th { 
-              background-color: #f8f9fa; 
-              font-weight: bold;
-              color: #333;
-            }
-            .order-total {
-              margin-top: 20px;
-              text-align: right;
-              font-weight: bold;
-              font-size: 14px;
-            }
-          </style>
-        </head>
-        <body>
-          <div class="company-header">
-            <div class="company-logo">💎 Jewelry Store</div>
-            <div class="company-name">Premium Jewelry Collection</div>
-            <div class="export-date">Order Export - ${new Date().toLocaleDateString('en-IN')}</div>
-            <div class="export-date">Date Range: ${exportDateFrom} to ${exportDateTo}</div>
+  if (loading && orders.length === 0) {
+    return (
+      <div className="p-6">
+        <div className="flex items-center justify-center min-h-[400px]">
+          <div className="text-center">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
+            <p className="text-muted-foreground">Loading orders...</p>
           </div>
-          
-          <table>
-            <tr>
-              ${headers.map(header => `<th>${header}</th>`).join('')}
-            </tr>
-    `;
-
-    orders.forEach(order => {
-      xlsxContent += `
-        <tr>
-          <td>${order.id}</td>
-          <td>${order.customer}</td>
-          <td>${order.item}</td>
-          <td>${order.amount}</td>
-          <td>${order.status}</td>
-          <td>${order.date}</td>
-          <td>${order.email}</td>
-          <td>${order.phone}</td>
-          <td>${order.address}</td>
-        </tr>
-      `;
-    });
-
-    // Add summary at the bottom
-    const totalAmount = orders.reduce((sum, order) => {
-      const amount = parseFloat(order.amount.replace('₹', '').replace(/,/g, ''));
-      return sum + amount;
-    }, 0);
-
-    xlsxContent += `
-          </table>
-          
-          <div class="order-total">
-            <p>Total Orders: ${orders.length}</p>
-            <p>Total Amount: ₹${totalAmount.toLocaleString('en-IN')}</p>
-          </div>
-        </body>
-      </html>
-    `;
-
-    const blob = new Blob([xlsxContent], {
-      type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
-    });
-    const link = document.createElement('a');
-    link.href = URL.createObjectURL(blob);
-    link.download = `jewelry_store_orders_${exportDateFrom}_to_${exportDateTo}.xlsx`;
-    link.click();
-  };
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="p-6">
@@ -283,7 +197,7 @@ const AdminOrders: React.FC = () => {
             Track and manage customer orders, process payments, and handle shipping
           </p>
         </div>
-        <Button onClick={() => setShowExportModal(true)}>
+        <Button onClick={() => setShowExportModal(true)} disabled={exporting}>
           <Download className="w-4 h-4 mr-2" />
           Export Orders
         </Button>
@@ -307,6 +221,7 @@ const AdminOrders: React.FC = () => {
         >
           <option value="All">All Orders</option>
           <option value="Pending">Pending</option>
+          <option value="Confirmed">Confirmed</option>
           <option value="Processing">Processing</option>
           <option value="Shipped">Shipped</option>
           <option value="Delivered">Delivered</option>
@@ -315,170 +230,165 @@ const AdminOrders: React.FC = () => {
       </div>
 
       {/* Orders List */}
-      <Card>
-        <CardHeader>
-          <CardTitle>All Orders</CardTitle>
-          <CardDescription>
-            Showing {startIndex + 1}-{Math.min(endIndex, filteredOrders.length)} of {filteredOrders.length} orders
-            {searchTerm && ` matching "${searchTerm}"`}
-            {filterStatus !== 'All' && ` (${filterStatus})`}
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          {currentOrders.length === 0 ? (
-            <div className="text-center py-12">
-              <ShoppingCart className="w-12 h-12 mx-auto mb-4 text-muted-foreground" />
-              <h3 className="text-lg font-semibold mb-2">No orders found</h3>
-              <p className="text-muted-foreground">
-                {searchTerm ? `No orders match "${searchTerm}"` : `No orders with status "${filterStatus}"`}
-              </p>
-            </div>
-          ) : (
-            <>
-              <div className="space-y-4">
-                {currentOrders.map((order) => (
-                  <div key={order.id} className="flex items-center justify-between p-4 border rounded-lg">
-                    <div className="flex items-center space-x-4">
-                      <div className="w-12 h-12 bg-muted rounded-lg flex items-center justify-center">
-                        <ShoppingCart className="w-6 h-6 text-muted-foreground" />
-                      </div>
+      <div className="space-y-4">
+        {loading ? (
+          <div className="text-center py-12">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
+            <p className="text-muted-foreground">Loading orders...</p>
+          </div>
+        ) : orders.length === 0 ? (
+          <div className="text-center py-12">
+            <ShoppingCart className="w-12 h-12 mx-auto mb-4 text-muted-foreground" />
+            <h3 className="text-lg font-semibold mb-2">No orders found</h3>
+            <p className="text-muted-foreground">
+              {searchTerm || filterStatus !== 'All'
+                ? 'No orders match your current filters'
+                : 'No orders have been placed yet'}
+            </p>
+          </div>
+        ) : (
+          orders.map((order) => (
+            <Card key={order.id} className="hover:shadow-md transition-shadow">
+              <CardContent className="p-6">
+                <div className="flex items-center justify-between">
+                  <div className="flex-1">
+                    <div className="flex items-center gap-4 mb-4">
                       <div>
-                        <h3 className="font-semibold">{order.id}</h3>
-                        <p className="text-sm text-muted-foreground">{order.customer}</p>
-                        <p className="text-sm text-muted-foreground">{order.item}</p>
+                        <h3 className="font-semibold text-lg">{order.orderNumber}</h3>
+                        <p className="text-muted-foreground text-sm flex items-center gap-1">
+                          <Clock className="w-3 h-3" />
+                          {formatDate(order.createdAt)}
+                        </p>
                       </div>
-                    </div>
-                    <div className="flex items-center space-x-6">
-                      <div>
-                        <p className="text-sm font-medium">{order.item}</p>
-                        <p className="text-xs text-muted-foreground">{order.date}</p>
-                      </div>
-                      <div className="text-right">
-                        <p className="font-semibold">{order.amount}</p>
-                      </div>
-                      <Badge variant={getStatusVariant(order.status)}>
-                        {order.status}
+                      <Badge
+                        variant={getStatusVariant(order.status)}
+                        className={`${getStatusColor(order.status)} font-medium`}
+                      >
+                        {order.status.charAt(0).toUpperCase() + order.status.slice(1)}
                       </Badge>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => handleEditOrder(order)}
-                        className="h-9 px-3 border-blue-200 text-blue-700 hover:bg-blue-50 hover:text-blue-800 hover:border-blue-300"
-                      >
-                        <Edit className="w-4 h-4 mr-1" />
-                        Edit
-                      </Button>
                     </div>
-                  </div>
-                ))}
-              </div>
 
-              {/* Pagination */}
-              {totalPages > 1 && (
-                <div className="flex items-center justify-between mt-6 pt-4 border-t">
-                  <p className="text-sm text-muted-foreground">
-                    Page {currentPage} of {totalPages}
-                  </p>
-                  <div className="flex items-center space-x-2">
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
+                      <div className="flex items-center gap-2">
+                        <User className="w-4 h-4 text-muted-foreground" />
+                        <div>
+                          <p className="font-medium">{order.customerName}</p>
+                          <p className="text-muted-foreground flex items-center gap-1">
+                            <Mail className="w-3 h-3" />
+                            {order.customerEmail}
+                          </p>
+                        </div>
+                      </div>
+
+                      <div className="flex items-center gap-2">
+                        <Phone className="w-4 h-4 text-muted-foreground" />
+                        <div>
+                          <p className="font-medium">{order.customerPhone}</p>
+                          <p className="text-muted-foreground flex items-center gap-1">
+                            <MapPin className="w-3 h-3" />
+                            Address on file
+                          </p>
+                        </div>
+                      </div>
+
+                      <div className="flex items-center gap-2">
+                        <Package className="w-4 h-4 text-muted-foreground" />
+                        <div>
+                          <p className="font-medium">{formatCurrency(order.totalAmount)}</p>
+                          <p className="text-muted-foreground">
+                            {order.items?.length || 0} item(s)
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+
+                    {order.notes && (
+                      <div className="mt-4 p-3 bg-muted rounded-md">
+                        <p className="text-sm">{order.notes}</p>
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="flex flex-col gap-2 ml-4">
                     <Button
                       variant="outline"
                       size="sm"
-                      onClick={() => handlePageChange(currentPage - 1)}
-                      disabled={currentPage === 1}
+                      onClick={() => handleEditOrder(order)}
+                      disabled={updating}
                     >
-                      <ChevronLeft className="w-4 h-4 mr-1" />
-                      Previous
+                      <Edit className="w-4 h-4 mr-1" />
+                      Edit
                     </Button>
-                    {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
-                      <Button
-                        key={page}
-                        variant={currentPage === page ? "default" : "outline"}
-                        size="sm"
-                        onClick={() => handlePageChange(page)}
-                        className="w-10"
-                      >
-                        {page}
-                      </Button>
-                    ))}
                     <Button
                       variant="outline"
                       size="sm"
-                      onClick={() => handlePageChange(currentPage + 1)}
-                      disabled={currentPage === totalPages}
+                      onClick={() => {
+                        setSelectedOrder(order);
+                        // Could open a detailed view modal here
+                        toast.info('Order details view coming soon!');
+                      }}
                     >
-                      Next
-                      <ChevronRight className="w-4 h-4 ml-1" />
+                      <Eye className="w-4 h-4 mr-1" />
+                      View
                     </Button>
                   </div>
                 </div>
-              )}
-            </>
-          )}
-        </CardContent>
-      </Card>
+              </CardContent>
+            </Card>
+          ))
+        )}
+      </div>
 
-      {/* Export Modal */}
-      {showExportModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-card p-6 rounded-lg w-full max-w-md">
-            <div className="flex items-center justify-between mb-4">
-              <h2 className="text-xl font-semibold">Export Orders</h2>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => setShowExportModal(false)}
-                className="h-9 w-9 p-0"
-              >
-                <X className="w-4 h-4" />
-              </Button>
-            </div>
-            <div className="space-y-4">
-              <div>
-                <Label htmlFor="date-from">From Date *</Label>
-                <Input
-                  id="date-from"
-                  type="date"
-                  value={exportDateFrom}
-                  onChange={(e) => setExportDateFrom(e.target.value)}
-                  required
-                  className="mt-1"
-                />
-              </div>
-              <div>
-                <Label htmlFor="date-to">To Date *</Label>
-                <Input
-                  id="date-to"
-                  type="date"
-                  value={exportDateTo}
-                  onChange={(e) => setExportDateTo(e.target.value)}
-                  required
-                  className="mt-1"
-                />
-              </div>
-              <div className="bg-muted p-3 rounded-lg">
-                <p className="text-sm text-muted-foreground">
-                  <strong>Note:</strong> Both dates are required for export. Only orders within the selected date range will be exported.
-                </p>
-              </div>
-              <div className="flex gap-2">
+      {/* Pagination */}
+      {totalPages > 1 && (
+        <div className="flex items-center justify-center gap-2 mt-8">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => handlePageChange(currentPage - 1)}
+            disabled={currentPage === 1 || loading}
+            className="h-10 px-3"
+          >
+            <ChevronLeft className="w-4 h-4" />
+          </Button>
+
+          <div className="flex gap-1">
+            {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
+              let pageNumber;
+              if (totalPages <= 5) {
+                pageNumber = i + 1;
+              } else if (currentPage <= 3) {
+                pageNumber = i + 1;
+              } else if (currentPage >= totalPages - 2) {
+                pageNumber = totalPages - 4 + i;
+              } else {
+                pageNumber = currentPage - 2 + i;
+              }
+
+              return (
                 <Button
-                  onClick={() => handleExport('csv')}
-                  variant="outline"
-                  className="flex-1"
-                  disabled={!exportDateFrom || !exportDateTo}
+                  key={pageNumber}
+                  variant={currentPage === pageNumber ? "default" : "outline"}
+                  size="sm"
+                  onClick={() => handlePageChange(pageNumber)}
+                  disabled={loading}
+                  className="h-10 w-10"
                 >
-                  Export as CSV
+                  {pageNumber}
                 </Button>
-                <Button
-                  onClick={() => handleExport('xlsx')}
-                  className="flex-1"
-                  disabled={!exportDateFrom || !exportDateTo}
-                >
-                  Export as XLSX
-                </Button>
-              </div>
-            </div>
+              );
+            })}
           </div>
+
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => handlePageChange(currentPage + 1)}
+            disabled={currentPage === totalPages || loading}
+            className="h-10 px-3"
+          >
+            <ChevronRight className="w-4 h-4" />
+          </Button>
         </div>
       )}
 
@@ -486,11 +396,27 @@ const AdminOrders: React.FC = () => {
       {showEditModal && selectedOrder && (
         <OrderEditModal
           order={selectedOrder}
-          onSave={handleUpdateOrder}
+          isOpen={showEditModal}
           onClose={() => {
             setShowEditModal(false);
             setSelectedOrder(null);
           }}
+          onSave={handleUpdateOrder}
+          updating={updating}
+        />
+      )}
+
+      {/* Export Modal */}
+      {showExportModal && (
+        <ExportModal
+          isOpen={showExportModal}
+          onClose={() => setShowExportModal(false)}
+          onExport={handleExportOrders}
+          exporting={exporting}
+          exportDateFrom={exportDateFrom}
+          setExportDateFrom={setExportDateFrom}
+          exportDateTo={exportDateTo}
+          setExportDateTo={setExportDateTo}
         />
       )}
     </div>
@@ -500,128 +426,188 @@ const AdminOrders: React.FC = () => {
 // Order Edit Modal Component
 interface OrderEditModalProps {
   order: Order;
-  onSave: (data: Partial<Order>) => void;
+  isOpen: boolean;
   onClose: () => void;
+  onSave: (orderData: Partial<Order>) => void;
+  updating: boolean;
 }
 
-const OrderEditModal: React.FC<OrderEditModalProps> = ({ order, onSave, onClose }) => {
+const OrderEditModal: React.FC<OrderEditModalProps> = ({
+  order,
+  isOpen,
+  onClose,
+  onSave,
+  updating
+}) => {
   const [formData, setFormData] = useState({
-    customer: order.customer,
-    item: order.item,
-    amount: order.amount.replace('₹', '').replace(/,/g, ''),
+    customerName: order.customerName,
+    customerEmail: order.customerEmail,
+    customerPhone: order.customerPhone,
+    customerAddress: order.customerAddress,
     status: order.status,
-    date: order.date,
-    email: order.email,
-    phone: order.phone,
-    address: order.address
+    notes: order.notes || ''
   });
 
   const handleSubmit = () => {
-    const updatedOrder = {
-      ...formData,
-      amount: `₹${Number(formData.amount).toLocaleString()}`
-    };
-    onSave(updatedOrder);
+    onSave(formData);
   };
 
+  if (!isOpen) return null;
+
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-      <div className="bg-card p-6 rounded-lg w-full max-w-2xl max-h-[90vh] overflow-y-auto">
-        <div className="flex items-center justify-between mb-4">
-          <h2 className="text-xl font-semibold">Edit Order {order.id}</h2>
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={onClose}
-            className="h-9 w-9 p-0"
-          >
-            <X className="w-4 h-4" />
-          </Button>
-        </div>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div>
-            <Label htmlFor="edit-customer">Customer Name</Label>
-            <Input
-              id="edit-customer"
-              value={formData.customer}
-              onChange={(e) => setFormData({ ...formData, customer: e.target.value })}
-            />
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+      <div className="bg-background rounded-lg shadow-lg w-full max-w-2xl max-h-[90vh] overflow-y-auto">
+        <div className="p-6">
+          <div className="flex items-center justify-between mb-6">
+            <h2 className="text-2xl font-bold">Edit Order</h2>
+            <Button variant="outline" size="sm" onClick={onClose}>
+              ×
+            </Button>
           </div>
-          <div>
-            <Label htmlFor="edit-email">Email</Label>
-            <Input
-              id="edit-email"
-              type="email"
-              value={formData.email}
-              onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-            />
+
+          <div className="space-y-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-medium mb-2">Customer Name</label>
+                <Input
+                  value={formData.customerName}
+                  onChange={(e) => setFormData({ ...formData, customerName: e.target.value })}
+                  placeholder="Customer name"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium mb-2">Email</label>
+                <Input
+                  value={formData.customerEmail}
+                  onChange={(e) => setFormData({ ...formData, customerEmail: e.target.value })}
+                  placeholder="Customer email"
+                />
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-medium mb-2">Phone</label>
+                <Input
+                  value={formData.customerPhone}
+                  onChange={(e) => setFormData({ ...formData, customerPhone: e.target.value })}
+                  placeholder="Customer phone"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium mb-2">Status</label>
+                <select
+                  value={formData.status}
+                  onChange={(e) => setFormData({ ...formData, status: e.target.value as Order['status'] })}
+                  className="w-full px-3 py-2 border border-border rounded-md bg-background"
+                >
+                  <option value="pending">Pending</option>
+                  <option value="confirmed">Confirmed</option>
+                  <option value="processing">Processing</option>
+                  <option value="shipped">Shipped</option>
+                  <option value="delivered">Delivered</option>
+                  <option value="cancelled">Cancelled</option>
+                </select>
+              </div>
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium mb-2">Address</label>
+              <textarea
+                value={formData.customerAddress}
+                onChange={(e) => setFormData({ ...formData, customerAddress: e.target.value })}
+                placeholder="Customer address"
+                className="w-full px-3 py-2 border border-border rounded-md bg-background min-h-[80px]"
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium mb-2">Notes</label>
+              <textarea
+                value={formData.notes}
+                onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
+                placeholder="Order notes"
+                className="w-full px-3 py-2 border border-border rounded-md bg-background min-h-[80px]"
+              />
+            </div>
           </div>
-          <div>
-            <Label htmlFor="edit-phone">Phone</Label>
-            <Input
-              id="edit-phone"
-              value={formData.phone}
-              onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
-            />
-          </div>
-          <div>
-            <Label htmlFor="edit-item">Item</Label>
-            <Input
-              id="edit-item"
-              value={formData.item}
-              onChange={(e) => setFormData({ ...formData, item: e.target.value })}
-            />
-          </div>
-          <div>
-            <Label htmlFor="edit-amount">Amount</Label>
-            <Input
-              id="edit-amount"
-              type="number"
-              value={formData.amount}
-              onChange={(e) => setFormData({ ...formData, amount: e.target.value })}
-            />
-          </div>
-          <div>
-            <Label htmlFor="edit-status">Status</Label>
-            <select
-              id="edit-status"
-              value={formData.status}
-              onChange={(e) => setFormData({ ...formData, status: e.target.value as Order['status'] })}
-              className="w-full p-2 border border-border rounded-md bg-background"
-            >
-              <option value="Pending">Pending</option>
-              <option value="Processing">Processing</option>
-              <option value="Shipped">Shipped</option>
-              <option value="Delivered">Delivered</option>
-              <option value="Cancelled">Cancelled</option>
-            </select>
-          </div>
-          <div className="md:col-span-2">
-            <Label htmlFor="edit-date">Order Date</Label>
-            <Input
-              id="edit-date"
-              type="date"
-              value={formData.date}
-              onChange={(e) => setFormData({ ...formData, date: e.target.value })}
-            />
-          </div>
-          <div className="md:col-span-2">
-            <Label htmlFor="edit-address">Address</Label>
-            <textarea
-              id="edit-address"
-              value={formData.address}
-              onChange={(e) => setFormData({ ...formData, address: e.target.value })}
-              className="w-full p-2 border border-border rounded-md bg-background min-h-[80px] resize-none"
-            />
+
+          <div className="flex gap-3 mt-6">
+            <Button onClick={handleSubmit} disabled={updating} className="flex-1">
+              {updating ? 'Updating...' : 'Update Order'}
+            </Button>
+            <Button variant="outline" onClick={onClose} disabled={updating}>
+              Cancel
+            </Button>
           </div>
         </div>
-        <div className="flex gap-2 mt-6">
-          <Button onClick={onClose} variant="outline" className="flex-1">
-            Cancel
-          </Button>
-          <Button onClick={handleSubmit} className="flex-1">
-            Save Changes
-          </Button>
+      </div>
+    </div>
+  );
+};
+
+// Export Modal Component
+interface ExportModalProps {
+  isOpen: boolean;
+  onClose: () => void;
+  onExport: () => void;
+  exporting: boolean;
+  exportDateFrom: string;
+  setExportDateFrom: (date: string) => void;
+  exportDateTo: string;
+  setExportDateTo: (date: string) => void;
+}
+
+const ExportModal: React.FC<ExportModalProps> = ({
+  isOpen,
+  onClose,
+  onExport,
+  exporting,
+  exportDateFrom,
+  setExportDateFrom,
+  exportDateTo,
+  setExportDateTo
+}) => {
+  if (!isOpen) return null;
+
+  return (
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+      <div className="bg-background rounded-lg shadow-lg w-full max-w-md">
+        <div className="p-6">
+          <div className="flex items-center justify-between mb-6">
+            <h2 className="text-xl font-bold">Export Orders</h2>
+            <Button variant="outline" size="sm" onClick={onClose}>
+              ×
+            </Button>
+          </div>
+
+          <div className="space-y-4">
+            <div>
+              <label className="block text-sm font-medium mb-2">From Date</label>
+              <Input
+                type="date"
+                value={exportDateFrom}
+                onChange={(e) => setExportDateFrom(e.target.value)}
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium mb-2">To Date</label>
+              <Input
+                type="date"
+                value={exportDateTo}
+                onChange={(e) => setExportDateTo(e.target.value)}
+              />
+            </div>
+          </div>
+
+          <div className="flex gap-3 mt-6">
+            <Button onClick={onExport} disabled={exporting} className="flex-1">
+              {exporting ? 'Exporting...' : 'Export CSV'}
+            </Button>
+            <Button variant="outline" onClick={onClose} disabled={exporting}>
+              Cancel
+            </Button>
+          </div>
         </div>
       </div>
     </div>

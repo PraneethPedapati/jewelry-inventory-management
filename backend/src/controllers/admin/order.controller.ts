@@ -1,10 +1,10 @@
 import { Request, Response } from 'express';
 import { z } from 'zod';
-import { db } from '@/db/connection.js';
-import { orders, orderItems, products, productSpecifications } from '@/db/schema.js';
+import { db } from '../../db/connection.js';
+import { orders, orderItems, products, productSpecifications } from '../../db/schema.js';
 import { eq, desc, and, like, or, gte, lte, count } from 'drizzle-orm';
-import { asyncHandler } from '@/middleware/error-handler.middleware.js';
-import { WhatsAppService } from '@/services/whatsapp.service.js';
+import { asyncHandler } from '../../middleware/error-handler.middleware.js';
+import { WhatsAppService } from '../../services/whatsapp.service.js';
 
 // Validation schemas
 const CreateOrderSchema = z.object({

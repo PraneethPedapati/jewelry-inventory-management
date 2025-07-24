@@ -25,29 +25,8 @@ interface UserDetails {
 }
 
 const Cart: React.FC = () => {
-  // In a real app, this would come from context or props
-  const [cartItems, setCartItems] = useState<CartItem[]>([
-    // Sample data for demonstration
-    {
-      id: 1,
-      productId: 1,
-      name: 'Diamond Solitaire Chain',
-      price: 204999,
-      quantity: 1,
-      image: 'https://images.unsplash.com/photo-1605100804763-247f67b3557e?w=400&h=400&fit=crop',
-      category: 'chain'
-    },
-    {
-      id: 2,
-      productId: 3,
-      name: 'Gold Charm Bracelet',
-      price: 156999,
-      quantity: 2,
-      size: 'M',
-      image: 'https://images.unsplash.com/photo-1611652022408-a03f2b3734ec?w=400&h=400&fit=crop',
-      category: 'bracelet-anklet'
-    }
-  ]);
+  // Start with empty cart - no hardcoded data
+  const [cartItems, setCartItems] = useState<CartItem[]>([]);
 
   const [userDetails, setUserDetails] = useState<UserDetails>({
     name: '',

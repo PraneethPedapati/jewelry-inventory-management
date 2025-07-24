@@ -1,6 +1,6 @@
 import { migrate } from 'drizzle-orm/postgres-js/migrator';
 import { db } from './connection.js';
-import { config } from '@/config/app.js';
+import { config } from '../config/app.js';
 
 const runMigrations = async (): Promise<void> => {
   try {

@@ -1,5 +1,6 @@
 import { Router } from 'express';
-import { login, getProfile, changePassword } from '@/controllers/admin/auth.controller.js';
+import { login, getProfile, changePassword } from '../controllers/admin/auth.controller.js';
+import { getDashboardStats } from '../controllers/admin/dashboard.controller.js';
 import {
   getProducts,
   getProductById,
@@ -7,7 +8,7 @@ import {
   updateProduct,
   deleteProduct,
   getProductCategories
-} from '@/controllers/admin/product.controller.js';
+} from '../controllers/admin/product.controller.js';
 import {
   getOrders,
   getOrderById,
@@ -20,7 +21,7 @@ import {
   sendPaymentQR,
   confirmPayment,
   sendWhatsAppMessage
-} from '@/controllers/admin/order.controller.js';
+} from '../controllers/admin/order.controller.js';
 import {
   getExpenses,
   getExpenseById,
@@ -29,8 +30,9 @@ import {
   deleteExpense,
   getExpenseCategories,
   getExpenseStats
-} from '@/controllers/admin/expense.controller.js';
-import { authenticateAdmin, authRateLimit } from '@/middleware/auth.middleware.js';
+} from '../controllers/admin/expense.controller.js';
+import { getAnalytics } from '../controllers/admin/analytics.controller.js';
+import { authenticateAdmin, authRateLimit } from '../middleware/auth.middleware.js';
 
 const router = Router();
 
@@ -38,6 +40,9 @@ const router = Router();
 router.post('/auth/login', authRateLimit, login);
 router.get('/auth/profile', authenticateAdmin, getProfile);
 router.post('/auth/change-password', authenticateAdmin, changePassword);
+
+// Dashboard routes
+router.get('/dashboard', authenticateAdmin, getDashboardStats);
 
 // Product routes
 router.get('/products', getProducts);
@@ -70,5 +75,8 @@ router.get('/expenses/:id', getExpenseById);
 router.post('/expenses', authenticateAdmin, createExpense);
 router.put('/expenses/:id', authenticateAdmin, updateExpense);
 router.delete('/expenses/:id', authenticateAdmin, deleteExpense);
+
+// Analytics routes
+router.get('/analytics', authenticateAdmin, getAnalytics);
 
 export default router; 

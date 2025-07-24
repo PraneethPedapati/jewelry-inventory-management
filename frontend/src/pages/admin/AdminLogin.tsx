@@ -1,14 +1,22 @@
 import React, { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
-import { UserCheck, Eye, EyeOff, ArrowLeft } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
+import { Eye, EyeOff, LogIn, AlertCircle } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { toast } from 'sonner';
+import { authService, type AdminLoginRequest } from '@/services/api';
 
 interface AdminLoginProps {
-  onLogin: (isAuthenticated: boolean) => void;
+  onLogin: (isLoggedIn: boolean) => void;
 }
 
 const AdminLogin: React.FC<AdminLoginProps> = ({ onLogin }) => {
-  const [username, setUsername] = useState('');
-  const [password, setPassword] = useState('');
+  const [formData, setFormData] = useState<AdminLoginRequest>({
+    email: '',
+    password: ''
+  });
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
@@ -20,108 +28,155 @@ const AdminLogin: React.FC<AdminLoginProps> = ({ onLogin }) => {
     setError('');
 
     try {
-      // Demo authentication - replace with actual API call
-      if (username === 'admin' && password === 'admin123') {
-        // Store token in localStorage for demo
-        localStorage.setItem('admin_token', 'demo_token_123');
-        onLogin(true);
-        navigate('/admin/dashboard');
-      } else {
-        setError('Invalid username or password');
+      // Validate form data
+      if (!formData.email || !formData.password) {
+        setError('Please fill in all fields');
+        return;
       }
-    } catch (error) {
-      setError('Login failed. Please try again.');
+
+      if (!formData.email.includes('@')) {
+        setError('Please enter a valid email address');
+        return;
+      }
+
+      const response = await authService.login(formData);
+
+      // Store token and admin info
+      localStorage.setItem('admin_token', response.token);
+      localStorage.setItem('admin_info', JSON.stringify(response.admin));
+
+      // Show success message
+      toast.success(`Welcome back, ${response.admin.name}! 👋`);
+
+      // Update authentication state
+      onLogin(true);
+
+      // Navigate to dashboard
+      navigate('/admin/dashboard');
+    } catch (error: any) {
+      console.error('Login failed:', error);
+
+      // Handle different error types
+      if (error.response?.status === 401) {
+        setError('Invalid email or password. Please try again.');
+      } else if (error.response?.status === 429) {
+        setError('Too many login attempts. Please try again later.');
+      } else if (error.code === 'ECONNABORTED' || !error.response) {
+        setError('Connection failed. Please check your internet connection.');
+      } else {
+        setError('Login failed. Please try again.');
+      }
+
+      toast.error('Login failed. Please check your credentials.');
     } finally {
       setIsLoading(false);
     }
   };
 
+  const handleInputChange = (field: keyof AdminLoginRequest, value: string) => {
+    setFormData(prev => ({ ...prev, [field]: value }));
+    // Clear error when user starts typing
+    if (error) setError('');
+  };
+
   return (
-    <div className="min-h-screen bg-background flex items-center justify-center p-4">
-      <div className="w-full max-w-md">
-        {/* Back to home link */}
-        <Link
-          to="/"
-          className="inline-flex items-center text-muted-foreground hover:text-foreground mb-6 transition-colors"
-        >
-          <ArrowLeft className="w-4 h-4 mr-2" />
-          Back to Home
-        </Link>
-
-        <div className="bg-card p-8 rounded-lg border shadow-lg">
-          <div className="text-center mb-8">
-            <UserCheck className="w-12 h-12 text-primary mx-auto mb-4" />
-            <h1 className="text-2xl font-bold text-card-foreground">Admin Login</h1>
-            <p className="text-muted-foreground mt-2">
-              Access the jewelry inventory management system
-            </p>
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-background to-muted p-4">
+      <Card className="w-full max-w-md shadow-lg">
+        <CardHeader className="text-center space-y-4">
+          <div className="mx-auto w-16 h-16 bg-primary rounded-full flex items-center justify-center">
+            <LogIn className="w-8 h-8 text-primary-foreground" />
           </div>
+          <div>
+            <CardTitle className="text-2xl font-bold">Admin Login</CardTitle>
+            <CardDescription className="text-muted-foreground">
+              Access the jewelry store admin panel
+            </CardDescription>
+          </div>
+        </CardHeader>
 
-          <form onSubmit={handleSubmit} className="space-y-6">
-            <div>
-              <label htmlFor="username" className="block text-sm font-medium text-foreground mb-2">
-                Username
-              </label>
-              <input
-                id="username"
-                type="text"
-                value={username}
-                onChange={(e) => setUsername(e.target.value)}
-                className="w-full px-3 py-2 border border-border rounded-md bg-input text-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:border-transparent"
-                placeholder="Enter your username"
-                required
-              />
-            </div>
-
-            <div>
-              <label htmlFor="password" className="block text-sm font-medium text-foreground mb-2">
-                Password
-              </label>
-              <div className="relative">
-                <input
-                  id="password"
-                  type={showPassword ? 'text' : 'password'}
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  className="w-full px-3 py-2 pr-10 border border-border rounded-md bg-input text-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:border-transparent"
-                  placeholder="Enter your password"
-                  required
-                />
-                <button
-                  type="button"
-                  onClick={() => setShowPassword(!showPassword)}
-                  className="absolute inset-y-0 right-0 pr-3 flex items-center text-muted-foreground hover:text-foreground"
-                >
-                  {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                </button>
-              </div>
-            </div>
-
+        <CardContent>
+          <form onSubmit={handleSubmit} className="space-y-4">
             {error && (
-              <div className="p-3 bg-destructive/10 border border-destructive/20 rounded-md">
-                <p className="text-sm text-destructive">{error}</p>
+              <div className="p-3 rounded-md bg-destructive/10 border border-destructive/20 flex items-center gap-2">
+                <AlertCircle className="w-4 h-4 text-destructive" />
+                <span className="text-sm text-destructive">{error}</span>
               </div>
             )}
 
-            <button
+            <div className="space-y-2">
+              <Label htmlFor="email">Email Address</Label>
+              <Input
+                id="email"
+                type="email"
+                placeholder="admin@jewelrystore.com"
+                value={formData.email}
+                onChange={(e) => handleInputChange('email', e.target.value)}
+                disabled={isLoading}
+                autoComplete="email"
+                className={error && !formData.email ? 'border-destructive' : ''}
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="password">Password</Label>
+              <div className="relative">
+                <Input
+                  id="password"
+                  type={showPassword ? 'text' : 'password'}
+                  placeholder="Enter your password"
+                  value={formData.password}
+                  onChange={(e) => handleInputChange('password', e.target.value)}
+                  disabled={isLoading}
+                  autoComplete="current-password"
+                  className={`pr-10 ${error && !formData.password ? 'border-destructive' : ''}`}
+                />
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent"
+                  onClick={() => setShowPassword(!showPassword)}
+                  disabled={isLoading}
+                >
+                  {showPassword ? (
+                    <EyeOff className="w-4 h-4" />
+                  ) : (
+                    <Eye className="w-4 h-4" />
+                  )}
+                </Button>
+              </div>
+            </div>
+
+            <Button
               type="submit"
-              disabled={isLoading}
-              className="w-full bg-primary text-white py-2 px-4 rounded-md hover:bg-primary/90 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+              className="w-full"
+              disabled={isLoading || !formData.email || !formData.password}
             >
-              {isLoading ? 'Signing in...' : 'Sign In'}
-            </button>
+              {isLoading ? (
+                <>
+                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2" />
+                  Signing in...
+                </>
+              ) : (
+                <>
+                  <LogIn className="w-4 h-4 mr-2" />
+                  Sign In
+                </>
+              )}
+            </Button>
           </form>
 
-          {/* Demo credentials */}
-          <div className="mt-6 p-4 bg-muted rounded-md">
-            <p className="text-sm text-muted-foreground font-medium mb-2">Demo Credentials:</p>
-            <p className="text-xs text-muted-foreground">
-              Username: <code className="bg-background px-1 rounded">admin</code><br />
-              Password: <code className="bg-background px-1 rounded">admin123</code>
+          <div className="mt-6 p-4 bg-muted rounded-lg">
+            <p className="text-sm text-muted-foreground text-center mb-2">
+              Demo Credentials:
             </p>
+            <div className="text-xs text-muted-foreground space-y-1">
+              <p><strong>Email:</strong> admin@jewelrystore.com</p>
+              <p><strong>Password:</strong> admin123!@#</p>
+            </div>
           </div>
-        </div>
-      </div>
+        </CardContent>
+      </Card>
     </div>
   );
 };

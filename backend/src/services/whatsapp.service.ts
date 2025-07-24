@@ -1,6 +1,6 @@
-import { config } from '@/config/app.js';
-import { Order, OrderItem } from '@/types/api.js';
-import { traceWhatsAppOperation } from '@/utils/tracing.js';
+import { config } from '../config/app.js';
+import { Order, OrderItem } from '../types/api.js';
+import { traceWhatsAppOperation } from '../utils/tracing.js';
 
 export class WhatsAppService {
   private static readonly BUSINESS_PHONE = config.WHATSAPP_BUSINESS_PHONE;

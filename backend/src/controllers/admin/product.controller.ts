@@ -1,9 +1,9 @@
 import { Request, Response } from 'express';
 import { z } from 'zod';
-import { db } from '@/db/connection.js';
-import { products, productTypes, productSpecifications } from '@/db/schema.js';
+import { db } from '../../db/connection.js';
+import { products, productTypes, productSpecifications } from '../../db/schema.js';
 import { eq, desc, and, like, or } from 'drizzle-orm';
-import { asyncHandler } from '@/middleware/error-handler.middleware.js';
+import { asyncHandler } from '../../middleware/error-handler.middleware.js';
 
 // Validation schemas
 const CreateProductSchema = z.object({
@@ -70,6 +70,14 @@ export const getProducts = asyncHandler(async (req: Request, res: Response) => {
   // Apply filters
   const conditions = [];
 
+  // Always filter to only show active products unless explicitly requesting inactive ones
+  if (status === 'inactive') {
+    conditions.push(eq(products.isActive, false));
+  } else {
+    // Default to showing only active products
+    conditions.push(eq(products.isActive, true));
+  }
+
   if (search) {
     conditions.push(
       or(
@@ -82,12 +90,6 @@ export const getProducts = asyncHandler(async (req: Request, res: Response) => {
 
   if (category) {
     conditions.push(eq(productTypes.name, category as string));
-  }
-
-  if (status === 'active') {
-    conditions.push(eq(products.isActive, true));
-  } else if (status === 'inactive') {
-    conditions.push(eq(products.isActive, false));
   }
 
   if (conditions.length > 0) {

@@ -1,16 +1,16 @@
 import { hash, verify } from 'argon2';
 import { SignJWT } from 'jose';
-import { db } from '@/db/connection.js';
-import { admins } from '@/db/schema.js';
+import { db } from '../db/connection.js';
+import { admins } from '../db/schema.js';
 import { eq } from 'drizzle-orm';
-import { config } from '@/config/app.js';
+import { config } from '../config/app.js';
 import {
   InvalidCredentialsError,
   UnauthorizedError,
   NotFoundError
-} from '@/utils/errors.js';
-import { traceBusinessLogic } from '@/utils/tracing.js';
-import type { AdminLoginRequest, AdminLoginResponse, Admin } from '@/types/api.js';
+} from '../utils/errors.js';
+import { traceBusinessLogic } from '../utils/tracing.js';
+import type { AdminLoginRequest, AdminLoginResponse, Admin } from '../types/api.js';
 
 export class AuthService {
   /**
@@ -52,7 +52,7 @@ export class AuthService {
           id: admin.id,
           name: admin.name,
           email: admin.email,
-          role: admin.role,
+          role: admin.role || 'admin', // Provide default value if role is null
         },
         expiresIn: 24 * 60 * 60, // 24 hours in seconds
       };
@@ -122,7 +122,12 @@ export class AuthService {
         throw new NotFoundError('Admin');
       }
 
-      return admin;
+      return {
+        id: admin.id,
+        name: admin.name,
+        email: admin.email,
+        role: admin.role || 'admin', // Provide default value if role is null
+      };
     });
   }
 
@@ -168,7 +173,16 @@ export class AuthService {
           role: admins.role,
         });
 
-      return newAdmin;
+      if (!newAdmin) {
+        throw new Error('Failed to create admin');
+      }
+
+      return {
+        id: newAdmin.id,
+        name: newAdmin.name,
+        email: newAdmin.email,
+        role: newAdmin.role || 'admin', // Provide default value if role is null
+      };
     });
   }
 
@@ -212,7 +226,16 @@ export class AuthService {
           role: admins.role,
         });
 
-      return updatedAdmin;
+      if (!updatedAdmin) {
+        throw new Error('Failed to update admin');
+      }
+
+      return {
+        id: updatedAdmin.id,
+        name: updatedAdmin.name,
+        email: updatedAdmin.email,
+        role: updatedAdmin.role || 'admin', // Provide default value if role is null
+      };
     });
   }
 

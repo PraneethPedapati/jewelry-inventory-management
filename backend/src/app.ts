@@ -3,9 +3,9 @@ import cors from 'cors';
 import helmet from 'helmet';
 import compression from 'compression';
 import dotenv from 'dotenv';
-import { getThemes, getActiveTheme, setActiveTheme } from '@/controllers/theme.controller.js';
-import adminRoutes from '@/routes/admin.routes.js';
-import publicRoutes from '@/routes/public.routes.js';
+import { getThemes, getActiveTheme, setActiveTheme } from './controllers/theme.controller.js';
+import adminRoutes from './routes/admin.routes.js';
+import publicRoutes from './routes/public.routes.js';
 
 // Load environment variables
 dotenv.config();

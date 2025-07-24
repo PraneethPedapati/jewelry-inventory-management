@@ -1,12 +1,15 @@
+import { createOrder } from '../controllers/public/order.controller.js';
 import { Router } from 'express';
-import { createOrder } from '@/controllers/public/order.controller.js';
+import { z } from 'zod';
+import { validateRequest } from 'zod-express-middleware';
+import { asyncHandler } from '../middleware/error-handler.middleware.js';
+import { orderRateLimit, publicApiRateLimit } from '../middleware/rate-limit.middleware.js';
 import {
   getProducts,
   getProductById,
   getProductSpecifications,
   getProductTypes
-} from '@/controllers/public/product.controller.js';
-import { orderRateLimit, publicApiRateLimit } from '@/middleware/rate-limit.middleware.js';
+} from '../controllers/public/product.controller.js';
 
 const router = Router();
 

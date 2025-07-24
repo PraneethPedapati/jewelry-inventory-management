@@ -1,8 +1,8 @@
 import { Request, Response } from 'express';
 import { z } from 'zod';
-import { AuthService } from '@/services/auth.service.js';
-import { asyncHandler } from '@/middleware/error-handler.middleware.js';
-import { traceApiCall } from '@/utils/tracing.js';
+import { AuthService } from '../../services/auth.service.js';
+import { asyncHandler } from '../../middleware/error-handler.middleware.js';
+import { traceApiCall } from '../../utils/tracing.js';
 
 // Validation schemas
 const LoginSchema = z.object({
