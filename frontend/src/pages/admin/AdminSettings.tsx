@@ -1,6 +1,5 @@
 import React, { useState } from 'react';
 import { useThemeStore } from '@/stores/theme.store';
-import { useBrandStore } from '@/stores/brand.store';
 import { toast } from 'sonner';
 
 // UI Components
@@ -10,11 +9,40 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
-import { Palette, Eye, Save, Plus, Trash2, RefreshCw, Type, Settings2, Building2, Image } from 'lucide-react';
+import { Palette, Eye, Save, Plus, Trash2, RefreshCw, Type, Settings2 } from 'lucide-react';
 import Logo from '@/components/ui/Logo';
-import LogoUpload from '@/components/ui/LogoUpload';
 
 import type { ColorTheme } from '@/stores/theme.store';
+
+// Import default theme for fallback
+const defaultTheme: ColorTheme = {
+  id: 'default',
+  name: 'default',
+  displayName: 'Default Jewelry Theme',
+  isActive: true,
+  isDefault: true,
+  colors: {
+    primary: '#8B5CF6',
+    secondary: '#F59E0B',
+    accent: '#EC4899',
+    background: '#FFFFFF',
+    foreground: '#1F2937',
+    card: '#F9FAFB',
+    cardForeground: '#111827',
+    border: '#E5E7EB',
+    input: '#FFFFFF',
+    ring: '#8B5CF6',
+    muted: '#F3F4F6',
+    mutedForeground: '#6B7280',
+    destructive: '#EF4444',
+    destructiveForeground: '#FFFFFF',
+    success: '#10B981',
+    successForeground: '#FFFFFF',
+    warning: '#F59E0B',
+    warningForeground: '#FFFFFF'
+  },
+  description: 'Default elegant theme for jewelry store'
+};
 
 const AdminSettings: React.FC = () => {
   const {
@@ -30,20 +58,12 @@ const AdminSettings: React.FC = () => {
     resetToDefault
   } = useThemeStore();
 
-  const {
-    config: brandConfig,
-    updateConfig: updateBrandConfig,
-    resetToDefault: resetBrandToDefault,
-    saveToServer: saveBrandToServer
-  } = useBrandStore();
-
   const [selectedTheme, setSelectedTheme] = useState<ColorTheme | null>(activeTheme);
   const [editingColors, setEditingColors] = useState<Partial<ColorTheme['colors']>>({});
   const [newThemeName, setNewThemeName] = useState('');
 
   // Font management state
   const [selectedFont, setSelectedFont] = useState('Roboto Flex');
-  const [brandFormData, setBrandFormData] = useState(brandConfig);
   const availableFonts = [
     'Roboto Flex',
     'Inter',
@@ -107,26 +127,7 @@ const AdminSettings: React.FC = () => {
         displayName: newThemeName,
         isActive: false,
         isDefault: false,
-        colors: activeTheme?.colors || {
-          primary: '#8B5CF6',
-          secondary: '#F59E0B',
-          accent: '#EC4899',
-          background: '#FFFFFF',
-          foreground: '#1F2937',
-          card: '#F9FAFB',
-          cardForeground: '#111827',
-          border: '#E5E7EB',
-          input: '#FFFFFF',
-          ring: '#8B5CF6',
-          muted: '#F3F4F6',
-          mutedForeground: '#6B7280',
-          destructive: '#EF4444',
-          destructiveForeground: '#FFFFFF',
-          success: '#10B981',
-          successForeground: '#FFFFFF',
-          warning: '#F59E0B',
-          warningForeground: '#FFFFFF'
-        },
+        colors: activeTheme?.colors || defaultTheme.colors,
         description: `Custom theme: ${newThemeName}`
       };
 
@@ -175,30 +176,6 @@ const AdminSettings: React.FC = () => {
 
     localStorage.setItem('selected-font', font);
     toast.success(`Font changed to ${font}! ✨`);
-  };
-
-  // Handle brand configuration changes
-  const handleBrandConfigChange = (field: string, value: string) => {
-    setBrandFormData(prev => ({
-      ...prev,
-      [field]: value
-    }));
-  };
-
-  const handleSaveBrandConfig = async () => {
-    try {
-      updateBrandConfig(brandFormData);
-      await saveBrandToServer();
-      toast.success('Brand configuration saved successfully! 🎨');
-    } catch (error) {
-      toast.error('Failed to save brand configuration');
-    }
-  };
-
-  const handleResetBrandConfig = () => {
-    resetBrandToDefault();
-    setBrandFormData(brandConfig);
-    toast.success('Brand configuration reset to default! 🔄');
   };
 
   // Color input component
@@ -266,7 +243,6 @@ const AdminSettings: React.FC = () => {
       <Tabs defaultValue="themes" className="space-y-6">
         <TabsList>
           <TabsTrigger value="themes">Themes</TabsTrigger>
-          <TabsTrigger value="brand">Brand</TabsTrigger>
           <TabsTrigger value="fonts">Fonts</TabsTrigger>
         </TabsList>
 
@@ -504,199 +480,6 @@ const AdminSettings: React.FC = () => {
               </Card>
             </TabsContent>
           </Tabs>
-        </TabsContent>
-
-        {/* Brand Configuration Tab */}
-        <TabsContent value="brand" className="space-y-4">
-          <div>
-            <h2 className="text-2xl font-semibold flex items-center gap-2 mb-2">
-              <Building2 className="w-6 h-6" />
-              Brand Configuration
-            </h2>
-            <p className="text-muted-foreground">
-              Customize your company name, logo, and branding information
-            </p>
-          </div>
-
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            {/* Brand Information */}
-            <Card>
-              <CardHeader>
-                <CardTitle>Company Information</CardTitle>
-                <CardDescription>
-                  Update your company details and contact information
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="space-y-2">
-                  <Label htmlFor="companyName">Company Name</Label>
-                  <Input
-                    id="companyName"
-                    value={brandFormData.companyName}
-                    onChange={(e) => handleBrandConfigChange('companyName', e.target.value)}
-                    placeholder="Enter company name"
-                  />
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="companyShortName">Short Name</Label>
-                  <Input
-                    id="companyShortName"
-                    value={brandFormData.companyShortName}
-                    onChange={(e) => handleBrandConfigChange('companyShortName', e.target.value)}
-                    placeholder="EJS"
-                  />
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="description">Description</Label>
-                  <Input
-                    id="description"
-                    value={brandFormData.description}
-                    onChange={(e) => handleBrandConfigChange('description', e.target.value)}
-                    placeholder="Brief description of your business"
-                  />
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="contactEmail">Contact Email</Label>
-                  <Input
-                    id="contactEmail"
-                    type="email"
-                    value={brandFormData.contactEmail}
-                    onChange={(e) => handleBrandConfigChange('contactEmail', e.target.value)}
-                    placeholder="info@company.com"
-                  />
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="contactPhone">Contact Phone</Label>
-                  <Input
-                    id="contactPhone"
-                    value={brandFormData.contactPhone}
-                    onChange={(e) => handleBrandConfigChange('contactPhone', e.target.value)}
-                    placeholder="+1-234-567-8900"
-                  />
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="website">Website</Label>
-                  <Input
-                    id="website"
-                    value={brandFormData.website}
-                    onChange={(e) => handleBrandConfigChange('website', e.target.value)}
-                    placeholder="https://company.com"
-                  />
-                </div>
-              </CardContent>
-            </Card>
-
-            {/* Logo and Visual Identity */}
-            <Card>
-              <CardHeader>
-                <CardTitle>Visual Identity</CardTitle>
-                <CardDescription>
-                  Configure your logo and brand colors
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <LogoUpload
-                  value={brandFormData.logoUrl}
-                  onChange={(url) => handleBrandConfigChange('logoUrl', url)}
-                  onAltTextChange={(alt) => handleBrandConfigChange('logoAlt', alt)}
-                  altText={brandFormData.logoAlt}
-                />
-
-                <div className="space-y-2">
-                  <Label htmlFor="faviconUrl">Favicon URL</Label>
-                  <Input
-                    id="faviconUrl"
-                    value={brandFormData.faviconUrl}
-                    onChange={(e) => handleBrandConfigChange('faviconUrl', e.target.value)}
-                    placeholder="/favicon.ico"
-                  />
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="primaryColor">Primary Color</Label>
-                  <div className="flex gap-2">
-                    <Input
-                      id="primaryColor"
-                      value={brandFormData.primaryColor}
-                      onChange={(e) => handleBrandConfigChange('primaryColor', e.target.value)}
-                      placeholder="#6366f1"
-                    />
-                    <div
-                      className="w-10 h-10 rounded border border-border"
-                      style={{ backgroundColor: brandFormData.primaryColor }}
-                    />
-                  </div>
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="secondaryColor">Secondary Color</Label>
-                  <div className="flex gap-2">
-                    <Input
-                      id="secondaryColor"
-                      value={brandFormData.secondaryColor}
-                      onChange={(e) => handleBrandConfigChange('secondaryColor', e.target.value)}
-                      placeholder="#8b5cf6"
-                    />
-                    <div
-                      className="w-10 h-10 rounded border border-border"
-                      style={{ backgroundColor: brandFormData.secondaryColor }}
-                    />
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          </div>
-
-          {/* Preview Section */}
-          <Card>
-            <CardHeader>
-              <CardTitle>Brand Preview</CardTitle>
-              <CardDescription>
-                See how your brand will appear across the application
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-6">
-                {/* Header Preview */}
-                <div className="border rounded-lg p-4 bg-card">
-                  <h4 className="font-semibold mb-3">Header Preview</h4>
-                  <div className="flex items-center justify-between">
-                    <Logo size="lg" variant="full" />
-                    <div className="text-sm text-muted-foreground">
-                      Navigation items would appear here
-                    </div>
-                  </div>
-                </div>
-
-                {/* Contact Information Preview */}
-                <div className="border rounded-lg p-4 bg-card">
-                  <h4 className="font-semibold mb-3">Contact Information</h4>
-                  <div className="space-y-2 text-sm">
-                    <p><strong>Email:</strong> {brandFormData.contactEmail}</p>
-                    <p><strong>Phone:</strong> {brandFormData.contactPhone}</p>
-                    <p><strong>Website:</strong> {brandFormData.website}</p>
-                  </div>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-
-          {/* Action Buttons */}
-          <div className="flex gap-4">
-            <Button onClick={handleSaveBrandConfig} className="flex-1">
-              <Save className="w-4 h-4 mr-2" />
-              Save Brand Configuration
-            </Button>
-            <Button onClick={handleResetBrandConfig} variant="outline">
-              <RefreshCw className="w-4 h-4 mr-2" />
-              Reset to Default
-            </Button>
-          </div>
         </TabsContent>
 
         {/* Font Management Tab */}

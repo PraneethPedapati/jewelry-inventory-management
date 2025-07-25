@@ -9,16 +9,20 @@ import {
   DollarSign,
   Clock,
   User,
-  Receipt
+  Receipt,
+  RefreshCw
 } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
-import { dashboardService, type DashboardStats } from '@/services/api';
+import { dashboardService, analyticsService, type DashboardStats, type AnalyticsStatus } from '@/services/api';
 
 const AdminDashboard: React.FC = () => {
   const [dashboardData, setDashboardData] = useState<DashboardStats | null>(null);
+  const [analyticsStatus, setAnalyticsStatus] = useState<AnalyticsStatus | null>(null);
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
 
   // Load dashboard data from API
   const loadDashboardData = async () => {
@@ -35,9 +39,47 @@ const AdminDashboard: React.FC = () => {
     }
   };
 
+  // Load analytics status
+  const loadAnalyticsStatus = async () => {
+    try {
+      const status = await analyticsService.getAnalyticsStatus();
+      setAnalyticsStatus(status);
+    } catch (error) {
+      console.error('Failed to load analytics status:', error);
+    }
+  };
+
+  // Refresh analytics
+  const handleRefreshAnalytics = async () => {
+    if (refreshing) return;
+
+    try {
+      setRefreshing(true);
+      await analyticsService.refreshAnalytics();
+
+      // Reload dashboard data to get updated analytics
+      await loadDashboardData();
+      await loadAnalyticsStatus();
+
+      toast.success('Analytics refreshed successfully!');
+    } catch (error: any) {
+      console.error('Failed to refresh analytics:', error);
+
+      if (error.response?.status === 429) {
+        const remainingMinutes = error.response.data.remainingMinutes || 1;
+        toast.error(`Analytics refresh is rate limited. Please wait ${remainingMinutes} minute(s) before refreshing again.`);
+      } else {
+        toast.error('Failed to refresh analytics. Please try again.');
+      }
+    } finally {
+      setRefreshing(false);
+    }
+  };
+
   // Load dashboard data on component mount
   useEffect(() => {
     loadDashboardData();
+    loadAnalyticsStatus();
   }, []);
 
   const getStatusVariant = (status: string) => {
@@ -188,11 +230,23 @@ const AdminDashboard: React.FC = () => {
   return (
     <div className="p-6 space-y-6">
       {/* Header */}
-      <div>
-        <h1 className="text-3xl font-bold">Welcome to Admin Dashboard</h1>
-        <p className="text-muted-foreground mt-2">
-          Overview of your jewelry inventory management system
-        </p>
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-3xl font-bold">Welcome to Admin Dashboard</h1>
+          <p className="text-muted-foreground mt-2">
+            Overview of your jewelry inventory management system
+          </p>
+        </div>
+        <Button
+          onClick={handleRefreshAnalytics}
+          disabled={refreshing || !analyticsStatus?.canRefresh}
+          variant="outline"
+          size="sm"
+          className="flex items-center gap-2"
+        >
+          {refreshing && <RefreshCw className="w-4 h-4 animate-spin" />}
+          Refresh Analytics
+        </Button>
       </div>
 
       {/* Stats Grid */}

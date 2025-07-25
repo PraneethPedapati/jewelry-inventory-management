@@ -43,6 +43,18 @@ const ConfigSchema = z.object({
 
   // CORS
   FRONTEND_URL: z.string().optional(),
+
+  // Brand Configuration
+  COMPANY_NAME: z.string().default('Elegant Jewelry Store'),
+  COMPANY_SHORT_NAME: z.string().default('EJS'),
+  COMPANY_DESCRIPTION: z.string().default('Premium jewelry collection with elegant designs'),
+  CONTACT_EMAIL: z.string().email().default('info@elegantjewelry.com'),
+  CONTACT_PHONE: z.string().default('+91-9876543210'),
+  WEBSITE: z.string().url().default('https://elegantjewelry.com'),
+  LOGO_URL: z.string().default('/assets/logo.svg'),
+  FAVICON_URL: z.string().default('/assets/favicon.svg'),
+  // PRIMARY_COLOR: z.string().trim().regex(/^#[0-9A-F]{6}$/i).default('#6366f1'),
+  // SECONDARY_COLOR: z.string().trim().regex(/^#[0-9A-F]{6}$/i).default('#8b5cf6'),
 });
 
 export type Config = z.infer<typeof ConfigSchema>;

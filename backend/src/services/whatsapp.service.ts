@@ -1,69 +1,16 @@
 import { config } from '../config/app.js';
 import { Order, OrderItem } from '../types/api.js';
 import { traceWhatsAppOperation } from '../utils/tracing.js';
-import { db } from '../db/connection.js';
-import { systemConfigs } from '../db/schema.js';
-import { eq } from 'drizzle-orm';
+import { getCompanyName } from './brand.service.js';
 
 export class WhatsAppService {
   private static readonly BUSINESS_PHONE = config.WHATSAPP_BUSINESS_PHONE;
 
-  // Cache for company name to avoid repeated database calls
-  private static companyNameCache: string | null = null;
-  private static lastCacheTime: number = 0;
-  private static readonly CACHE_DURATION = 5 * 60 * 1000; // 5 minutes
-
   /**
-   * Initialize the company name cache
+   * Get company name from brand configuration
    */
-  static async initializeCache(): Promise<void> {
-    try {
-      await this.getCompanyName();
-    } catch (error) {
-      console.error('Failed to initialize company name cache:', error);
-    }
-  }
-
-  /**
-   * Get company name from brand configuration (cached)
-   */
-  private static async getCompanyName(): Promise<string> {
-    const now = Date.now();
-
-    // Return cached value if still valid
-    if (this.companyNameCache && (now - this.lastCacheTime) < this.CACHE_DURATION) {
-      return this.companyNameCache;
-    }
-
-    try {
-      const brandConfigs = await db
-        .select()
-        .from(systemConfigs)
-        .where(eq(systemConfigs.key, 'brand_config'));
-
-      if (brandConfigs.length > 0) {
-        const config = JSON.parse(brandConfigs[0]?.value as string);
-        const companyName = config.companyName || 'Elegant Jewelry Store';
-
-        // Update cache
-        this.companyNameCache = companyName;
-        this.lastCacheTime = now;
-
-        return companyName;
-      }
-    } catch (error) {
-      console.error('Error fetching brand config:', error);
-    }
-
-    // Return cached value or default
-    return this.companyNameCache || 'Elegant Jewelry Store';
-  }
-
-  /**
-   * Get company name synchronously (uses cached value or default)
-   */
-  private static getCompanyNameSync(): string {
-    return this.companyNameCache || 'Elegant Jewelry Store';
+  private static getCompanyName(): string {
+    return getCompanyName();
   }
 
   /**
@@ -190,7 +137,7 @@ We can't wait for you to see your beautiful new jewelry pieces! 💎
 
 Questions? Just reply to this message!
 
-_${this.getCompanyNameSync()}_`;
+_${this.getCompanyName()}_`;
   }
 
   /**
@@ -217,7 +164,7 @@ Don't miss out on these stunning jewelry pieces! ✨
 
 Visit our store or reply to this message to place your order.
 
-_${this.getCompanyNameSync()}_ 💎`;
+_${this.getCompanyName()}_ 💎`;
   }
 
   /**
@@ -232,7 +179,7 @@ Alert Threshold: ${threshold}
 
 Please restock this popular jewelry item soon!
 
-_${this.getCompanyNameSync()}_`;
+_${this.getCompanyName()}_`;
   }
 
   /**
@@ -364,7 +311,7 @@ ${itemsList}
 
 Need help or have questions? Just reply to this message! We're here to help. 💫
 
-_${this.getCompanyNameSync()}_`;
+_${this.getCompanyName()}_`;
   }
 
   /**

@@ -76,11 +76,19 @@ jewelry-inventory-management/
 3. **Environment Setup**
    ```bash
    # Backend environment
-   cp backend/.env.example backend/.env
+   cp backend/env.example backend/.env
    
    # Frontend environment  
-   cp frontend/.env.example frontend/.env
+   cp frontend/env.example frontend/.env
    ```
+   
+   **Important**: Update the environment variables in both `.env` files with your specific values:
+   - Company name, logo URL, and favicon URL
+   - Database connection details
+   - WhatsApp Business phone number
+   - JWT secret (minimum 32 characters)
+   
+   See `ENVIRONMENT_VARIABLES.md` for complete configuration details.
 
 4. **Database Setup**
    ```bash

@@ -1,72 +1,123 @@
-import React from 'react';
-import { useBrandStore } from '@/stores/brand.store';
+import React, { useState, useEffect } from 'react';
+import { env } from '@/config/env';
 
 interface LogoProps {
   size?: 'sm' | 'md' | 'lg' | 'xl';
   variant?: 'text' | 'icon' | 'full';
-  className?: string;
   showText?: boolean;
+  className?: string;
+}
+
+interface BrandConfig {
+  companyName: string;
+  companyShortName: string;
+  logoUrl: string;
+  faviconUrl: string;
 }
 
 const Logo: React.FC<LogoProps> = ({
   size = 'md',
   variant = 'full',
-  className = '',
-  showText = true
+  showText = true,
+  className = ''
 }) => {
-  const { config } = useBrandStore();
+  const [brandConfig, setBrandConfig] = useState<BrandConfig>({
+    companyName: '',
+    companyShortName: '',
+    logoUrl: env.VITE_LOGO_URL, // Use frontend environment variable directly
+    faviconUrl: env.VITE_FAVICON_URL // Use frontend environment variable directly
+  });
+
+  useEffect(() => {
+    const fetchBrandConfig = async () => {
+      try {
+        const response = await fetch('/api/brand-config');
+        if (response.ok) {
+          const config = await response.json();
+          setBrandConfig({
+            ...config,
+            logoUrl: env.VITE_LOGO_URL, // Always use frontend env var for logo
+            faviconUrl: env.VITE_FAVICON_URL // Always use frontend env var for favicon
+          });
+        }
+      } catch (error) {
+        console.error('Failed to fetch brand config:', error);
+        // Keep using default values with frontend env vars for logo/favicon
+      }
+    };
+
+    fetchBrandConfig();
+  }, []);
 
   const sizeClasses = {
-    sm: 'w-6 h-6',
-    md: 'w-8 h-8',
-    lg: 'w-10 h-10',
-    xl: 'w-12 h-12'
+    sm: 'h-6',
+    md: 'h-8',
+    lg: 'h-12',
+    xl: 'h-16'
   };
 
   const textSizes = {
     sm: 'text-sm',
     md: 'text-base',
-    lg: 'text-lg',
-    xl: 'text-xl'
+    lg: 'text-xl',
+    xl: 'text-2xl'
   };
 
-  const renderLogo = () => {
-    if (variant === 'icon') {
-      return (
-        <div className={`${sizeClasses[size]} bg-primary rounded-lg flex items-center justify-center ${className}`}>
-          <span className="text-white font-bold text-sm">
-            {config.companyShortName.charAt(0)}
-          </span>
-        </div>
-      );
-    }
-
-    if (variant === 'text') {
-      return (
-        <span className={`font-semibold text-foreground ${textSizes[size]} ${className}`}>
-          {config.companyName}
-        </span>
-      );
-    }
-
-    // Full variant (icon + text)
+  if (variant === 'icon') {
     return (
-      <div className={`flex items-center space-x-2 ${className}`}>
-        <div className={`${sizeClasses[size]} bg-primary rounded-lg flex items-center justify-center`}>
-          <span className="text-white font-bold text-sm">
-            {config.companyShortName.charAt(0)}
-          </span>
-        </div>
-        {showText && (
-          <span className={`font-semibold text-foreground ${textSizes[size]}`}>
-            {config.companyName}
-          </span>
-        )}
+      <div className={`flex items-center ${className}`}>
+        <img
+          src={brandConfig.logoUrl}
+          alt={`${brandConfig.companyName} Logo`}
+          className={`${sizeClasses[size]} w-auto object-contain`}
+          onError={(e) => {
+            // Fallback to text if image fails to load
+            const target = e.target as HTMLImageElement;
+            target.style.display = 'none';
+            target.nextElementSibling?.classList.remove('hidden');
+          }}
+        />
+        <span className={`${textSizes[size]} font-bold text-primary hidden`}>
+          {brandConfig.companyShortName}
+        </span>
       </div>
     );
-  };
+  }
 
-  return renderLogo();
+  if (variant === 'text') {
+    return (
+      <span className={`${textSizes[size]} font-bold text-primary ${className}`}>
+        {brandConfig.companyName}
+      </span>
+    );
+  }
+
+  // Full variant (icon + text)
+  return (
+    <div className={`flex items-center gap-2 ${className}`}>
+      <img
+        src={brandConfig.logoUrl}
+        alt={`${brandConfig.companyName} Logo`}
+        className={`${sizeClasses[size]} w-auto object-contain`}
+        onError={(e) => {
+          // Fallback to text if image fails to load
+          const target = e.target as HTMLImageElement;
+          target.style.display = 'none';
+          target.nextElementSibling?.classList.remove('hidden');
+        }}
+      />
+      {showText && (
+        <>
+          <span className={`${textSizes[size]} font-bold text-primary`}>
+            {brandConfig.companyName}
+          </span>
+          <span className={`${textSizes[size]} font-bold text-primary hidden`}>
+            {brandConfig.companyShortName}
+          </span>
+        </>
+      )}
+    </div>
+  );
 };
 
-export default Logo; 
+export default Logo;
