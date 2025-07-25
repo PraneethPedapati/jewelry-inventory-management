@@ -5,7 +5,6 @@ import {
   productTypes,
   products,
   productSpecifications,
-  systemConfigs,
   expenseCategories,
   orders,
   orderItems,
@@ -46,9 +45,6 @@ const clearDatabase = async (): Promise<void> => {
 
   console.log('  - Clearing expense categories...');
   await db.delete(expenseCategories);
-
-  console.log('  - Clearing system configs...');
-  await db.delete(systemConfigs);
 
   console.log('  - Clearing color themes...');
   await db.delete(colorThemes);
@@ -489,27 +485,7 @@ const seedDatabase = async (): Promise<void> => {
 
     await db.insert(productSpecifications).values(specifications);
 
-    // 6. Configure system settings
-    console.log('⚙️ Configuring system settings...');
-    await db.insert(systemConfigs).values([
-      {
-        key: 'store_name',
-        value: JSON.stringify('Elegant Jewelry Store'),
-        description: 'Display name for the jewelry store'
-      },
-      {
-        key: 'whatsapp_enabled',
-        value: JSON.stringify(true),
-        description: 'Enable WhatsApp notifications for orders'
-      },
-      {
-        key: 'default_currency',
-        value: JSON.stringify('INR'),
-        description: 'Default currency for pricing'
-      }
-    ]);
-
-    // 7. Create sample orders
+    // 6. Create sample orders
     console.log('🛒 Creating sample orders...');
 
     // Get admin user for order creation

@@ -490,8 +490,8 @@ export const analyticsService = {
   },
 
   refreshAnalytics: async (): Promise<AnalyticsRefreshResponse> => {
-    const response = await apiClient.post<ApiResponse<AnalyticsRefreshResponse>>('/api/admin/analytics/refresh');
-    return response.data.data;
+    const response = await apiClient.post<AnalyticsRefreshResponse>('/api/admin/analytics/refresh');
+    return response.data;
   },
 
   getAnalyticsStatus: async (): Promise<AnalyticsStatus> => {

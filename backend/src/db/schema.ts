@@ -147,14 +147,6 @@ export const expenses = pgTable('expenses', {
   checkAmount: check('amount_check', sql`${table.amount} > 0`),
 }));
 
-// System Configurations
-export const systemConfigs = pgTable('system_configs', {
-  key: varchar('key', { length: 100 }).primaryKey(),
-  value: jsonb('value').notNull(),
-  description: text('description'),
-  updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow(),
-});
-
 // Analytics Cache Table
 export const analyticsCache = pgTable('analytics_cache', {
   id: uuid('id').primaryKey().defaultRandom(),
@@ -295,9 +287,6 @@ export type NewExpenseCategory = typeof expenseCategories.$inferInsert;
 
 export type Expense = typeof expenses.$inferSelect;
 export type NewExpense = typeof expenses.$inferInsert;
-
-export type SystemConfig = typeof systemConfigs.$inferSelect;
-export type NewSystemConfig = typeof systemConfigs.$inferInsert;
 
 // Analytics Types
 export type AnalyticsCache = typeof analyticsCache.$inferSelect;

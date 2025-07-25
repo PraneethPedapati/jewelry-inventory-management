@@ -1,7 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import { useThemeStore } from './stores/theme.store';
-import { useBrandStore } from './stores/brand.store';
 import { healthService } from './services/api';
 import { CartProvider } from './context/CartContext';
 
@@ -20,7 +19,6 @@ import AdminAnalytics from './pages/admin/AdminAnalytics';
 
 function App() {
   const { activeTheme, loadThemes, applyTheme } = useThemeStore();
-  const { loadFromServer: loadBrandConfig } = useBrandStore();
   const [isApiConnected, setIsApiConnected] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
@@ -38,9 +36,6 @@ function App() {
 
         // Load themes from database
         await loadThemes();
-
-        // Load brand configuration from server
-        await loadBrandConfig();
 
         // Apply the active theme if it exists
         if (activeTheme) {
@@ -66,7 +61,7 @@ function App() {
     };
 
     initializeApp();
-  }, [loadThemes, applyTheme, loadBrandConfig]);
+  }, [loadThemes, applyTheme]);
 
   // Handle logout
   const handleLogout = () => {

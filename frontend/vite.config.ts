@@ -10,11 +10,11 @@ export default defineConfig({
       registerType: 'prompt',
       includeAssets: ['favicon.ico', 'apple-touch-icon.png', 'masked-icon.svg'],
       manifest: {
-        name: 'Elegant Jewelry Store',
-        short_name: 'EJS',
-        description: 'Premium jewelry collection with elegant designs',
-        theme_color: '#6366f1',
-        background_color: '#ffffff',
+        name: process.env.VITE_PWA_NAME || 'Elegant Jewelry Store',
+        short_name: process.env.VITE_PWA_SHORT_NAME || 'EJS',
+        description: process.env.VITE_PWA_DESCRIPTION || 'Premium jewelry collection with elegant designs',
+        theme_color: process.env.VITE_PWA_THEME_COLOR || '#6366f1',
+        background_color: process.env.VITE_PWA_BACKGROUND_COLOR || '#ffffff',
         display: 'standalone',
         orientation: 'portrait',
         scope: '/',
@@ -107,11 +107,5 @@ export default defineConfig({
   },
   optimizeDeps: {
     include: ['react', 'react-dom', 'react-router-dom']
-  },
-  test: {
-    globals: true,
-    environment: 'jsdom',
-    setupFiles: './src/test/setup.ts',
-    css: true
   }
 }); 

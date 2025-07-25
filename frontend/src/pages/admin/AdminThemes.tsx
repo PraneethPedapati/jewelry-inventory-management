@@ -13,6 +13,36 @@ import { Palette, Eye, Save, Plus, Trash2, RefreshCw } from 'lucide-react';
 
 import type { ColorTheme } from '@/stores/theme.store';
 
+// Import default theme for fallback
+const defaultTheme: ColorTheme = {
+  id: 'default',
+  name: 'default',
+  displayName: 'Default Jewelry Theme',
+  isActive: true,
+  isDefault: true,
+  colors: {
+    primary: '#8B5CF6',
+    secondary: '#F59E0B',
+    accent: '#EC4899',
+    background: '#FFFFFF',
+    foreground: '#1F2937',
+    card: '#F9FAFB',
+    cardForeground: '#111827',
+    border: '#E5E7EB',
+    input: '#FFFFFF',
+    ring: '#8B5CF6',
+    muted: '#F3F4F6',
+    mutedForeground: '#6B7280',
+    destructive: '#EF4444',
+    destructiveForeground: '#FFFFFF',
+    success: '#10B981',
+    successForeground: '#FFFFFF',
+    warning: '#F59E0B',
+    warningForeground: '#FFFFFF'
+  },
+  description: 'Default elegant theme for jewelry store'
+};
+
 const AdminThemes: React.FC = () => {
   const {
     activeTheme,
@@ -85,26 +115,7 @@ const AdminThemes: React.FC = () => {
         displayName: newThemeName,
         isActive: false,
         isDefault: false,
-        colors: activeTheme?.colors || {
-          primary: '#8B5CF6',
-          secondary: '#F59E0B',
-          accent: '#EC4899',
-          background: '#FFFFFF',
-          foreground: '#1F2937',
-          card: '#F9FAFB',
-          cardForeground: '#111827',
-          border: '#E5E7EB',
-          input: '#FFFFFF',
-          ring: '#8B5CF6',
-          muted: '#F3F4F6',
-          mutedForeground: '#6B7280',
-          destructive: '#EF4444',
-          destructiveForeground: '#FFFFFF',
-          success: '#10B981',
-          successForeground: '#FFFFFF',
-          warning: '#F59E0B',
-          warningForeground: '#FFFFFF'
-        },
+        colors: activeTheme?.colors || defaultTheme.colors,
         description: `Custom theme: ${newThemeName}`
       };
 
