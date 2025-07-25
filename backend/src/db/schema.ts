@@ -1,4 +1,4 @@
-import { pgTable, uuid, varchar, text, decimal, integer, boolean, timestamp, jsonb, unique, check } from 'drizzle-orm/pg-core';
+import { pgTable, uuid, varchar, text, decimal, integer, boolean, timestamp, jsonb, unique, check, serial } from 'drizzle-orm/pg-core';
 import { relations } from 'drizzle-orm';
 import { sql } from 'drizzle-orm';
 
@@ -155,6 +155,39 @@ export const systemConfigs = pgTable('system_configs', {
   updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow(),
 });
 
+// Analytics Cache Table
+export const analyticsCache = pgTable('analytics_cache', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  metricType: varchar('metric_type', { length: 50 }).notNull().unique(),
+  calculatedData: jsonb('calculated_data').notNull(),
+  computationTimeMs: integer('computation_time_ms'),
+  dataPeriodStart: timestamp('data_period_start', { withTimezone: true }),
+  dataPeriodEnd: timestamp('data_period_end', { withTimezone: true }),
+  createdAt: timestamp('created_at', { withTimezone: true }).defaultNow(),
+  updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow(),
+});
+
+// Analytics Metadata Table
+export const analyticsMetadata = pgTable('analytics_metadata', {
+  id: serial('id').primaryKey(),
+  lastRefreshAt: timestamp('last_refresh_at', { withTimezone: true }),
+  refreshDurationMs: integer('refresh_duration_ms'),
+  totalOrdersProcessed: integer('total_orders_processed'),
+  totalExpensesProcessed: integer('total_expenses_processed'),
+  triggeredBy: varchar('triggered_by', { length: 100 }),
+  status: varchar('status', { length: 20 }).default('completed'),
+  createdAt: timestamp('created_at', { withTimezone: true }).defaultNow(),
+});
+
+// Analytics History Table
+export const analyticsHistory = pgTable('analytics_history', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  metricType: varchar('metric_type', { length: 50 }).notNull(),
+  calculatedData: jsonb('calculated_data').notNull(),
+  snapshotDate: timestamp('snapshot_date', { withTimezone: true }).notNull(),
+  createdAt: timestamp('created_at', { withTimezone: true }).defaultNow(),
+});
+
 // Relations
 export const adminsRelations = relations(admins, ({ many }) => ({
   statusChanges: many(orderStatusHistory),
@@ -264,4 +297,14 @@ export type Expense = typeof expenses.$inferSelect;
 export type NewExpense = typeof expenses.$inferInsert;
 
 export type SystemConfig = typeof systemConfigs.$inferSelect;
-export type NewSystemConfig = typeof systemConfigs.$inferInsert; 
+export type NewSystemConfig = typeof systemConfigs.$inferInsert;
+
+// Analytics Types
+export type AnalyticsCache = typeof analyticsCache.$inferSelect;
+export type NewAnalyticsCache = typeof analyticsCache.$inferInsert;
+
+export type AnalyticsMetadata = typeof analyticsMetadata.$inferSelect;
+export type NewAnalyticsMetadata = typeof analyticsMetadata.$inferInsert;
+
+export type AnalyticsHistory = typeof analyticsHistory.$inferSelect;
+export type NewAnalyticsHistory = typeof analyticsHistory.$inferInsert; 

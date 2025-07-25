@@ -1,34 +1,21 @@
 import { Request, Response } from 'express';
 import { eq, desc, count } from 'drizzle-orm';
 import { db } from '../../db/connection.js';
-import { products, orders, orderItems, expenses } from '../../db/schema.js';
+import { products, orders, orderItems } from '../../db/schema.js';
 import { asyncHandler } from '../../middleware/error-handler.middleware.js';
+import { AnalyticsService } from '../../services/analytics.service.js';
 
 /**
  * Get dashboard statistics
  * GET /api/admin/dashboard
  */
 export const getDashboardStats = asyncHandler(async (req: Request, res: Response) => {
-  // Get total products count
-  const totalProductsResult = await db
-    .select({ count: count() })
-    .from(products)
-    .where(eq(products.isActive, true));
+  // Get live metrics (simple counts)
+  const liveMetrics = await AnalyticsService.getLiveMetrics();
 
-  const totalProducts = totalProductsResult[0]?.count || 0;
-
-  // Get total orders count and revenue
-  const ordersData = await db
-    .select({
-      id: orders.id,
-      totalAmount: orders.totalAmount,
-      status: orders.status,
-      createdAt: orders.createdAt
-    })
-    .from(orders);
-
-  const totalOrders = ordersData.length;
-  const totalRevenue = ordersData.reduce((sum, order) => sum + parseFloat(order.totalAmount), 0);
+  // Get cached analytics data
+  const cachedAnalytics = await AnalyticsService.getCachedAnalytics();
+  const refreshMetadata = await AnalyticsService.getRefreshMetadata();
 
   // Calculate revenue growth (comparing current month with previous month)
   const currentDate = new Date();
@@ -38,6 +25,16 @@ export const getDashboardStats = asyncHandler(async (req: Request, res: Response
   const currentMonthStart = new Date(currentYear, currentMonth, 1);
   const previousMonthStart = new Date(currentYear, currentMonth - 1, 1);
   const previousMonthEnd = new Date(currentYear, currentMonth, 0);
+
+  // Get orders for revenue growth calculation
+  const ordersData = await db
+    .select({
+      id: orders.id,
+      totalAmount: orders.totalAmount,
+      status: orders.status,
+      createdAt: orders.createdAt
+    })
+    .from(orders);
 
   const currentMonthOrders = ordersData.filter(order => {
     const orderDate = new Date(order.createdAt);
@@ -115,17 +112,34 @@ export const getDashboardStats = asyncHandler(async (req: Request, res: Response
     })
   );
 
+  // Get total revenue from cached analytics or calculate live
+  let totalRevenue = 0;
+  if (cachedAnalytics.net_revenue) {
+    totalRevenue = cachedAnalytics.net_revenue.totalRevenue;
+  } else {
+    // Fallback to live calculation if no cached data
+    totalRevenue = ordersData.reduce((sum, order) => sum + parseFloat(order.totalAmount), 0);
+  }
+
   const dashboardStats = {
     totalRevenue: Math.round(totalRevenue),
-    totalProducts,
-    totalOrders,
+    totalProducts: liveMetrics.totalProducts,
+    totalOrders: liveMetrics.totalOrders,
     revenueGrowth: Math.round(revenueGrowth * 100) / 100, // Round to 2 decimal places
     recentOrders: recentOrdersWithItems
   };
 
+  // Check if analytics data is stale
+  const isStale = AnalyticsService.isStale(refreshMetadata?.lastRefreshAt);
+
   res.json({
     success: true,
     data: dashboardStats,
-    message: 'Dashboard statistics retrieved successfully'
+    message: 'Dashboard statistics retrieved successfully',
+    analyticsStatus: {
+      isStale,
+      lastRefreshed: refreshMetadata?.lastRefreshAt?.toISOString(),
+      hasCachedData: Object.keys(cachedAnalytics).length > 0
+    }
   });
 }); 

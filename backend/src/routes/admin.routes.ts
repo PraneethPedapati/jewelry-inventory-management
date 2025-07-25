@@ -31,7 +31,7 @@ import {
   getExpenseCategories,
   getExpenseStats
 } from '../controllers/admin/expense.controller.js';
-import { getAnalytics } from '../controllers/admin/analytics.controller.js';
+import { getAnalytics, refreshAnalytics, getAnalyticsStatus } from '../controllers/admin/analytics.controller.js';
 import { authenticateAdmin, authRateLimit } from '../middleware/auth.middleware.js';
 
 const router = Router();
@@ -78,5 +78,7 @@ router.delete('/expenses/:id', authenticateAdmin, deleteExpense);
 
 // Analytics routes
 router.get('/analytics', authenticateAdmin, getAnalytics);
+router.post('/analytics/refresh', authenticateAdmin, refreshAnalytics);
+router.get('/analytics/status', authenticateAdmin, getAnalyticsStatus);
 
 export default router; 

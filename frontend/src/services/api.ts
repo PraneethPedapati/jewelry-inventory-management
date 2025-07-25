@@ -248,6 +248,33 @@ export interface AnalyticsData {
   };
 }
 
+export interface AnalyticsStatus {
+  lastRefreshed: string | null;
+  isStale: boolean;
+  cooldownStatus: {
+    [key: string]: {
+      canRefresh: boolean;
+      remainingMs: number;
+    };
+  };
+  canRefresh: boolean;
+}
+
+export interface AnalyticsRefreshResponse {
+  success: boolean;
+  data: AnalyticsData;
+  message: string;
+  isStale: boolean;
+  lastRefreshed: string;
+  computationTimeMs: number;
+  cooldownStatus: {
+    [key: string]: {
+      canRefresh: boolean;
+      remainingMs: number;
+    };
+  };
+}
+
 // Health Service
 export const healthService = {
   check: async (): Promise<boolean> => {
@@ -459,6 +486,16 @@ export const analyticsService = {
     const response = await apiClient.get<ApiResponse<AnalyticsData>>('/api/admin/analytics', {
       params: { period }
     });
+    return response.data.data;
+  },
+
+  refreshAnalytics: async (): Promise<AnalyticsRefreshResponse> => {
+    const response = await apiClient.post<ApiResponse<AnalyticsRefreshResponse>>('/api/admin/analytics/refresh');
+    return response.data.data;
+  },
+
+  getAnalyticsStatus: async (): Promise<AnalyticsStatus> => {
+    const response = await apiClient.get<ApiResponse<AnalyticsStatus>>('/api/admin/analytics/status');
     return response.data.data;
   }
 };

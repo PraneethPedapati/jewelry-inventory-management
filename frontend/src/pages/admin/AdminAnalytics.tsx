@@ -1,13 +1,16 @@
 import React, { useState, useEffect } from 'react';
-import { BarChart3, TrendingUp, DollarSign, Receipt, TrendingDown, Calendar } from 'lucide-react';
+import { BarChart3, TrendingUp, DollarSign, Receipt, TrendingDown, Calendar, RefreshCw } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
-import { analyticsService, type AnalyticsData } from '@/services/api';
+import { analyticsService, type AnalyticsData, type AnalyticsStatus } from '@/services/api';
 
 const AdminAnalytics: React.FC = () => {
   const [selectedPeriod, setSelectedPeriod] = useState('This Month');
   const [analyticsData, setAnalyticsData] = useState<AnalyticsData | null>(null);
+  const [analyticsStatus, setAnalyticsStatus] = useState<AnalyticsStatus | null>(null);
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
 
   // Load analytics data from API
   const loadAnalyticsData = async () => {
@@ -41,10 +44,88 @@ const AdminAnalytics: React.FC = () => {
     }
   };
 
+  // Load analytics status
+  const loadAnalyticsStatus = async () => {
+    try {
+      const status = await analyticsService.getAnalyticsStatus();
+      setAnalyticsStatus(status);
+    } catch (error) {
+      console.error('Failed to load analytics status:', error);
+    }
+  };
+
+  // Refresh analytics data
+  const handleRefreshAnalytics = async () => {
+    if (refreshing) return;
+
+    try {
+      setRefreshing(true);
+      const result = await analyticsService.refreshAnalytics();
+
+      setAnalyticsData(result.data);
+      setAnalyticsStatus({
+        lastRefreshed: result.lastRefreshed,
+        isStale: result.isStale,
+        cooldownStatus: result.cooldownStatus,
+        canRefresh: Object.values(result.cooldownStatus).every(status => status.canRefresh)
+      });
+
+      toast.success(`Analytics refreshed successfully! (${Math.round(result.computationTimeMs / 1000)}s)`);
+    } catch (error: any) {
+      console.error('Failed to refresh analytics:', error);
+
+      if (error.response?.status === 429) {
+        const remainingMinutes = error.response.data.remainingMinutes || 1;
+        toast.error(`Analytics refresh is rate limited. Please wait ${remainingMinutes} minute(s) before refreshing again.`);
+      } else {
+        toast.error('Failed to refresh analytics. Please try again.');
+      }
+    } finally {
+      setRefreshing(false);
+    }
+  };
+
   // Load analytics data on component mount and when period changes
   useEffect(() => {
     loadAnalyticsData();
+    loadAnalyticsStatus();
   }, [selectedPeriod]);
+
+  // Format time ago
+  const formatTimeAgo = (dateString: string | null) => {
+    if (!dateString) return 'Never';
+
+    const date = new Date(dateString);
+    const now = new Date();
+    const diffInMs = now.getTime() - date.getTime();
+    const diffInMinutes = Math.floor(diffInMs / (1000 * 60));
+    const diffInHours = Math.floor(diffInMinutes / 60);
+    const diffInDays = Math.floor(diffInHours / 24);
+
+    if (diffInDays > 0) {
+      return `${diffInDays} day${diffInDays > 1 ? 's' : ''} ago`;
+    } else if (diffInHours > 0) {
+      return `${diffInHours} hour${diffInHours > 1 ? 's' : ''} ago`;
+    } else if (diffInMinutes > 0) {
+      return `${diffInMinutes} minute${diffInMinutes > 1 ? 's' : ''} ago`;
+    } else {
+      return 'Just now';
+    }
+  };
+
+  // Get refresh button variant
+  const getRefreshButtonVariant = () => {
+    if (refreshing) return 'secondary';
+    if (analyticsStatus?.isStale) return 'default';
+    return 'outline';
+  };
+
+  // Get refresh button text
+  const getRefreshButtonText = () => {
+    if (refreshing) return 'Refreshing...';
+    if (analyticsStatus?.isStale) return 'Refresh Recommended';
+    return 'Refresh Analytics';
+  };
 
   if (loading) {
     return (
@@ -93,15 +174,29 @@ const AdminAnalytics: React.FC = () => {
               Comprehensive insights into your jewelry business performance
             </p>
           </div>
+          <Button
+            onClick={handleRefreshAnalytics}
+            disabled={refreshing || !analyticsStatus?.canRefresh}
+            variant={getRefreshButtonVariant()}
+            className="flex items-center gap-2"
+          >
+            {refreshing && <RefreshCw className="w-4 h-4 animate-spin" />}
+            {getRefreshButtonText()}
+          </Button>
         </div>
 
         <div className="flex items-center justify-center min-h-[400px]">
           <div className="text-center">
             <BarChart3 className="w-12 h-12 mx-auto mb-4 text-muted-foreground" />
-            <h3 className="text-lg font-semibold mb-2">No Data Available</h3>
-            <p className="text-muted-foreground">
-              Start adding orders and expenses to see analytics data.
+            <h3 className="text-lg font-semibold mb-2">No analytics data available</h3>
+            <p className="text-muted-foreground mb-4">
+              Click "Refresh Analytics" to calculate your business insights.
             </p>
+            {analyticsStatus && (
+              <p className="text-sm text-muted-foreground">
+                Last refreshed: {formatTimeAgo(analyticsStatus.lastRefreshed)}
+              </p>
+            )}
           </div>
         </div>
       </div>
@@ -150,8 +245,34 @@ const AdminAnalytics: React.FC = () => {
             <option value="Last 3 Months">Last 3 Months</option>
             <option value="This Year">This Year</option>
           </select>
+          <Button
+            onClick={handleRefreshAnalytics}
+            disabled={refreshing || !analyticsStatus?.canRefresh}
+            variant={getRefreshButtonVariant()}
+            className="flex items-center gap-2"
+          >
+            {refreshing && <RefreshCw className="w-4 h-4 animate-spin" />}
+            {getRefreshButtonText()}
+          </Button>
         </div>
       </div>
+
+      {/* Analytics Status */}
+      {analyticsStatus && (
+        <div className="flex items-center justify-between p-4 bg-muted/50 rounded-lg">
+          <div className="flex items-center gap-4 text-sm text-muted-foreground">
+            <span>Last refreshed: {formatTimeAgo(analyticsStatus.lastRefreshed)}</span>
+            {analyticsStatus.isStale && (
+              <span className="text-orange-600 font-medium">Data may be outdated</span>
+            )}
+          </div>
+          {!analyticsStatus.canRefresh && (
+            <div className="text-sm text-muted-foreground">
+              Refresh available in {Math.ceil(Math.max(...Object.values(analyticsStatus.cooldownStatus).map(s => s.remainingMs)) / (1000 * 60))} minutes
+            </div>
+          )}
+        </div>
+      )}
 
       {/* Key Metrics */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
@@ -224,7 +345,7 @@ const AdminAnalytics: React.FC = () => {
         </Card>
       </div>
 
-      {/* Summary Cards - Moved to top */}
+      {/* Summary Cards */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         <Card>
           <CardHeader>
@@ -272,15 +393,15 @@ const AdminAnalytics: React.FC = () => {
       {/* Revenue Trend Chart */}
       <Card>
         <CardHeader>
-          <CardTitle>Revenue vs Expenses Trend</CardTitle>
-          <CardDescription>Monthly comparison of revenue and expenses</CardDescription>
+          <CardTitle>Revenue Trend</CardTitle>
+          <CardDescription>Monthly revenue and expenses comparison</CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="h-80 flex items-end space-x-2 p-4">
-            {analyticsData.revenueData.map((data, index) => {
-              const maxValue = Math.max(...analyticsData.revenueData.map(d => d.revenue));
-              const revenueHeight = (data.revenue / maxValue) * 280;
-              const expenseHeight = (data.expenses / maxValue) * 280;
+          <div className="flex items-end justify-between space-x-2 h-80">
+            {analyticsData?.revenueData?.map((data, index) => {
+              const maxValue = Math.max(...(analyticsData?.revenueData?.map(d => d.revenue) || [0]));
+              const revenueHeight = maxValue > 0 ? (data.revenue / maxValue) * 280 : 0;
+              const expenseHeight = maxValue > 0 ? (data.expenses / maxValue) * 280 : 0;
 
               return (
                 <div key={index} className="flex-1 flex flex-col items-center space-y-2">
@@ -323,7 +444,7 @@ const AdminAnalytics: React.FC = () => {
           </CardHeader>
           <CardContent>
             <div className="space-y-4">
-              {analyticsData.expenseCategories.map((category, index) => (
+              {analyticsData?.expenseCategories?.map((category, index) => (
                 <div key={index} className="space-y-2">
                   <div className="flex justify-between text-sm">
                     <span className="font-medium">{category.name}</span>
@@ -351,7 +472,7 @@ const AdminAnalytics: React.FC = () => {
           </CardHeader>
           <CardContent>
             <div className="space-y-4">
-              {analyticsData.topSellingProducts.map((product, index) => (
+              {analyticsData?.topSellingProducts?.map((product, index) => (
                 <div key={index} className="flex items-center justify-between p-3 bg-muted rounded-lg">
                   <div className="flex items-center space-x-3">
                     <div className="w-8 h-8 bg-primary rounded-full flex items-center justify-center text-primary-foreground text-sm font-bold">
@@ -372,8 +493,6 @@ const AdminAnalytics: React.FC = () => {
           </CardContent>
         </Card>
       </div>
-
-
     </div>
   );
 };
