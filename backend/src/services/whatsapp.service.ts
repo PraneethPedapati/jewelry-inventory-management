@@ -310,7 +310,7 @@ Please confirm and share payment details. Thank you! 🙏`;
    */
   private static formatStatusMessage(order: Order): string {
     const statusMessages = {
-      pending: '⏳ Your jewelry order has been received and is being reviewed by our team.',
+      payment_pending: '⏳ Your jewelry order has been received and is being reviewed by our team.',
       confirmed: '✅ Your order has been confirmed! We\'re carefully preparing your beautiful jewelry pieces.',
       processing: '🔨 Your jewelry is being crafted with love and attention to detail by our skilled artisans.',
       shipped: '📦 Your jewelry order has been shipped! You\'ll receive tracking details soon. Almost there! ✨',
@@ -324,7 +324,7 @@ Please confirm and share payment details. Thank you! 🙏`;
     }).join('\n');
 
     const statusEmoji = {
-      pending: '⏳',
+      payment_pending: '⏳',
       confirmed: '✅',
       processing: '🔨',
       shipped: '📦',

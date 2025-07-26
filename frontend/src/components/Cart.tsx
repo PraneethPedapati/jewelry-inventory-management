@@ -68,8 +68,8 @@ const Cart: React.FC = () => {
       newErrors.name = 'Name must be at least 2 characters';
     }
 
-    if (!customerDetails.phone.trim() || !/^\+?[\d\s-()]{10,15}$/.test(customerDetails.phone)) {
-      newErrors.phone = 'Please enter a valid phone number';
+    if (!customerDetails.phone.trim() || !/^\d{10}$/.test(customerDetails.phone.replace(/\D/g, ''))) {
+      newErrors.phone = 'Please enter a valid 10-digit phone number';
     }
 
     if (!customerDetails.email.trim() || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(customerDetails.email)) {
@@ -141,11 +141,19 @@ const Cart: React.FC = () => {
         customerEmail: customerDetails.email.trim(),
         customerAddress: customerDetails.address.trim(),
         customerPincode: customerDetails.pincode.trim(),
-        items: cart.map(item => ({
-          productId: item.product.id.toString(),
-          specificationId: item.specification?.id?.toString() || '',
-          quantity: item.quantity
-        })),
+        items: cart.map(item => {
+          const orderItem: any = {
+            productId: item.product.id.toString(),
+            quantity: item.quantity
+          };
+
+          // Only include specificationId if it exists
+          if (item.specification?.id) {
+            orderItem.specificationId = item.specification.id.toString();
+          }
+
+          return orderItem;
+        }),
         recaptchaToken
       };
 
@@ -331,10 +339,11 @@ const Cart: React.FC = () => {
               <input
                 type="tel"
                 value={customerDetails.phone}
-                onChange={(e) => handleInputChange('phone', e.target.value)}
+                onChange={(e) => handleInputChange('phone', e.target.value.replace(/\D/g, '').slice(0, 10))}
                 className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent ${errors.phone ? 'border-red-300' : 'border-gray-300'
                   }`}
-                placeholder="Enter your phone number"
+                placeholder="Enter 10-digit phone number"
+                maxLength={10}
               />
               {errors.phone && <p className="text-red-500 text-xs mt-1">{errors.phone}</p>}
             </div>

@@ -70,7 +70,7 @@ export interface ColorTheme {
 export interface OrderItem {
   id: string;
   productId: string;
-  specificationId: string;
+  specificationId?: string; // Made optional since current schema doesn't support it
   quantity: number;
   unitPrice: number;
   totalPrice: number;
@@ -103,7 +103,7 @@ export interface CreateOrderRequest {
   customerAddress: string;
   items: {
     productId: string;
-    specificationId: string;
+    specificationId?: string; // Made optional since current schema doesn't support it
     quantity: number;
   }[];
 }

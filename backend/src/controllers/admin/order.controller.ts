@@ -17,7 +17,7 @@ const CreateOrderSchema = z.object({
     customerAddress: z.string().min(1, 'Address is required'),
     items: z.array(z.object({
       productId: z.string().min(1, 'Product ID is required'),
-      specificationId: z.string().min(1, 'Specification ID is required'),
+      specificationId: z.string().optional(), // Made optional since current schema doesn't support it
       quantity: z.number().positive()
     })).min(1, 'At least one item is required'),
     notes: z.string().optional()
@@ -267,7 +267,6 @@ export const createOrder = asyncHandler(async (req: Request, res: Response) => {
 
     orderItemsData.push({
       productId: item.productId,
-      specificationId: item.specificationId,
       quantity: item.quantity,
       unitPrice: unitPrice.toString(),
       productSnapshot: {
