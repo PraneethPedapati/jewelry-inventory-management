@@ -2,9 +2,8 @@ import { db } from './connection.js';
 import {
   admins,
   colorThemes,
-  productTypes,
+  productCodeSequences,
   products,
-  productSpecifications,
   expenseCategories,
   orders,
   orderItems,
@@ -34,14 +33,11 @@ const clearDatabase = async (): Promise<void> => {
   console.log('  - Clearing expenses...');
   await db.delete(expenses);
 
-  console.log('  - Clearing product specifications...');
-  await db.delete(productSpecifications);
-
   console.log('  - Clearing products...');
   await db.delete(products);
 
-  console.log('  - Clearing product types...');
-  await db.delete(productTypes);
+  console.log('  - Clearing product code sequences...');
+  await db.delete(productCodeSequences);
 
   console.log('  - Clearing expense categories...');
   await db.delete(expenseCategories);
@@ -82,7 +78,7 @@ const seedDatabase = async (): Promise<void> => {
         isActive: true,
         isDefault: true,
         colors: {
-          primary: '#8B5CF6',
+          primary: '#6c3158',
           secondary: '#F59E0B',
           accent: '#EC4899',
           background: '#FFFFFF',
@@ -91,7 +87,7 @@ const seedDatabase = async (): Promise<void> => {
           cardForeground: '#111827',
           border: '#E5E7EB',
           input: '#FFFFFF',
-          ring: '#8B5CF6',
+          ring: '#6c3158',
           muted: '#F3F4F6',
           mutedForeground: '#6B7280',
           destructive: '#EF4444',
@@ -159,250 +155,220 @@ const seedDatabase = async (): Promise<void> => {
       }
     ]);
 
-    // 3. Create product types
-    console.log('📦 Creating product types...');
-    await db.insert(productTypes).values([
+    // 3. Initialize product code sequences
+    console.log('📦 Initializing product code sequences...');
+    await db.insert(productCodeSequences).values([
       {
-        name: 'chain',
-        displayName: 'Chain',
-        specificationType: 'layer'
+        productType: 'chain',
+        currentSequence: 0
       },
       {
-        name: 'bracelet-anklet',
-        displayName: 'Bracelet & Anklet',
-        specificationType: 'size'
+        productType: 'bracelet-anklet',
+        currentSequence: 0
       }
-    ]);
-
-    // Get product type IDs for foreign key references
-    const [chainType] = await db.select().from(productTypes).where(eq(productTypes.name, 'chain'));
-    const [braceletAnkletType] = await db.select().from(productTypes).where(eq(productTypes.name, 'bracelet-anklet'));
-
-    if (!chainType || !braceletAnkletType) {
-      throw new Error('Failed to create product types');
-    }
+    ]).onConflictDoNothing();
 
     // 4. Create sample jewelry products
     console.log('💎 Creating sample jewelry products...');
     const sampleProducts = [
       {
+        productCode: 'CH001',
         name: 'Butterfly Dream Chain',
-        charmDescription: 'Delicate butterfly charm with crystal accents and intricate wing details',
-        chainDescription: 'Sterling silver curb chain with polished finish',
-        productTypeId: chainType.id,
-        basePrice: '45.00',
-        sku: 'BDC001',
+        description: 'Delicate butterfly charm with crystal accents and intricate wing details. Sterling silver curb chain with polished finish.',
+        productType: 'chain',
+        price: '45.00',
         images: [
           'https://images.unsplash.com/photo-1515562141207-7a88fb7ce338?w=400',
           'https://images.unsplash.com/photo-1506630448388-4e683c67ddb0?w=400'
         ]
       },
       {
+        productCode: 'BR001',
         name: 'Heart Lock Bracelet',
-        charmDescription: 'Heart-shaped lock charm with key detail and engraved initials',
-        chainDescription: 'Rose gold plated cable chain with secure clasp',
-        productTypeId: braceletAnkletType.id,
-        basePrice: '35.00',
-        sku: 'HLB001',
+        description: 'Heart-shaped lock charm with key detail and engraved initials. Rose gold plated cable chain with secure clasp.',
+        productType: 'bracelet-anklet',
+        price: '35.00',
         images: [
           'https://images.unsplash.com/photo-1611955167811-4711904bb9f8?w=400',
           'https://images.unsplash.com/photo-1602173574767-37ac01994b2a?w=400'
         ]
       },
       {
+        productCode: 'CH002',
         name: 'Starlight Elegance Chain',
-        charmDescription: 'Star-shaped charm with sparkling cubic zirconia stones',
-        chainDescription: 'White gold plated box chain with adjustable length',
-        productTypeId: chainType.id,
-        basePrice: '52.00',
-        sku: 'SEC001',
+        description: 'Star-shaped charm with sparkling cubic zirconia stones. White gold plated box chain with adjustable length.',
+        productType: 'chain',
+        price: '52.00',
         images: [
           'https://images.unsplash.com/photo-1599643478518-a784e5dc4c8f?w=400'
         ]
       },
       {
+        productCode: 'BR002',
         name: 'Ocean Pearl Anklet',
-        charmDescription: 'Natural pearl charm with ocean wave design',
-        chainDescription: 'Sterling silver snake chain with extension',
-        productTypeId: braceletAnkletType.id,
-        basePrice: '28.00',
-        sku: 'OPA001',
+        description: 'Natural pearl charm with ocean wave design. Sterling silver snake chain with extension.',
+        productType: 'bracelet-anklet',
+        price: '28.00',
         images: [
           'https://images.unsplash.com/photo-1515562141207-7a88fb7ce338?w=400'
         ]
       },
       {
+        productCode: 'BR003',
         name: 'Vintage Rose Bracelet',
-        charmDescription: 'Antique rose charm with detailed petals and leaves',
-        chainDescription: 'Vintage-style brass chain with patina finish',
-        productTypeId: braceletAnkletType.id,
-        basePrice: '42.00',
-        sku: 'VRB001',
+        description: 'Antique rose charm with detailed petals and leaves. Vintage-style brass chain with patina finish.',
+        productType: 'bracelet-anklet',
+        price: '42.00',
         images: [
           'https://images.unsplash.com/photo-1506630448388-4e683c67ddb0?w=400'
         ]
       },
       {
+        productCode: 'CH003',
         name: 'Moonstone Magic Chain',
-        charmDescription: 'Mystical moonstone charm with ethereal glow',
-        chainDescription: 'Sterling silver rope chain with antiqued finish',
-        productTypeId: chainType.id,
-        basePrice: '58.00',
-        sku: 'MMC001',
+        description: 'Mystical moonstone charm with ethereal glow. Sterling silver rope chain with antiqued finish.',
+        productType: 'chain',
+        price: '58.00',
         images: [
           'https://images.unsplash.com/photo-1515562141207-7a88fb7ce338?w=400'
         ]
       },
       {
+        productCode: 'BR004',
         name: 'Golden Leaf Bracelet',
-        charmDescription: 'Autumn leaf charm with gold plated detailing',
-        chainDescription: 'Gold filled figaro chain with secure toggle clasp',
-        productTypeId: braceletAnkletType.id,
-        basePrice: '39.00',
-        sku: 'GLB001',
+        description: 'Autumn leaf charm with gold plated detailing. Gold filled figaro chain with secure toggle clasp.',
+        productType: 'bracelet-anklet',
+        price: '39.00',
         images: [
           'https://images.unsplash.com/photo-1611955167811-4711904bb9f8?w=400'
         ]
       },
       {
+        productCode: 'CH004',
         name: 'Diamond Dreams Chain',
-        charmDescription: 'Sparkling diamond-cut crystal charm in teardrop shape',
-        chainDescription: 'Premium white gold chain with mirror finish',
-        productTypeId: chainType.id,
-        basePrice: '75.00',
-        sku: 'DDC001',
+        description: 'Sparkling diamond-cut crystal charm in teardrop shape. Premium white gold chain with mirror finish.',
+        productType: 'chain',
+        price: '75.00',
         images: [
           'https://images.unsplash.com/photo-1599643478518-a784e5dc4c8f?w=400'
         ]
       },
       {
+        productCode: 'BR005',
         name: 'Sunset Anklet',
-        charmDescription: 'Gradient orange-pink charm resembling sunset colors',
-        chainDescription: 'Delicate rose gold chain with adjustable length',
-        productTypeId: braceletAnkletType.id,
-        basePrice: '32.00',
-        sku: 'SUA001',
+        description: 'Gradient orange-pink charm resembling sunset colors. Delicate rose gold chain with adjustable length.',
+        productType: 'bracelet-anklet',
+        price: '32.00',
         images: [
           'https://images.unsplash.com/photo-1515562141207-7a88fb7ce338?w=400'
         ]
       },
       {
+        productCode: 'BR006',
         name: 'Celtic Knot Bracelet',
-        charmDescription: 'Traditional Celtic knot charm symbolizing eternal love',
-        chainDescription: 'Antique silver chain with Celtic-inspired links',
-        productTypeId: braceletAnkletType.id,
-        basePrice: '44.00',
-        sku: 'CKB001',
+        description: 'Traditional Celtic knot charm symbolizing eternal love. Antique silver chain with Celtic-inspired links.',
+        productType: 'bracelet-anklet',
+        price: '44.00',
         images: [
           'https://images.unsplash.com/photo-1602173574767-37ac01994b2a?w=400'
         ]
       },
       {
+        productCode: 'CH005',
         name: 'Crystal Rainbow Chain',
-        charmDescription: 'Multi-colored crystal charm creating rainbow effect',
-        chainDescription: 'Titanium chain with color-changing properties',
-        productTypeId: chainType.id,
-        basePrice: '62.00',
-        sku: 'CRC001',
+        description: 'Multi-colored crystal charm creating rainbow effect. Titanium chain with color-changing properties.',
+        productType: 'chain',
+        price: '62.00',
         images: [
           'https://images.unsplash.com/photo-1515562141207-7a88fb7ce338?w=400'
         ]
       },
       {
+        productCode: 'BR007',
         name: 'Flower Power Anklet',
-        charmDescription: 'Delicate flower charm with enamel petals',
-        chainDescription: 'Sterling silver box chain with spring ring clasp',
-        productTypeId: braceletAnkletType.id,
-        basePrice: '26.00',
-        sku: 'FPA001',
+        description: 'Delicate flower charm with enamel petals. Sterling silver box chain with spring ring clasp.',
+        productType: 'bracelet-anklet',
+        price: '26.00',
         images: [
           'https://images.unsplash.com/photo-1599643478518-a784e5dc4c8f?w=400'
         ]
       },
       {
+        productCode: 'BR008',
         name: 'Infinity Love Bracelet',
-        charmDescription: 'Infinity symbol charm with engraved love message',
-        chainDescription: 'Rose gold cable chain with magnetic clasp',
-        productTypeId: braceletAnkletType.id,
-        basePrice: '48.00',
-        sku: 'ILB001',
+        description: 'Infinity symbol charm with engraved love message. Rose gold cable chain with magnetic clasp.',
+        productType: 'bracelet-anklet',
+        price: '48.00',
         images: [
           'https://images.unsplash.com/photo-1611955167811-4711904bb9f8?w=400'
         ]
       },
       {
+        productCode: 'CH006',
         name: 'Mystic Forest Chain',
-        charmDescription: 'Tree of life charm with emerald green accents',
-        chainDescription: 'Oxidized silver chain with rustic woodland finish',
-        productTypeId: chainType.id,
-        basePrice: '55.00',
-        sku: 'MFC001',
+        description: 'Tree of life charm with emerald green accents. Oxidized silver chain with rustic woodland finish.',
+        productType: 'chain',
+        price: '55.00',
         images: [
           'https://images.unsplash.com/photo-1506630448388-4e683c67ddb0?w=400'
         ]
       },
       {
+        productCode: 'BR009',
         name: 'Beach Vibes Anklet',
-        charmDescription: 'Seashell and starfish charm cluster',
-        chainDescription: 'Waterproof stainless steel chain',
-        productTypeId: braceletAnkletType.id,
-        basePrice: '30.00',
-        sku: 'BVA001',
+        description: 'Seashell and starfish charm cluster. Waterproof stainless steel chain.',
+        productType: 'bracelet-anklet',
+        price: '30.00',
         images: [
           'https://images.unsplash.com/photo-1515562141207-7a88fb7ce338?w=400'
         ]
       },
       {
+        productCode: 'BR010',
         name: 'Royal Crown Bracelet',
-        charmDescription: 'Miniature crown charm with faux ruby centerpiece',
-        chainDescription: 'Gold plated curb chain with royal styling',
-        productTypeId: braceletAnkletType.id,
-        basePrice: '52.00',
-        sku: 'RCB001',
+        description: 'Miniature crown charm with faux ruby centerpiece. Gold plated curb chain with royal styling.',
+        productType: 'bracelet-anklet',
+        price: '52.00',
         images: [
           'https://images.unsplash.com/photo-1602173574767-37ac01994b2a?w=400'
         ]
       },
       {
+        productCode: 'CH007',
         name: 'Lightning Bolt Chain',
-        charmDescription: 'Electric lightning bolt charm with blue sapphire accent',
-        chainDescription: 'Stainless steel chain with high-tech finish',
-        productTypeId: chainType.id,
-        basePrice: '41.00',
-        sku: 'LBC001',
+        description: 'Electric lightning bolt charm with blue sapphire accent. Stainless steel chain with high-tech finish.',
+        productType: 'chain',
+        price: '41.00',
         images: [
           'https://images.unsplash.com/photo-1599643478518-a784e5dc4c8f?w=400'
         ]
       },
       {
+        productCode: 'BR011',
         name: 'Zen Garden Anklet',
-        charmDescription: 'Peaceful lotus flower charm with jade accent',
-        chainDescription: 'Minimalist silver chain with zen-inspired design',
-        productTypeId: braceletAnkletType.id,
-        basePrice: '34.00',
-        sku: 'ZGA001',
+        description: 'Peaceful lotus flower charm with jade accent. Minimalist silver chain with zen-inspired design.',
+        productType: 'bracelet-anklet',
+        price: '34.00',
         images: [
           'https://images.unsplash.com/photo-1515562141207-7a88fb7ce338?w=400'
         ]
       },
       {
+        productCode: 'BR012',
         name: 'Fairy Tale Bracelet',
-        charmDescription: 'Magical fairy charm with glittering wings',
-        chainDescription: 'Delicate silver chain with fairy dust finish',
-        productTypeId: braceletAnkletType.id,
-        basePrice: '37.00',
-        sku: 'FTB001',
+        description: 'Magical fairy charm with glittering wings. Delicate silver chain with fairy dust finish.',
+        productType: 'bracelet-anklet',
+        price: '37.00',
         images: [
           'https://images.unsplash.com/photo-1611955167811-4711904bb9f8?w=400'
         ]
       },
       {
+        productCode: 'CH008',
         name: 'Phoenix Rising Chain',
-        charmDescription: 'Majestic phoenix charm symbolizing rebirth and strength',
-        chainDescription: 'Fire-resistant titanium chain with flame pattern',
-        productTypeId: chainType.id,
-        basePrice: '68.00',
-        sku: 'PRC001',
+        description: 'Majestic phoenix charm symbolizing rebirth and strength. Fire-resistant titanium chain with flame pattern.',
+        productType: 'chain',
+        price: '68.00',
         images: [
           'https://images.unsplash.com/photo-1506630448388-4e683c67ddb0?w=400'
         ]
@@ -410,80 +376,6 @@ const seedDatabase = async (): Promise<void> => {
     ];
 
     const insertedProducts = await db.insert(products).values(sampleProducts).returning();
-
-    // 5. Create product specifications
-    console.log('📏 Creating product specifications...');
-    const specifications = [];
-
-    for (const product of insertedProducts) {
-      const productType = [chainType, braceletAnkletType].find(type => type.id === product.productTypeId);
-
-      if (productType?.specificationType === 'layer') {
-        // Chain specifications (layers)
-        specifications.push(
-          {
-            productId: product.id,
-            specType: 'layer' as const,
-            specValue: 'single',
-            displayName: 'Single Layer',
-            priceModifier: '0.00',
-            stockQuantity: 15,
-            isAvailable: true
-          },
-          {
-            productId: product.id,
-            specType: 'layer' as const,
-            specValue: 'double',
-            displayName: 'Double Layer',
-            priceModifier: '15.00',
-            stockQuantity: 12,
-            isAvailable: true
-          },
-          {
-            productId: product.id,
-            specType: 'layer' as const,
-            specValue: 'triple',
-            displayName: 'Triple Layer',
-            priceModifier: '25.00',
-            stockQuantity: 8,
-            isAvailable: true
-          }
-        );
-      } else if (productType?.specificationType === 'size') {
-        // Bracelet/Anklet specifications (sizes)
-        specifications.push(
-          {
-            productId: product.id,
-            specType: 'size' as const,
-            specValue: 'S',
-            displayName: 'Small (6-7 inches)',
-            priceModifier: '0.00',
-            stockQuantity: 20,
-            isAvailable: true
-          },
-          {
-            productId: product.id,
-            specType: 'size' as const,
-            specValue: 'M',
-            displayName: 'Medium (7-8 inches)',
-            priceModifier: '5.00',
-            stockQuantity: 25,
-            isAvailable: true
-          },
-          {
-            productId: product.id,
-            specType: 'size' as const,
-            specValue: 'L',
-            displayName: 'Large (8-9 inches)',
-            priceModifier: '8.00',
-            stockQuantity: 18,
-            isAvailable: true
-          }
-        );
-      }
-    }
-
-    await db.insert(productSpecifications).values(specifications);
 
     // 6. Create sample orders
     console.log('🛒 Creating sample orders...');
@@ -644,46 +536,31 @@ const seedDatabase = async (): Promise<void> => {
     console.log('📦 Creating order items...');
     const orderItemsData = [];
 
-    // Get some product specifications to use in orders
-    const availableSpecs = await db.select().from(productSpecifications).limit(10);
-
     for (let i = 0; i < insertedOrders.length; i++) {
       const order = insertedOrders[i];
       if (!order) continue;
 
-      const specs = availableSpecs.slice(i % 3, (i % 3) + 2); // Use 1-2 specs per order
+      // Use 1-2 products per order
+      const productsForOrder = insertedProducts.slice(i % 3, (i % 3) + 2);
 
-      for (const spec of specs) {
-        const product = insertedProducts.find(p => p.id === spec.productId);
-        if (!product) continue;
-
-        const basePrice = parseFloat(product.basePrice);
-        const priceModifier = parseFloat(spec.priceModifier || '0.00');
-        const unitPrice = basePrice + priceModifier;
+      for (const product of productsForOrder) {
+        const unitPrice = parseFloat(product.price);
         const quantity = Math.floor(Math.random() * 2) + 1; // 1-2 items
 
         orderItemsData.push({
           orderId: order.id,
           productId: product.id,
-          specificationId: spec.id,
           quantity,
           unitPrice: unitPrice.toString(),
           productSnapshot: {
             product: {
               id: product.id,
+              productCode: product.productCode,
               name: product.name,
-              charmDescription: product.charmDescription || '',
-              chainDescription: product.chainDescription || '',
-              basePrice: product.basePrice,
-              sku: product.sku,
+              description: product.description,
+              productType: product.productType,
+              price: product.price,
               images: product.images
-            },
-            specification: {
-              id: spec.id,
-              specType: spec.specType,
-              specValue: spec.specValue,
-              displayName: spec.displayName,
-              priceModifier: spec.priceModifier
             }
           }
         });
@@ -897,10 +774,9 @@ const seedDatabase = async (): Promise<void> => {
 📊 Summary:
 - ✅ Admin user created (admin@jewelrystore.com / admin123!@#)
 - ✅ 3 color themes configured
-- ✅ 3 product types created (chain, bracelet, anklet)
-- ✅ ${sampleProducts.length} sample products with specifications
+- ✅ Product code sequences initialized (chain, bracelet-anklet)
+- ✅ ${sampleProducts.length} sample products with auto-generated codes
 - ✅ ${sampleOrders.length} sample orders with items
-- ✅ System configurations initialized
 - ✅ 7 expense categories created
 - ✅ ${sampleExpenses.length} sample expenses
     `);

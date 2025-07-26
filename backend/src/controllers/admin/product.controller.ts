@@ -1,125 +1,62 @@
 import { Request, Response } from 'express';
 import { z } from 'zod';
-import { db } from '../../db/connection.js';
-import { products, productTypes, productSpecifications } from '../../db/schema.js';
-import { eq, desc, and, like, or } from 'drizzle-orm';
+import multer from 'multer';
+import { ProductService } from '../../services/product.service.js';
 import { asyncHandler } from '../../middleware/error-handler.middleware.js';
+
+// Multer configuration for image uploads
+const upload = multer({
+  storage: multer.memoryStorage(),
+  limits: {
+    fileSize: 10 * 1024 * 1024, // 10MB
+    files: 5
+  },
+  fileFilter: (req, file, cb) => {
+    if (file.mimetype.startsWith('image/')) {
+      cb(null, true);
+    } else {
+      cb(new Error('Only image files allowed'));
+    }
+  }
+});
 
 // Validation schemas
 const CreateProductSchema = z.object({
-  body: z.object({
-    name: z.string().min(1, 'Product name is required'),
-    category: z.enum(['chain', 'bracelet-anklet']),
-    charmDescription: z.string().min(1, 'Charm description is required'),
-    chainDescription: z.string().min(1, 'Chain description is required'),
-    basePrice: z.number().positive('Price must be positive'),
-    images: z.array(z.string()).optional(),
-    metaDescription: z.string().optional(),
-    stockAlertThreshold: z.number().optional()
-  })
+  name: z.string().min(2, 'Product name must be at least 2 characters'),
+  description: z.string().min(10, 'Description must be at least 10 characters'),
+  productType: z.enum(['chain', 'bracelet-anklet']),
+  price: z.number().positive('Price must be positive'),
+  discountedPrice: z.number().positive().optional(),
+  isActive: z.boolean().optional()
 });
 
 const UpdateProductSchema = z.object({
-  body: z.object({
-    name: z.string().optional(),
-    charmDescription: z.string().optional(),
-    chainDescription: z.string().optional(),
-    basePrice: z.number().positive().optional(),
-    images: z.array(z.string()).optional(),
-    metaDescription: z.string().optional(),
-    isActive: z.boolean().optional(),
-    stockAlertThreshold: z.number().optional()
-  }),
-  params: z.object({
-    id: z.string().uuid('Valid product ID is required')
-  })
+  name: z.string().min(2).optional(),
+  description: z.string().min(10).optional(),
+  productType: z.enum(['chain', 'bracelet-anklet']).optional(),
+  price: z.number().positive().optional(),
+  discountedPrice: z.number().positive().optional(),
+  isActive: z.boolean().optional()
 });
 
 /**
- * Get all products with filters
+ * Get all products
  * GET /api/admin/products
  */
 export const getProducts = asyncHandler(async (req: Request, res: Response) => {
-  const { search, category, status, page = 1, limit = 10 } = req.query;
+  const { page = 1, limit = 10, search, productType, isActive } = req.query;
 
-  // Apply filters
-  const conditions = [];
-
-  // Always filter to only show active products unless explicitly requesting inactive ones
-  if (status === 'inactive') {
-    conditions.push(eq(products.isActive, false));
-  } else {
-    // Default to showing only active products
-    conditions.push(eq(products.isActive, true));
-  }
-
-  if (search) {
-    conditions.push(
-      or(
-        like(products.name, `%${search}%`),
-        like(products.charmDescription, `%${search}%`),
-        like(products.chainDescription, `%${search}%`)
-      )
-    );
-  }
-
-  if (category) {
-    conditions.push(eq(productTypes.name, category as string));
-  }
-
-  // Pagination
-  const pageNum = Math.max(1, Number(page));
-  const limitNum = Math.min(50, Math.max(1, Number(limit)));
-  const offset = (pageNum - 1) * limitNum;
-
-  // Build the main query
-  const result = await db
-    .select({
-      id: products.id,
-      name: products.name,
-      charmDescription: products.charmDescription,
-      chainDescription: products.chainDescription,
-      basePrice: products.basePrice,
-      sku: products.sku,
-      images: products.images,
-      isActive: products.isActive,
-      stockAlertThreshold: products.stockAlertThreshold,
-      metaDescription: products.metaDescription,
-      createdAt: products.createdAt,
-      updatedAt: products.updatedAt,
-      productType: {
-        id: productTypes.id,
-        name: productTypes.name,
-        displayName: productTypes.displayName,
-        specificationType: productTypes.specificationType
-      }
-    })
-    .from(products)
-    .leftJoin(productTypes, eq(products.productTypeId, productTypes.id))
-    .where(conditions.length > 0 ? and(...conditions) : undefined)
-    .orderBy(desc(products.createdAt))
-    .limit(limitNum)
-    .offset(offset);
-
-  // Get total count for pagination
-  const totalCount = await db
-    .select({ count: products.id })
-    .from(products)
-    .leftJoin(productTypes, eq(products.productTypeId, productTypes.id))
-    .where(conditions.length > 0 ? and(...conditions) : undefined);
+  const result = await ProductService.getProducts({
+    page: Number(page),
+    limit: Number(limit),
+    search: search as string,
+    productType: productType as string,
+    isActive: isActive === 'true' ? true : isActive === 'false' ? false : undefined
+  });
 
   res.json({
     success: true,
-    data: {
-      products: result,
-      pagination: {
-        page: pageNum,
-        limit: limitNum,
-        total: totalCount.length,
-        totalPages: Math.ceil(totalCount.length / limitNum)
-      }
-    },
-    message: `Found ${result.length} products`
+    data: result
   });
 });
 
@@ -130,7 +67,6 @@ export const getProducts = asyncHandler(async (req: Request, res: Response) => {
 export const getProductById = asyncHandler(async (req: Request, res: Response) => {
   const { id } = req.params;
 
-  // Validate that id is not undefined
   if (!id) {
     return res.status(400).json({
       success: false,
@@ -138,141 +74,180 @@ export const getProductById = asyncHandler(async (req: Request, res: Response) =
     });
   }
 
-  const product = await db
-    .select({
-      id: products.id,
-      name: products.name,
-      charmDescription: products.charmDescription,
-      chainDescription: products.chainDescription,
-      basePrice: products.basePrice,
-      sku: products.sku,
-      images: products.images,
-      isActive: products.isActive,
-      stockAlertThreshold: products.stockAlertThreshold,
-      metaDescription: products.metaDescription,
-      createdAt: products.createdAt,
-      updatedAt: products.updatedAt,
-      productType: {
-        id: productTypes.id,
-        name: productTypes.name,
-        displayName: productTypes.displayName,
-        specificationType: productTypes.specificationType
-      }
-    })
-    .from(products)
-    .leftJoin(productTypes, eq(products.productTypeId, productTypes.id))
-    .where(eq(products.id, id))
-    .limit(1);
+  const product = await ProductService.getProductById(id);
 
-  if (!product.length) {
+  if (!product) {
     return res.status(404).json({
       success: false,
       error: 'Product not found'
     });
   }
 
-  // Get product specifications
-  const specifications = await db
-    .select()
-    .from(productSpecifications)
-    .where(eq(productSpecifications.productId, id));
-
   res.json({
     success: true,
-    data: {
-      ...product[0],
-      specifications
-    },
+    data: product,
     message: 'Product retrieved successfully'
   });
 });
 
 /**
- * Create new product
- * POST /api/admin/products
+ * Get product by code
+ * GET /api/products/:code
  */
-export const createProduct = asyncHandler(async (req: Request, res: Response) => {
-  const { body } = CreateProductSchema.parse({ body: req.body });
-
-  // Get product type ID
-  const productType = await db
-    .select()
-    .from(productTypes)
-    .where(eq(productTypes.name, body.category))
-    .limit(1);
-
-  if (!productType.length) {
+export const getProductByCode = asyncHandler(async (req: Request, res: Response) => {
+  const { code } = req.params;
+  if (!code) {
     return res.status(400).json({
       success: false,
-      error: 'Invalid product category'
+      error: 'Product code is required'
+    });
+  }
+  const product = await ProductService.getProductByCode(code.toUpperCase());
+
+  if (!product) {
+    return res.status(404).json({
+      success: false,
+      error: 'Product not found'
     });
   }
 
-  const selectedProductType = productType[0]!;
-
-  // Generate SKU
-  const sku = `${body.category.toUpperCase()}-${Date.now().toString().slice(-6)}`;
-
-  const newProduct = await db
-    .insert(products)
-    .values({
-      name: body.name,
-      charmDescription: body.charmDescription,
-      chainDescription: body.chainDescription,
-      productTypeId: selectedProductType.id,
-      basePrice: body.basePrice.toString(),
-      sku,
-      images: body.images || [],
-      metaDescription: body.metaDescription || null,
-      stockAlertThreshold: body.stockAlertThreshold || 5
-    })
-    .returning();
-
-  res.status(201).json({
+  res.json({
     success: true,
-    data: newProduct[0],
-    message: 'Product created successfully'
+    data: { product }
   });
 });
+
+/**
+ * Search products
+ * GET /api/products/search?q=CH001
+ */
+export const searchProducts = asyncHandler(async (req: Request, res: Response) => {
+  const { q } = req.query;
+
+  if (!q || typeof q !== 'string') {
+    return res.status(400).json({
+      success: false,
+      error: 'Search query is required'
+    });
+  }
+
+  const products = await ProductService.searchProducts(q);
+
+  res.json({
+    success: true,
+    data: {
+      products,
+      query: q,
+      count: products.length
+    }
+  });
+});
+
+/**
+ * Create new product with auto-generated product code and image upload
+ * POST /api/admin/products
+ */
+export const createProduct = [
+  upload.array('images', 5),
+  asyncHandler(async (req: Request, res: Response) => {
+    try {
+      // Validate request data
+      const validatedData = CreateProductSchema.parse({
+        name: req.body.name,
+        description: req.body.description,
+        productType: req.body.productType,
+        price: parseFloat(req.body.price),
+        discountedPrice: req.body.discountedPrice ? parseFloat(req.body.discountedPrice) : undefined,
+        isActive: req.body.isActive === 'true'
+      });
+
+      // Validate discounted price
+      if (validatedData.discountedPrice && validatedData.discountedPrice >= validatedData.price) {
+        return res.status(400).json({
+          success: false,
+          error: 'Discounted price must be less than original price'
+        });
+      }
+
+      // Get uploaded files
+      const files = req.files as Express.Multer.File[];
+
+      if (!files || files.length === 0) {
+        return res.status(400).json({
+          success: false,
+          error: 'At least one product image is required'
+        });
+      }
+
+      // Create product (code will be auto-generated)
+      const product = await ProductService.createProduct(validatedData, files);
+
+      if (!product) {
+        return res.status(500).json({
+          success: false,
+          error: 'Failed to create product'
+        });
+      }
+
+      // Return success with generated product code
+      res.status(201).json({
+        success: true,
+        message: `Product created successfully with code: ${product.productCode}`,
+        data: {
+          product: {
+            ...product,
+            imageCount: Array.isArray(product.images) ? product.images.length : 0
+          }
+        }
+      });
+
+    } catch (error) {
+      console.error('Product creation error:', error);
+
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({
+          success: false,
+          error: 'Validation failed',
+          details: error.errors
+        });
+      }
+
+      res.status(500).json({
+        success: false,
+        error: 'Failed to create product'
+      });
+    }
+  })
+];
 
 /**
  * Update product
  * PUT /api/admin/products/:id
  */
 export const updateProduct = asyncHandler(async (req: Request, res: Response) => {
-  const { body, params } = UpdateProductSchema.parse({ body: req.body, params: req.params });
+  const { id } = req.params;
 
-  const existingProduct = await db
-    .select()
-    .from(products)
-    .where(eq(products.id, params.id))
-    .limit(1);
+  if (!id) {
+    return res.status(400).json({
+      success: false,
+      error: 'Product ID is required'
+    });
+  }
 
-  if (!existingProduct.length) {
+  const validatedData = UpdateProductSchema.parse(req.body);
+
+  const updatedProduct = await ProductService.updateProduct(id, validatedData as any);
+
+  if (!updatedProduct) {
     return res.status(404).json({
       success: false,
       error: 'Product not found'
     });
   }
 
-  const updateData: any = {
-    ...body,
-    updatedAt: new Date()
-  };
-
-  if (body.basePrice) {
-    updateData.basePrice = body.basePrice.toString();
-  }
-
-  const updatedProduct = await db
-    .update(products)
-    .set(updateData)
-    .where(eq(products.id, params.id))
-    .returning();
-
   res.json({
     success: true,
-    data: updatedProduct[0],
+    data: updatedProduct,
     message: 'Product updated successfully'
   });
 });
@@ -284,7 +259,6 @@ export const updateProduct = asyncHandler(async (req: Request, res: Response) =>
 export const deleteProduct = asyncHandler(async (req: Request, res: Response) => {
   const { id } = req.params;
 
-  // Validate that id is not undefined
   if (!id) {
     return res.status(400).json({
       success: false,
@@ -292,24 +266,14 @@ export const deleteProduct = asyncHandler(async (req: Request, res: Response) =>
     });
   }
 
-  const existingProduct = await db
-    .select()
-    .from(products)
-    .where(eq(products.id, id))
-    .limit(1);
+  const deletedProduct = await ProductService.deleteProduct(id);
 
-  if (!existingProduct.length) {
+  if (!deletedProduct) {
     return res.status(404).json({
       success: false,
       error: 'Product not found'
     });
   }
-
-  // Soft delete by setting isActive to false
-  await db
-    .update(products)
-    .set({ isActive: false, updatedAt: new Date() })
-    .where(eq(products.id, id));
 
   res.json({
     success: true,
@@ -318,18 +282,14 @@ export const deleteProduct = asyncHandler(async (req: Request, res: Response) =>
 });
 
 /**
- * Get product categories
- * GET /api/admin/products/categories
+ * Get product statistics
+ * GET /api/admin/products/stats
  */
-export const getProductCategories = asyncHandler(async (req: Request, res: Response) => {
-  const categories = await db
-    .select()
-    .from(productTypes)
-    .where(eq(productTypes.isActive, true));
+export const getProductStats = asyncHandler(async (req: Request, res: Response) => {
+  const stats = await ProductService.getProductStats();
 
   res.json({
     success: true,
-    data: categories,
-    message: `Found ${categories.length} categories`
+    data: stats
   });
 }); 

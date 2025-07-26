@@ -12,6 +12,7 @@ export const env = {
 
   // API Configuration
   VITE_API_BASE_URL: import.meta.env.VITE_API_BASE_URL || '/api',
+  VITE_API_URL: import.meta.env.VITE_API_URL || 'http://localhost:3001',
 
   // PWA Configuration
   VITE_PWA_NAME: import.meta.env.VITE_PWA_NAME || 'Elegant Jewelry Store',

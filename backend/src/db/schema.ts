@@ -27,79 +27,58 @@ export const colorThemes = pgTable('color_themes', {
   updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow(),
 });
 
-// Product Types (chain, bracelet, anklet)
-export const productTypes = pgTable('product_types', {
-  id: uuid('id').primaryKey().defaultRandom(),
-  name: varchar('name', { length: 50 }).notNull().unique(),
-  displayName: varchar('display_name', { length: 100 }).notNull(),
-  specificationType: varchar('specification_type', { length: 20 }).notNull(),
-  isActive: boolean('is_active').default(true),
-  createdAt: timestamp('created_at', { withTimezone: true }).defaultNow(),
-}, (table) => ({
-  checkSpecType: check('specification_type_check', sql`${table.specificationType} IN ('layer', 'size')`),
-}));
-
-// Complete Jewelry Products (Charm + Chain combinations)
-export const products = pgTable('products', {
-  id: uuid('id').primaryKey().defaultRandom(),
-  name: varchar('name', { length: 200 }).notNull(),
-  charmDescription: text('charm_description').notNull(),
-  chainDescription: text('chain_description').notNull(),
-  productTypeId: uuid('product_type_id').notNull().references(() => productTypes.id),
-  basePrice: decimal('base_price', { precision: 10, scale: 2 }).notNull(),
-  sku: varchar('sku', { length: 50 }).unique(),
-  images: jsonb('images').default(sql`'[]'::jsonb`),
-  isActive: boolean('is_active').default(true),
-  stockAlertThreshold: integer('stock_alert_threshold').default(5),
-  metaDescription: text('meta_description'),
-  createdAt: timestamp('created_at', { withTimezone: true }).defaultNow(),
-  updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow(),
-  // Search vector will be added via raw SQL in migrations
+// Product Code Sequences for generating unique product codes
+export const productCodeSequences = pgTable('product_code_sequences', {
+  productType: varchar('product_type', { length: 20 }).primaryKey(),
+  currentSequence: integer('current_sequence').default(0)
 });
 
-// Product Specifications (Sizes or Layers)
-export const productSpecifications = pgTable('product_specifications', {
+// Complete Jewelry Products with auto-generated product codes
+export const products = pgTable('products', {
   id: uuid('id').primaryKey().defaultRandom(),
-  productId: uuid('product_id').notNull().references(() => products.id, { onDelete: 'cascade' }),
-  specType: varchar('spec_type', { length: 20 }).notNull(),
-  specValue: varchar('spec_value', { length: 20 }).notNull(),
-  displayName: varchar('display_name', { length: 50 }).notNull(),
-  priceModifier: decimal('price_modifier', { precision: 10, scale: 2 }).default('0.00'),
-  stockQuantity: integer('stock_quantity').default(0),
-  isAvailable: boolean('is_available').default(true),
+  productCode: varchar('product_code', { length: 20 }).notNull().unique(), // Auto-generated user-friendly code
+  name: varchar('name', { length: 200 }).notNull(),
+  description: text('description').notNull(),
+  productType: varchar('product_type', { length: 20 }).notNull(),
+  price: decimal('price', { precision: 10, scale: 2 }).notNull(),
+  discountedPrice: decimal('discounted_price', { precision: 10, scale: 2 }),
+  images: jsonb('images').default(sql`'[]'::jsonb`),
+  isActive: boolean('is_active').default(true),
   createdAt: timestamp('created_at', { withTimezone: true }).defaultNow(),
+  updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow(),
 }, (table) => ({
-  uniqueProductSpec: unique().on(table.productId, table.specType, table.specValue),
-  checkSpecType: check('spec_type_check', sql`${table.specType} IN ('size', 'layer')`),
-  checkStockQuantity: check('stock_quantity_check', sql`${table.stockQuantity} >= 0`),
+  checkProductType: check('product_type_check', sql`${table.productType} IN ('chain', 'bracelet-anklet')`),
+  checkPrice: check('price_check', sql`${table.price} > 0`),
+  checkDiscountedPrice: check('discounted_price_check', sql`${table.discountedPrice} IS NULL OR (${table.discountedPrice} > 0 AND ${table.discountedPrice} < ${table.price})`),
 }));
 
 // Customer Orders
 export const orders = pgTable('orders', {
   id: uuid('id').primaryKey().defaultRandom(),
   orderNumber: varchar('order_number', { length: 20 }).notNull().unique(),
+  orderCode: varchar('order_code', { length: 10 }).notNull().unique(), // New: User-friendly order code (e.g., ORD001)
   customerName: varchar('customer_name', { length: 100 }).notNull(),
   customerEmail: varchar('customer_email', { length: 255 }).notNull(),
   customerPhone: varchar('customer_phone', { length: 20 }).notNull(),
   customerAddress: text('customer_address').notNull(),
   totalAmount: decimal('total_amount', { precision: 10, scale: 2 }).notNull(),
-  status: varchar('status', { length: 20 }).default('pending'),
+  status: varchar('status', { length: 20 }).default('payment_pending'), // Changed: default to 'payment_pending'
   whatsappMessageSent: boolean('whatsapp_message_sent').default(false),
   paymentReceived: boolean('payment_received').default(false),
   notes: text('notes'),
   createdAt: timestamp('created_at', { withTimezone: true }).defaultNow(),
   updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow(),
 }, (table) => ({
-  checkStatus: check('status_check', sql`${table.status} IN ('pending', 'confirmed', 'processing', 'shipped', 'delivered', 'cancelled')`),
+  // Updated: New status lifecycle
+  checkStatus: check('status_check', sql`${table.status} IN ('payment_pending', 'confirmed', 'processing', 'shipped', 'delivered', 'cancelled')`),
   checkTotalAmount: check('total_amount_check', sql`${table.totalAmount} > 0`),
 }));
 
-// Order Items with Specifications
+// Order Items
 export const orderItems = pgTable('order_items', {
   id: uuid('id').primaryKey().defaultRandom(),
   orderId: uuid('order_id').notNull().references(() => orders.id, { onDelete: 'cascade' }),
   productId: uuid('product_id').notNull().references(() => products.id),
-  specificationId: uuid('specification_id').notNull().references(() => productSpecifications.id),
   quantity: integer('quantity').notNull().default(1),
   unitPrice: decimal('unit_price', { precision: 10, scale: 2 }).notNull(),
   totalPrice: decimal('total_price', { precision: 10, scale: 2 }).generatedAlwaysAs(sql`${sql.identifier('quantity')} * ${sql.identifier('unit_price')}`),
@@ -190,24 +169,9 @@ export const colorThemesRelations = relations(colorThemes, ({ many }) => ({
   // Can add relations if needed for theme usage tracking
 }));
 
-export const productTypesRelations = relations(productTypes, ({ many }) => ({
-  products: many(products),
-}));
 
-export const productsRelations = relations(products, ({ one, many }) => ({
-  productType: one(productTypes, {
-    fields: [products.productTypeId],
-    references: [productTypes.id],
-  }),
-  specifications: many(productSpecifications),
-  orderItems: many(orderItems),
-}));
 
-export const productSpecificationsRelations = relations(productSpecifications, ({ one, many }) => ({
-  product: one(products, {
-    fields: [productSpecifications.productId],
-    references: [products.id],
-  }),
+export const productsRelations = relations(products, ({ many }) => ({
   orderItems: many(orderItems),
 }));
 
@@ -224,10 +188,6 @@ export const orderItemsRelations = relations(orderItems, ({ one }) => ({
   product: one(products, {
     fields: [orderItems.productId],
     references: [products.id],
-  }),
-  specification: one(productSpecifications, {
-    fields: [orderItems.specificationId],
-    references: [productSpecifications.id],
   }),
 }));
 
@@ -264,14 +224,8 @@ export type NewAdmin = typeof admins.$inferInsert;
 export type ColorTheme = typeof colorThemes.$inferSelect;
 export type NewColorTheme = typeof colorThemes.$inferInsert;
 
-export type ProductType = typeof productTypes.$inferSelect;
-export type NewProductType = typeof productTypes.$inferInsert;
-
 export type Product = typeof products.$inferSelect;
 export type NewProduct = typeof products.$inferInsert;
-
-export type ProductSpecification = typeof productSpecifications.$inferSelect;
-export type NewProductSpecification = typeof productSpecifications.$inferInsert;
 
 export type Order = typeof orders.$inferSelect;
 export type NewOrder = typeof orders.$inferInsert;

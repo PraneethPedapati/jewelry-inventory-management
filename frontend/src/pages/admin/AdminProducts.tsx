@@ -8,6 +8,11 @@ import { Badge } from '@/components/ui/badge';
 import { toast } from 'sonner';
 import ConfirmationDialog from '@/components/ui/confirmation-dialog';
 import { productService, type Product, type CreateProductRequest } from '@/services/api';
+import { env } from '@/config/env';
+import { useDocumentTitle } from '@/hooks/useDocumentTitle';
+
+// Placeholder image for products without images
+const PLACEHOLDER_IMAGE = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMzAwIiBoZWlnaHQ9IjMwMCIgdmlld0JveD0iMCAwIDMwMCAzMDAiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+CjxyZWN0IHdpZHRoPSIzMDAiIGhlaWdodD0iMzAwIiBmaWxsPSIjRjNGNEY2Ii8+CjxjaXJjbGUgY3g9IjE1MCIgY3k9IjEyMCIgcj0iNDAiIGZpbGw9IiM5Q0E4QjQiLz4KPHJlY3QgeD0iMTEwIiB5PSIxODAiIHdpZHRoPSI4MCIgaGVpZ2h0PSI4MCIgZmlsbD0iIzlDQThCNCIvPgo8L3N2Zz4=';
 
 const AdminProducts: React.FC = () => {
   const [showCreateModal, setShowCreateModal] = useState(false);
@@ -16,6 +21,9 @@ const AdminProducts: React.FC = () => {
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [productToDelete, setProductToDelete] = useState<Product | null>(null);
+
+  // Set document title
+  useDocumentTitle('Products');
 
   // API state
   const [products, setProducts] = useState<Product[]>([]);
@@ -43,16 +51,12 @@ const AdminProducts: React.FC = () => {
   // Load total statistics (not affected by filters)
   const loadTotalStats = async () => {
     try {
-      // Get all active products to calculate total stats
-      const activeData = await productService.getProducts({ status: 'active', limit: 1000 });
-      const inactiveData = await productService.getProducts({ status: 'inactive', limit: 1000 });
-
+      const activeData = await productService.getProducts({ isActive: true, limit: 1000 });
+      const inactiveData = await productService.getProducts({ isActive: false, limit: 1000 });
       setTotalActiveProducts(activeData.pagination.total);
       setTotalInactiveProducts(inactiveData.pagination.total);
-
-      // Calculate average price from active products
       if (activeData.products.length > 0) {
-        const totalPrice = activeData.products.reduce((sum, p) => sum + parseFloat(p.basePrice), 0);
+        const totalPrice = activeData.products.reduce((sum, p) => sum + parseFloat(p.price), 0);
         setAvgProductPrice(totalPrice / activeData.products.length);
       } else {
         setAvgProductPrice(0);
@@ -68,19 +72,17 @@ const AdminProducts: React.FC = () => {
       setLoading(true);
       const params: {
         search?: string;
-        category?: string;
-        status?: string;
+        productType?: string;
+        isActive?: boolean;
         page?: number;
         limit?: number;
       } = {
         page: currentPage,
         limit: itemsPerPage
       };
-
       if (searchTerm) params.search = searchTerm;
-      if (filterCategory !== 'All') params.category = filterCategory;
-      if (filterStatus !== 'All') params.status = (filterStatus === 'In Stock' ? 'active' : 'inactive');
-
+      if (filterCategory !== 'All') params.productType = filterCategory;
+      if (filterStatus !== 'All') params.isActive = filterStatus === 'In Stock';
       const data = await productService.getProducts(params);
       setProducts(data.products);
       setTotalPages(data.pagination.totalPages);
@@ -207,29 +209,27 @@ const AdminProducts: React.FC = () => {
     }
   };
 
-  const handleCreateSubmit = async (productData: Omit<Product, 'id' | 'sku' | 'createdAt' | 'updatedAt' | 'productType'>) => {
+  const handleCreateSubmit = async (productData: Omit<Product, 'id' | 'sku' | 'createdAt' | 'updatedAt' | 'productType'> & { productType: string; price: string; discountedPrice?: string; }) => {
     try {
       setCreating(true);
-      const createData: CreateProductRequest = {
+      const createData: any = {
         name: productData.name,
-        category: (productData as any).category, // Will be validated by API
-        charmDescription: productData.charmDescription,
-        chainDescription: productData.chainDescription,
-        basePrice: parseFloat(productData.basePrice),
-        images: selectedImage ? [selectedImage] : [],
-        stockAlertThreshold: productData.stockAlertThreshold
+        productType: productData.productType as 'chain' | 'bracelet-anklet',
+        description: productData.description,
+        price: parseFloat(productData.price),
       };
-
-      if (productData.metaDescription) {
-        createData.metaDescription = productData.metaDescription;
+      if (productData.discountedPrice) {
+        createData.discountedPrice = parseFloat(productData.discountedPrice);
       }
-
-      await productService.createProduct(createData);
+      if (selectedImage) {
+        createData.images = [selectedImage];
+      }
+      await productService.createProduct(createData, []); // Pass empty array for files if none
       toast.success('Product created successfully!');
       setShowCreateModal(false);
       setSelectedImage(null);
-      await loadProducts(); // Refresh the list
-      await loadTotalStats(); // Refresh total stats
+      await loadProducts();
+      await loadTotalStats();
     } catch (error) {
       console.error('Failed to create product:', error);
       toast.error('Failed to create product. Please try again.');
@@ -238,31 +238,25 @@ const AdminProducts: React.FC = () => {
     }
   };
 
-  const handleEditSubmit = async (productData: Omit<Product, 'id' | 'sku' | 'createdAt' | 'updatedAt' | 'productType'>) => {
+  const handleEditSubmit = async (productData: Omit<Product, 'id' | 'sku' | 'createdAt' | 'updatedAt' | 'productType'> & { productType: string; price: string; discountedPrice?: string; }) => {
     if (!selectedProduct) return;
-
     try {
       setUpdating(true);
       const updateData: Partial<CreateProductRequest> = {
         name: productData.name,
-        charmDescription: productData.charmDescription,
-        chainDescription: productData.chainDescription,
-        basePrice: parseFloat(productData.basePrice),
-        images: selectedImage ? [selectedImage] : [],
-        stockAlertThreshold: productData.stockAlertThreshold
+        description: productData.description,
+        price: parseFloat(productData.price),
       };
-
-      if (productData.metaDescription) {
-        updateData.metaDescription = productData.metaDescription;
+      if (productData.discountedPrice) {
+        updateData.discountedPrice = parseFloat(productData.discountedPrice);
       }
-
       await productService.updateProduct(selectedProduct.id, updateData);
       toast.success('Product updated successfully!');
       setShowEditModal(false);
       setSelectedProduct(null);
       setSelectedImage(null);
-      await loadProducts(); // Refresh the list
-      await loadTotalStats(); // Refresh total stats
+      await loadProducts();
+      await loadTotalStats();
     } catch (error) {
       console.error('Failed to update product:', error);
       toast.error('Failed to update product. Please try again.');
@@ -276,10 +270,10 @@ const AdminProducts: React.FC = () => {
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
-  const categoryDisplayNames = {
+  // Fix: categoryDisplayNames for string productType
+  const categoryDisplayNames: Record<string, string> = {
     'chain': 'Chain',
-    'bracelet': 'Bracelet',
-    'anklet': 'Anklet'
+    'bracelet-anklet': 'Bracelet/Anklet',
   };
 
   // Calculate statistics for widgets
@@ -309,7 +303,7 @@ const AdminProducts: React.FC = () => {
             Product Management
           </h1>
           <p className="text-muted-foreground mt-2">
-            Manage your jewelry inventory, add new products, and update existing items
+            Manage your inventory, add new products, and update existing items
           </p>
         </div>
         <Button onClick={handleCreateProduct} disabled={creating}>
@@ -483,14 +477,14 @@ const AdminProducts: React.FC = () => {
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
             {products.map((product) => (
-              <Card key={product.id} className="overflow-hidden hover:shadow-lg transition-shadow duration-200">
-                <div className="aspect-square relative bg-muted">
+              <Card key={product.id} className="product-card product-card-admin h-[520px]">
+                {/* Product Image - Fixed Square Container */}
+                <div className="product-card-image">
                   <img
-                    src={product.images?.[0] || 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMzAwIiBoZWlnaHQ9IjMwMCIgdmlld0JveD0iMCAwIDMwMCAzMDAiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+CjxyZWN0IHdpZHRoPSIzMDAiIGhlaWdodD0iMzAwIiBmaWxsPSIjRjNGNEY2Ii8+CjxjaXJjbGUgY3g9IjE1MCIgY3k9IjEyMCIgcj0iNDAiIGZpbGw9IiM5Q0E4QjQiLz4KPHJlY3QgeD0iMTEwIiB5PSIxODAiIHdpZHRoPSI4MCIgaGVpZ2h0PSI4MCIgZmlsbD0iIzlDQThCNCIvPgo8L3N2Zz4='}
+                    src={product.images?.[0] || PLACEHOLDER_IMAGE}
                     alt={product.name}
-                    className="w-full h-full object-cover"
                     onError={(e) => {
-                      e.currentTarget.src = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMzAwIiBoZWlnaHQ9IjMwMCIgdmlld0JveD0iMCAwIDMwMCAzMDAiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+CjxyZWN0IHdpZHRoPSIzMDAiIGhlaWdodD0iMzAwIiBmaWxsPSIjRjNGNEY2Ii8+CjxjaXJjbGUgY3g9IjE1MCIgY3k9IjEyMCIgcj0iNDAiIGZpbGw9IiM5Q0E4QjQiLz4KPHJlY3QgeD0iMTEwIiB5PSIxODAiIHdpZHRoPSI4MCIgaGVpZ2h0PSI4MCIgZmlsbD0iIzlDQThCNCIvPgo8L3N2Zz4=';
+                      e.currentTarget.src = PLACEHOLDER_IMAGE;
                     }}
                   />
                   <div className="absolute top-2 right-2 flex flex-col gap-1">
@@ -503,20 +497,35 @@ const AdminProducts: React.FC = () => {
                   </div>
                   <div className="absolute top-2 left-2">
                     <Badge variant="outline" className="text-xs capitalize">
-                      {product.productType?.displayName || categoryDisplayNames[product.productType?.name as keyof typeof categoryDisplayNames]}
+                      {categoryDisplayNames[product.productType] || product.productType}
                     </Badge>
                   </div>
                 </div>
 
-                <CardContent className="p-4">
-                  <div className="space-y-2">
-                    <h3 className="font-semibold text-lg line-clamp-1 mt-3" title={product.name}>{product.name}</h3>
-                    <p className="text-sm text-muted-foreground line-clamp-2 min-h-[2.5rem]" title={product.charmDescription}>
-                      {product.charmDescription}
-                    </p>
-                    <div className="flex items-center justify-between pt-2">
+                {/* Product Content - Fixed Height */}
+                <CardContent className="product-card-content">
+                  <div className="space-y-2 flex flex-col flex-1 min-h-0">
+                    <h3 className="product-card-title" title={product.name}>{product.name}</h3>
+
+                    {/* Product Descriptions */}
+                    <div className="space-y-1">
+                      <div className="product-description-item">
+                        <span className="product-description-label">Description:</span>
+                        <span className="product-description-text ml-1" title={product.description}>
+                          {product.description}
+                        </span>
+                      </div>
+                    </div>
+                    <div className="flex items-center justify-between pt-2 flex-shrink-0">
                       <div className="flex items-center space-x-2">
-                        <span className="text-lg font-bold text-primary">₹{Number(product.basePrice).toLocaleString()}</span>
+                        <span className="product-card-price text-primary">
+                          ₹{product.discountedPrice ? Number(product.discountedPrice).toLocaleString() : Number(product.price).toLocaleString()}
+                        </span>
+                        {product.discountedPrice && (
+                          <span className="text-xs text-muted-foreground line-through">
+                            ₹{Number(product.price).toLocaleString()}
+                          </span>
+                        )}
                       </div>
                       <div className="flex gap-2">
                         <Button
@@ -661,7 +670,7 @@ const AdminProducts: React.FC = () => {
 interface ProductModalProps {
   mode: 'create' | 'edit';
   product?: Product;
-  onSave: (data: Omit<Product, 'id' | 'sku' | 'createdAt' | 'updatedAt' | 'productType'>) => void;
+  onSave: (data: Omit<Product, 'id' | 'sku' | 'createdAt' | 'updatedAt' | 'productType'> & { productType: string; price: string; discountedPrice?: string; }) => void;
   onClose: () => void;
   selectedImage: string | null;
   setSelectedImage: (image: string | null) => void;
@@ -683,31 +692,26 @@ const ProductModal: React.FC<ProductModalProps> = ({
 }) => {
   const [formData, setFormData] = useState({
     name: product?.name || '',
-    category: (product?.productType?.name as 'chain' | 'bracelet-anklet') || 'chain',
-    charmDescription: product?.charmDescription || '',
-    basePrice: product?.basePrice || '',
-    discountedPrice: '',
+    productType: (product?.productType as 'chain' | 'bracelet-anklet') || 'chain',
+    description: product?.description || '',
+    price: product?.price || '',
+    discountedPrice: product?.discountedPrice || '',
     isActive: product?.isActive ?? true
   });
-
   const handleSubmit = () => {
-    if (!formData.name || !formData.charmDescription || !formData.basePrice) {
+    if (!formData.name || !formData.description || !formData.price) {
       toast.error('Please fill in all required fields');
       return;
     }
-
     const productData: any = {
       name: formData.name,
-      charmDescription: formData.charmDescription,
-      chainDescription: formData.charmDescription, // Use description for both fields as per API requirement
-      basePrice: formData.basePrice,
+      description: formData.description,
+      price: formData.price,
+      discountedPrice: formData.discountedPrice ? formData.discountedPrice : undefined,
       isActive: formData.isActive,
-      metaDescription: formData.discountedPrice || '', // Store discounted price in metaDescription
-      stockAlertThreshold: 5, // Default value
       images: selectedImage ? [selectedImage] : [],
-      category: formData.category // This will be used by the API to determine productTypeId
+      productType: formData.productType as 'chain' | 'bracelet-anklet',
     };
-
     onSave(productData);
   };
 
@@ -789,8 +793,8 @@ const ProductModal: React.FC<ProductModalProps> = ({
                 <div className="relative">
                   <select
                     id="product-category"
-                    value={formData.category}
-                    onChange={(e) => setFormData({ ...formData, category: e.target.value as 'chain' | 'bracelet-anklet' })}
+                    value={formData.productType}
+                    onChange={(e) => setFormData({ ...formData, productType: e.target.value as 'chain' | 'bracelet-anklet' })}
                     className="appearance-none bg-background border border-border rounded-lg px-4 py-2 pr-10 text-foreground font-medium focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent w-full"
                   >
                     <option value="chain">Chain</option>
@@ -808,9 +812,9 @@ const ProductModal: React.FC<ProductModalProps> = ({
                 <Label htmlFor="product-description">Description *</Label>
                 <Input
                   id="product-description"
-                  value={formData.charmDescription}
-                  onChange={(e) => setFormData({ ...formData, charmDescription: e.target.value })}
-                  placeholder="Describe the product"
+                  value={formData.description}
+                  onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                  placeholder="Enter product description"
                 />
               </div>
 
@@ -819,8 +823,8 @@ const ProductModal: React.FC<ProductModalProps> = ({
                 <Input
                   id="product-price"
                   type="number"
-                  value={formData.basePrice}
-                  onChange={(e) => setFormData({ ...formData, basePrice: e.target.value })}
+                  value={formData.price}
+                  onChange={(e) => setFormData({ ...formData, price: e.target.value })}
                   placeholder="Enter price"
                 />
               </div>

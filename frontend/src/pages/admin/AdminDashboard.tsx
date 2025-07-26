@@ -17,12 +17,17 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
 import { dashboardService, analyticsService, type DashboardStats, type AnalyticsStatus } from '@/services/api';
+import { env } from '@/config/env';
+import { useDocumentTitle } from '@/hooks/useDocumentTitle';
 
 const AdminDashboard: React.FC = () => {
   const [dashboardData, setDashboardData] = useState<DashboardStats | null>(null);
   const [analyticsStatus, setAnalyticsStatus] = useState<AnalyticsStatus | null>(null);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+
+  // Set document title
+  useDocumentTitle('Dashboard');
 
   // Load dashboard data from API
   const loadDashboardData = async () => {
@@ -232,9 +237,9 @@ const AdminDashboard: React.FC = () => {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold">Welcome to Admin Dashboard</h1>
+          <h1 className="text-3xl font-bold">Welcome to {env.VITE_COMPANY_NAME}</h1>
           <p className="text-muted-foreground mt-2">
-            Overview of your jewelry inventory management system
+            Discover insights and trends for your stunning daily wear jewellery collection
           </p>
         </div>
         <Button

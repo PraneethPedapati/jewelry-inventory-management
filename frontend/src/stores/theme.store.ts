@@ -62,17 +62,17 @@ const defaultTheme: ColorTheme = {
   displayName: 'Default Jewelry Theme',
   isActive: true,
   isDefault: true,
-  colors: {
-    primary: '#8B5CF6',      // Purple - elegant jewelry color
-    secondary: '#F59E0B',    // Gold accent
-    accent: '#EC4899',       // Pink accent for feminine touch
-    background: '#FFFFFF',   // Clean white background
-    foreground: '#1F2937',   // Dark gray text
-    card: '#F9FAFB',        // Light gray cards
-    cardForeground: '#111827', // Dark card text
-    border: '#E5E7EB',      // Light borders
-    input: '#FFFFFF',       // White inputs
-    ring: '#8B5CF6',        // Focus ring matches primary
+      colors: {
+      primary: '#6c3158',      // Dark magenta - updated color
+      secondary: '#F59E0B',    // Gold accent
+      accent: '#EC4899',       // Pink accent for feminine touch
+      background: '#FFFFFF',   // Clean white background
+      foreground: '#1F2937',   // Dark gray text
+      card: '#F9FAFB',        // Light gray cards
+      cardForeground: '#111827', // Dark card text
+      border: '#E5E7EB',      // Light borders
+      input: '#FFFFFF',       // White inputs
+      ring: '#6c3158',        // Focus ring matches primary
     muted: '#F3F4F6',       // Muted backgrounds
     mutedForeground: '#6B7280', // Muted text
     destructive: '#EF4444',  // Red for destructive actions

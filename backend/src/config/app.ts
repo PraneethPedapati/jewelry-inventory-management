@@ -26,12 +26,19 @@ const ConfigSchema = z.object({
   // WhatsApp
   WHATSAPP_BUSINESS_PHONE: z.string(),
 
+  // Payment Configuration
+  BUSINESS_UPI_ID: z.string().default('yourstore@paytm'),
+
   // File Upload
   MAX_FILE_SIZE: z.string().transform(val => parseInt(val)).default('5242880'), // 5MB
   ALLOWED_FILE_TYPES: z.string().default('image/jpeg,image/png,image/webp'),
 
   // External APIs
   IMGUR_CLIENT_ID: z.string().optional(),
+
+  // ImgBB Image Hosting
+  IMGBB_API_KEY: z.string().optional(),
+  IMGBB_EXPIRATION: z.string().optional(),
 
   // Monitoring
   ENABLE_TRACING: z.string().transform(val => val === 'true').default('false'),

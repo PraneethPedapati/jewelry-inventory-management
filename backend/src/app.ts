@@ -6,6 +6,8 @@ import dotenv from 'dotenv';
 import { getThemes, getActiveTheme, setActiveTheme } from './controllers/theme.controller.js';
 import adminRoutes from './routes/admin.routes.js';
 import publicRoutes from './routes/public.routes.js';
+import { connectDatabase } from './db/connection.js';
+import { validateConfig } from './config/app.js';
 
 // Load environment variables
 dotenv.config();
@@ -14,6 +16,9 @@ class Application {
   public app: express.Application;
 
   constructor() {
+    // Validate configuration first
+    validateConfig();
+
     this.app = express();
     this.initializeMiddleware();
     this.initializeRoutes();
@@ -103,6 +108,9 @@ class Application {
   public async start(): Promise<void> {
     try {
       const PORT = process.env.PORT || 3000;
+
+      // Connect to database before starting server
+      await connectDatabase();
 
       this.app.listen(PORT, () => {
         console.log(`🚀 Jewelry Inventory API running on port ${PORT}`);

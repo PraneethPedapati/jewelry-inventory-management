@@ -20,6 +20,20 @@ apiClient.interceptors.request.use((config) => {
   return config;
 });
 
+// Handle authentication errors
+apiClient.interceptors.response.use(
+  (response) => response,
+  (error) => {
+    if (error.response?.status === 401) {
+      // Token is invalid or expired, clear it and redirect to login
+      localStorage.removeItem('admin_token');
+      localStorage.removeItem('admin_info');
+      window.location.href = '/admin/login';
+    }
+    return Promise.reject(error);
+  }
+);
+
 // API Response wrapper
 interface ApiResponse<T> {
   success: boolean;
@@ -62,47 +76,30 @@ export interface ColorTheme {
 
 export interface Product {
   id: string;
+  productCode: string;
   name: string;
-  charmDescription: string;
-  chainDescription: string;
-  basePrice: string;
-  sku: string;
+  description: string;
+  productType: string;
+  price: string;
+  discountedPrice?: string;
   images: string[];
   isActive: boolean;
-  stockAlertThreshold: number;
-  metaDescription?: string;
   createdAt: string;
   updatedAt: string;
-  productType: {
-    id: string;
-    name: string;
-    displayName: string;
-    specificationType: string;
-  };
-  specifications?: ProductSpecification[];
 }
 
-export interface ProductSpecification {
-  id: string;
-  productId: string;
-  specType: 'size' | 'layer';
-  specValue: string;
-  displayName: string;
-  priceModifier: string;
-  stockQuantity: number;
-  isAvailable: boolean;
-  createdAt: string;
-}
+
 
 export interface Order {
   id: string;
   orderNumber: string;
+  orderCode: string; // New: User-friendly order code
   customerName: string;
   customerEmail: string;
   customerPhone: string;
   customerAddress: string;
   totalAmount: string;
-  status: 'pending' | 'confirmed' | 'processing' | 'shipped' | 'delivered' | 'cancelled';
+  status: 'payment_pending' | 'confirmed' | 'processing' | 'shipped' | 'delivered' | 'cancelled';
   whatsappMessageSent: boolean;
   paymentReceived: boolean;
   notes?: string;
@@ -115,14 +112,12 @@ export interface OrderItem {
   id: string;
   orderId: string;
   productId: string;
-  specificationId: string;
   quantity: number;
   unitPrice: string;
   totalPrice: string;
   productSnapshot: any;
   createdAt: string;
   product?: Product;
-  specification?: ProductSpecification;
 }
 
 export interface Expense {
@@ -154,13 +149,11 @@ export interface ExpenseCategory {
 
 export interface CreateProductRequest {
   name: string;
-  category: 'chain' | 'bracelet-anklet';
-  charmDescription: string;
-  chainDescription: string;
-  basePrice: number;
-  images?: string[];
-  metaDescription?: string;
-  stockAlertThreshold?: number;
+  productType: 'chain' | 'bracelet-anklet';
+  description: string;
+  price: number;
+  discountedPrice?: number;
+  isActive?: boolean;
 }
 
 export interface CreateOrderRequest {
@@ -170,7 +163,6 @@ export interface CreateOrderRequest {
   customerAddress: string;
   items: {
     productId: string;
-    specificationId: string;
     quantity: number;
   }[];
   notes?: string;
@@ -326,8 +318,8 @@ export const authService = {
 export const productService = {
   getProducts: async (params?: {
     search?: string;
-    category?: string;
-    status?: string;
+    productType?: string;
+    isActive?: boolean;
     page?: number;
     limit?: number;
   }) => {
@@ -348,8 +340,33 @@ export const productService = {
     return response.data.data;
   },
 
-  createProduct: async (product: CreateProductRequest): Promise<Product> => {
-    const response = await apiClient.post<ApiResponse<Product>>('/api/admin/products', product);
+  createProduct: async (product: CreateProductRequest, images: File[]): Promise<Product> => {
+    const formData = new FormData();
+
+    // Add product data
+    formData.append('name', product.name);
+    formData.append('productType', product.productType);
+    formData.append('description', product.description);
+    formData.append('price', product.price.toString());
+
+    if (product.discountedPrice) {
+      formData.append('discountedPrice', product.discountedPrice.toString());
+    }
+
+    if (product.isActive !== undefined) {
+      formData.append('isActive', product.isActive.toString());
+    }
+
+    // Add images
+    images.forEach(image => {
+      formData.append('images', image);
+    });
+
+    const response = await apiClient.post<ApiResponse<Product>>('/api/admin/products', formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data',
+      },
+    });
     return response.data.data;
   },
 
@@ -362,8 +379,8 @@ export const productService = {
     await apiClient.delete(`/api/admin/products/${id}`);
   },
 
-  getProductCategories: async () => {
-    const response = await apiClient.get<ApiResponse<any[]>>('/api/admin/products/categories');
+  getProductStats: async () => {
+    const response = await apiClient.get<ApiResponse<any>>('/api/admin/products/stats');
     return response.data.data;
   }
 };
@@ -409,13 +426,24 @@ export const orderService = {
     await apiClient.delete(`/api/admin/orders/${id}`);
   },
 
-  approveOrder: async (id: string, data?: { upiId?: string; sendPaymentQR?: boolean; customMessage?: string }) => {
+  approveOrder: async (id: string, data?: { sendPaymentQR?: boolean; customMessage?: string }) => {
     const response = await apiClient.post<ApiResponse<any>>(`/api/admin/orders/${id}/approve`, data);
     return response.data.data;
   },
 
   confirmPayment: async (id: string, data?: { paymentReference?: string; notes?: string }) => {
     const response = await apiClient.post<ApiResponse<any>>(`/api/admin/orders/${id}/confirm-payment`, data);
+    return response.data.data;
+  },
+
+  generateStatusWhatsApp: async (id: string) => {
+    const response = await apiClient.post<ApiResponse<{
+      whatsappUrl: string;
+      message: string;
+      customerPhone: string;
+      orderNumber: string;
+      status: string;
+    }>>(`/api/admin/orders/${id}/status-whatsapp`);
     return response.data.data;
   }
 };

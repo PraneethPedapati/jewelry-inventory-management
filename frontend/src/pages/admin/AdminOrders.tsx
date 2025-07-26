@@ -1,19 +1,16 @@
 import React, { useState, useEffect } from 'react';
-import { ShoppingCart, Search, Edit, Download, Eye, ChevronLeft, ChevronRight, Clock, User, MapPin, Phone, Mail, Package } from 'lucide-react';
+import { ShoppingCart, Search, Edit, Download, ChevronLeft, ChevronRight, Clock, User, MapPin, Phone, Mail, Package, MessageCircle, Trash2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { toast } from 'sonner';
 import ConfirmationDialog from '@/components/ui/confirmation-dialog';
-import { orderService, type Order, type OrderItem } from '@/services/api';
+import { orderService, type Order } from '@/services/api';
+import { env } from '@/config/env';
+import { useDocumentTitle } from '@/hooks/useDocumentTitle';
 
-interface OrderModalProps {
-  order: Order | null;
-  isOpen: boolean;
-  onClose: () => void;
-  onSave: (orderData: Partial<Order>) => void;
-}
+// OrderModalProps interface removed - no longer needed
 
 const AdminOrders: React.FC = () => {
   const [showEditModal, setShowEditModal] = useState(false);
@@ -24,6 +21,9 @@ const AdminOrders: React.FC = () => {
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage] = useState(10);
 
+  // Set document title
+  useDocumentTitle('Orders');
+
   // API state
   const [orders, setOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
@@ -32,11 +32,15 @@ const AdminOrders: React.FC = () => {
 
   // Pagination state
   const [totalPages, setTotalPages] = useState(1);
-  const [totalOrders, setTotalOrders] = useState(0);
 
   // Export date range
   const [exportDateFrom, setExportDateFrom] = useState('');
   const [exportDateTo, setExportDateTo] = useState('');
+
+  // Stale orders management
+  const [showDeleteStaleModal, setShowDeleteStaleModal] = useState(false);
+  const [deletingStale, setDeletingStale] = useState(false);
+
 
   // Load orders from API
   const loadOrders = async () => {
@@ -58,7 +62,6 @@ const AdminOrders: React.FC = () => {
       const data = await orderService.getOrders(params);
       setOrders(data.orders);
       setTotalPages(data.pagination.totalPages);
-      setTotalOrders(data.pagination.total);
     } catch (error) {
       console.error('Failed to load orders:', error);
       toast.error('Failed to load orders. Please try again.');
@@ -89,8 +92,26 @@ const AdminOrders: React.FC = () => {
 
     try {
       setUpdating(true);
-      await orderService.updateOrder(selectedOrder.id, orderData);
+      // Send status and notes since they are editable
+      const updateData: Partial<Order> = {};
+      if (orderData.status) updateData.status = orderData.status;
+      if (orderData.notes !== undefined) updateData.notes = orderData.notes;
+
+      // First, update the order in the database
+      await orderService.updateOrder(selectedOrder.id, updateData);
       toast.success('Order updated successfully!');
+
+      // Then, automatically redirect to WhatsApp with status update
+      try {
+        const result = await orderService.generateStatusWhatsApp(selectedOrder.id);
+        window.open(result.whatsappUrl, '_blank');
+        toast.success('WhatsApp status update opened!');
+      } catch (whatsappError) {
+        console.error('Failed to generate WhatsApp status update:', whatsappError);
+        // Don't show error toast since the order was updated successfully
+        // Just log the error for debugging
+      }
+
       setShowEditModal(false);
       setSelectedOrder(null);
       await loadOrders(); // Refresh the list
@@ -117,10 +138,67 @@ const AdminOrders: React.FC = () => {
     }
   };
 
+
+
+  const handleSendPaymentQR = async (orderId: string) => {
+    try {
+      const response = await fetch(`${env.VITE_API_URL}/api/admin/orders/${orderId}/send-payment-qr`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${localStorage.getItem('admin_token')}`
+        },
+        body: JSON.stringify({
+          customMessage: ''
+        })
+      });
+
+      const result = await response.json();
+
+      if (result.success && result.data.whatsappUrl) {
+        window.open(result.data.whatsappUrl, '_blank');
+        toast.success('Payment QR sent to customer!');
+      } else {
+        throw new Error(result.error || 'Failed to send payment QR');
+      }
+    } catch (error) {
+      console.error('Failed to send payment QR:', error);
+      toast.error('Failed to send payment QR. Please try again.');
+    }
+  };
+
+  const handleDeleteStaleOrders = async () => {
+    try {
+      setDeletingStale(true);
+      const response = await fetch(`${env.VITE_API_URL}/api/admin/orders/delete-stale`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${localStorage.getItem('admin_token')}`
+        }
+      });
+
+      const result = await response.json();
+
+      if (result.success) {
+        toast.success(result.message);
+        setShowDeleteStaleModal(false);
+        loadOrders(); // Refresh the list
+      } else {
+        throw new Error(result.error || 'Failed to delete stale orders');
+      }
+    } catch (error) {
+      console.error('Failed to delete stale orders:', error);
+      toast.error('Failed to delete stale orders. Please try again.');
+    } finally {
+      setDeletingStale(false);
+    }
+  };
+
   const getStatusVariant = (status: string) => {
     switch (status.toLowerCase()) {
-      case 'pending':
-        return 'secondary';
+      case 'payment_pending':
+        return 'outline';
       case 'confirmed':
       case 'processing':
         return 'default';
@@ -137,16 +215,17 @@ const AdminOrders: React.FC = () => {
 
   const getStatusColor = (status: string) => {
     switch (status.toLowerCase()) {
-      case 'pending':
-        return 'text-yellow-600 bg-yellow-50 border-yellow-200';
-      case 'confirmed':
-        return 'text-blue-600 bg-blue-50 border-blue-200';
-      case 'processing':
-        return 'text-purple-600 bg-purple-50 border-purple-200';
-      case 'shipped':
+      case 'payment_pending':
         return 'text-orange-600 bg-orange-50 border-orange-200';
-      case 'delivered':
+      case 'confirmed':
         return 'text-green-600 bg-green-50 border-green-200';
+      case 'processing':
+        // Use a much darker purple for better contrast
+        return 'text-white bg-purple-700 border-purple-800';
+      case 'shipped':
+        return 'text-indigo-600 bg-indigo-50 border-indigo-200';
+      case 'delivered':
+        return 'text-emerald-600 bg-emerald-50 border-emerald-200';
       case 'cancelled':
         return 'text-red-600 bg-red-50 border-red-200';
       default:
@@ -165,6 +244,25 @@ const AdminOrders: React.FC = () => {
   const formatCurrency = (amount: string | number) => {
     const num = typeof amount === 'string' ? parseFloat(amount) : amount;
     return `₹${num.toLocaleString()}`;
+  };
+
+  const formatStatus = (status: string) => {
+    switch (status.toLowerCase()) {
+      case 'payment_pending':
+        return 'Payment Pending';
+      case 'confirmed':
+        return 'Confirmed';
+      case 'processing':
+        return 'Processing';
+      case 'shipped':
+        return 'Shipped';
+      case 'delivered':
+        return 'Delivered';
+      case 'cancelled':
+        return 'Cancelled';
+      default:
+        return status.charAt(0).toUpperCase() + status.slice(1);
+    }
   };
 
   const handlePageChange = (page: number) => {
@@ -197,10 +295,21 @@ const AdminOrders: React.FC = () => {
             Track and manage customer orders, process payments, and handle shipping
           </p>
         </div>
-        <Button onClick={() => setShowExportModal(true)} disabled={exporting}>
-          <Download className="w-4 h-4 mr-2" />
-          Export Orders
-        </Button>
+        <div className="flex gap-2">
+          <Button
+            variant="outline"
+            onClick={() => setShowDeleteStaleModal(true)}
+            disabled={deletingStale}
+            className="bg-red-50 border-red-200 text-red-700 hover:bg-red-100"
+          >
+            <Trash2 className="w-4 h-4 mr-2" />
+            Delete Stale Orders
+          </Button>
+          <Button onClick={() => setShowExportModal(true)} disabled={exporting}>
+            <Download className="w-4 h-4 mr-2" />
+            Export Orders
+          </Button>
+        </div>
       </div>
 
       {/* Search and Filter Bar */}
@@ -220,7 +329,7 @@ const AdminOrders: React.FC = () => {
           className="px-4 py-2 border border-border rounded-md bg-background text-foreground min-w-[140px]"
         >
           <option value="All">All Orders</option>
-          <option value="Pending">Pending</option>
+          <option value="Payment_pending">Payment Pending</option>
           <option value="Confirmed">Confirmed</option>
           <option value="Processing">Processing</option>
           <option value="Shipped">Shipped</option>
@@ -254,17 +363,18 @@ const AdminOrders: React.FC = () => {
                   <div className="flex-1">
                     <div className="flex items-center gap-4 mb-4">
                       <div>
-                        <h3 className="font-semibold text-lg">{order.orderNumber}</h3>
+                        <h3 className="font-semibold text-lg">{order.orderCode}</h3>
                         <p className="text-muted-foreground text-sm flex items-center gap-1">
                           <Clock className="w-3 h-3" />
                           {formatDate(order.createdAt)}
                         </p>
+                        <p className="text-xs text-muted-foreground">#{order.orderNumber}</p>
                       </div>
                       <Badge
                         variant={getStatusVariant(order.status)}
                         className={`${getStatusColor(order.status)} font-medium`}
                       >
-                        {order.status.charAt(0).toUpperCase() + order.status.slice(1)}
+                        {formatStatus(order.status)}
                       </Badge>
                     </div>
 
@@ -310,6 +420,20 @@ const AdminOrders: React.FC = () => {
                   </div>
 
                   <div className="flex flex-col gap-2 ml-4">
+                    {/* Payment-related actions */}
+                    {order.status === 'payment_pending' && (
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => handleSendPaymentQR(order.id)}
+                        className="bg-blue-50 border-blue-200 text-blue-700 hover:bg-blue-100"
+                      >
+                        <MessageCircle className="w-4 h-4 mr-1" />
+                        Send QR Code
+                      </Button>
+                    )}
+
+                    {/* Standard actions */}
                     <Button
                       variant="outline"
                       size="sm"
@@ -318,18 +442,6 @@ const AdminOrders: React.FC = () => {
                     >
                       <Edit className="w-4 h-4 mr-1" />
                       Edit
-                    </Button>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => {
-                        setSelectedOrder(order);
-                        // Could open a detailed view modal here
-                        toast.info('Order details view coming soon!');
-                      }}
-                    >
-                      <Eye className="w-4 h-4 mr-1" />
-                      View
                     </Button>
                   </div>
                 </div>
@@ -419,6 +531,21 @@ const AdminOrders: React.FC = () => {
           setExportDateTo={setExportDateTo}
         />
       )}
+
+      {/* Delete Stale Orders Modal */}
+      {showDeleteStaleModal && (
+        <ConfirmationDialog
+          isOpen={showDeleteStaleModal}
+          onClose={() => setShowDeleteStaleModal(false)}
+          onConfirm={handleDeleteStaleOrders}
+          title="Delete Stale Orders"
+          description="This will permanently delete all payment_pending orders older than 6 hours. This action cannot be undone."
+          confirmText="Delete Stale Orders"
+          cancelText="Cancel"
+          variant="destructive"
+          confirmButtonVariant="destructive"
+        />
+      )}
     </div>
   );
 };
@@ -459,7 +586,12 @@ const OrderEditModal: React.FC<OrderEditModalProps> = ({
       <div className="bg-background rounded-lg shadow-lg w-full max-w-2xl max-h-[90vh] overflow-y-auto">
         <div className="p-6">
           <div className="flex items-center justify-between mb-6">
-            <h2 className="text-2xl font-bold">Edit Order</h2>
+            <div>
+              <h2 className="text-2xl font-bold">Edit Order</h2>
+              <p className="text-sm text-muted-foreground mt-1">
+                Update order status and notes. Customer details are read-only.
+              </p>
+            </div>
             <Button variant="outline" size="sm" onClick={onClose}>
               ×
             </Button>
@@ -471,16 +603,18 @@ const OrderEditModal: React.FC<OrderEditModalProps> = ({
                 <label className="block text-sm font-medium mb-2">Customer Name</label>
                 <Input
                   value={formData.customerName}
-                  onChange={(e) => setFormData({ ...formData, customerName: e.target.value })}
+                  disabled
                   placeholder="Customer name"
+                  className="bg-muted cursor-not-allowed"
                 />
               </div>
               <div>
                 <label className="block text-sm font-medium mb-2">Email</label>
                 <Input
                   value={formData.customerEmail}
-                  onChange={(e) => setFormData({ ...formData, customerEmail: e.target.value })}
+                  disabled
                   placeholder="Customer email"
+                  className="bg-muted cursor-not-allowed"
                 />
               </div>
             </div>
@@ -490,8 +624,9 @@ const OrderEditModal: React.FC<OrderEditModalProps> = ({
                 <label className="block text-sm font-medium mb-2">Phone</label>
                 <Input
                   value={formData.customerPhone}
-                  onChange={(e) => setFormData({ ...formData, customerPhone: e.target.value })}
+                  disabled
                   placeholder="Customer phone"
+                  className="bg-muted cursor-not-allowed"
                 />
               </div>
               <div>
@@ -501,7 +636,7 @@ const OrderEditModal: React.FC<OrderEditModalProps> = ({
                   onChange={(e) => setFormData({ ...formData, status: e.target.value as Order['status'] })}
                   className="w-full px-3 py-2 border border-border rounded-md bg-background"
                 >
-                  <option value="pending">Pending</option>
+                  <option value="payment_pending">Payment Pending</option>
                   <option value="confirmed">Confirmed</option>
                   <option value="processing">Processing</option>
                   <option value="shipped">Shipped</option>
@@ -515,9 +650,9 @@ const OrderEditModal: React.FC<OrderEditModalProps> = ({
               <label className="block text-sm font-medium mb-2">Address</label>
               <textarea
                 value={formData.customerAddress}
-                onChange={(e) => setFormData({ ...formData, customerAddress: e.target.value })}
+                disabled
                 placeholder="Customer address"
-                className="w-full px-3 py-2 border border-border rounded-md bg-background min-h-[80px]"
+                className="w-full px-3 py-2 border border-border rounded-md bg-muted cursor-not-allowed min-h-[80px]"
               />
             </div>
 

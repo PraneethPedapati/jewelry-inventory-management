@@ -7,6 +7,8 @@ import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { toast } from 'sonner';
 import { authService, type AdminLoginRequest } from '@/services/api';
+import { env } from '@/config/env';
+import { useDocumentTitle } from '@/hooks/useDocumentTitle';
 
 interface AdminLoginProps {
   onLogin: (isLoggedIn: boolean) => void;
@@ -21,6 +23,9 @@ const AdminLogin: React.FC<AdminLoginProps> = ({ onLogin }) => {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
   const navigate = useNavigate();
+
+  // Set document title
+  useDocumentTitle('Admin Login');
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -98,9 +103,9 @@ const AdminLogin: React.FC<AdminLoginProps> = ({ onLogin }) => {
             <LogIn className="w-8 h-8 text-primary-foreground" />
           </div>
           <div>
-            <CardTitle className="text-2xl font-bold">Admin Login</CardTitle>
+            <CardTitle className="text-2xl font-bold">{env.VITE_COMPANY_NAME}</CardTitle>
             <CardDescription className="text-muted-foreground">
-              Access the jewelry store admin panel
+              Access the {env.VITE_COMPANY_SHORT_NAME} admin panel
             </CardDescription>
           </div>
         </CardHeader>
@@ -119,7 +124,7 @@ const AdminLogin: React.FC<AdminLoginProps> = ({ onLogin }) => {
               <Input
                 id="email"
                 type="email"
-                placeholder="admin@jewelrystore.com"
+                placeholder="admin@example.com"
                 value={formData.email}
                 onChange={(e) => handleInputChange('email', e.target.value)}
                 disabled={isLoading}
@@ -182,7 +187,7 @@ const AdminLogin: React.FC<AdminLoginProps> = ({ onLogin }) => {
               Demo Credentials:
             </p>
             <div className="text-xs text-muted-foreground space-y-1">
-              <p><strong>Email:</strong> admin@jewelrystore.com</p>
+              <p><strong>Email:</strong> admin@example.com</p>
               <p><strong>Password:</strong> admin123!@#</p>
             </div>
           </div>

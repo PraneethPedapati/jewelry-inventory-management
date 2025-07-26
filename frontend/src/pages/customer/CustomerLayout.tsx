@@ -2,9 +2,12 @@ import React from 'react';
 import { Outlet, Link, useLocation } from 'react-router-dom';
 import { ShoppingBag, ShoppingCart, User } from 'lucide-react';
 import Logo from '@/components/ui/Logo';
+import { useCart } from '@/context/CartContext';
 
 const CustomerLayout: React.FC = () => {
   const location = useLocation();
+  const { getTotalItems } = useCart();
+  const cartItemCount = getTotalItems();
 
   const navigation = [
     { name: 'Products', href: '/shop/products', icon: ShoppingBag },
@@ -30,26 +33,31 @@ const CustomerLayout: React.FC = () => {
                   <Link
                     key={item.name}
                     to={item.href}
-                    className={`flex items-center space-x-2 px-3 py-2 text-base font-medium transition-colors ${isActive
+                    className={`flex items-center space-x-2 px-3 py-2 text-base font-medium transition-colors relative ${isActive
                       ? 'text-primary border-b-2 border-primary'
                       : 'text-muted-foreground hover:text-foreground'
                       }`}
                   >
                     <Icon className="w-5 h-5" />
                     <span>{item.name}</span>
+                    {item.name === 'Cart' && cartItemCount > 0 && (
+                      <span className="absolute -top-1 -right-1 bg-primary text-white text-xs rounded-full h-5 w-5 flex items-center justify-center font-medium">
+                        {cartItemCount > 99 ? '99+' : cartItemCount}
+                      </span>
+                    )}
                   </Link>
                 );
               })}
             </nav>
 
-            {/* Login Button */}
-            <div className="flex items-center space-x-4">
+            {/* Login Button - Hidden on Mobile */}
+            <div className="hidden md:flex items-center space-x-4">
               <Link
                 to="/admin/login"
                 className="flex items-center space-x-2 text-muted-foreground hover:text-foreground transition-colors"
               >
                 <User className="w-5 h-5" />
-                <span className="hidden sm:block text-base">Login</span>
+                <span className="text-base">Login</span>
               </Link>
             </div>
           </div>
@@ -71,11 +79,16 @@ const CustomerLayout: React.FC = () => {
               <Link
                 key={item.name}
                 to={item.href}
-                className={`flex flex-col items-center py-3 px-1 text-sm transition-colors ${isActive ? 'text-primary' : 'text-muted-foreground'
+                className={`flex flex-col items-center py-3 px-1 text-sm transition-colors relative ${isActive ? 'text-primary' : 'text-muted-foreground'
                   }`}
               >
                 <Icon className="w-6 h-6 mb-1" />
                 <span>{item.name}</span>
+                {item.name === 'Cart' && cartItemCount > 0 && (
+                  <span className="absolute -top-1 right-2 bg-primary text-white text-xs rounded-full h-5 w-5 flex items-center justify-center font-medium">
+                    {cartItemCount > 99 ? '99+' : cartItemCount}
+                  </span>
+                )}
               </Link>
             );
           })}

@@ -13,6 +13,7 @@ import {
   Receipt
 } from 'lucide-react';
 import Logo from '@/components/ui/Logo';
+import { env } from '@/config/env';
 
 interface AdminLayoutProps {
   onLogout: () => void;
@@ -54,11 +55,12 @@ const AdminLayout: React.FC<AdminLayoutProps> = ({ onLogout }) => {
       href: '/admin/analytics',
       icon: BarChart3,
     },
-    {
-      title: 'Settings',
-      href: '/admin/settings',
-      icon: Settings,
-    },
+    // Settings module hidden for now
+    // {
+    //   title: 'Settings',
+    //   href: '/admin/settings',
+    //   icon: Settings,
+    // },
   ];
 
   const isActiveRoute = (href: string) => {
@@ -75,7 +77,7 @@ const AdminLayout: React.FC<AdminLayoutProps> = ({ onLogout }) => {
               <div className="flex items-center space-x-3">
                 <Logo size="lg" variant="full" />
                 <div>
-                  <p className="text-xs text-muted-foreground">Admin Panel</p>
+                  {/* <p className="text-xs text-muted-foreground">Admin Panel</p> */}
                 </div>
               </div>
             </div>
@@ -140,7 +142,7 @@ const AdminLayout: React.FC<AdminLayoutProps> = ({ onLogout }) => {
                     }`}
                 >
                   <p className="text-sm font-medium text-foreground">Admin User</p>
-                  <p className="text-xs text-muted-foreground">Store Administrator</p>
+                  <p className="text-xs text-muted-foreground">Administrator</p>
                 </div>
               </div>
 
