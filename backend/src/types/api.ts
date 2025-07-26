@@ -80,12 +80,13 @@ export interface OrderItem {
 export interface Order {
   id: string;
   orderNumber: string;
+  orderCode: string; // New: User-friendly order code (e.g., ORD001)
   customerName: string;
   customerEmail: string;
   customerPhone: string;
   customerAddress: string;
   totalAmount: number;
-  status: 'pending' | 'confirmed' | 'processing' | 'shipped' | 'delivered' | 'cancelled';
+  status: 'payment_pending' | 'confirmed' | 'processing' | 'shipped' | 'delivered' | 'cancelled';
   items: OrderItem[];
   whatsappMessageSent: boolean;
   paymentReceived: boolean;
