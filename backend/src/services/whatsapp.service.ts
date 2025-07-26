@@ -51,7 +51,7 @@ export class WhatsAppService {
     const note = `Payment for Order ${order.orderNumber}`;
 
     // UPI URL scheme - works with all Indian payment apps
-    const upiUrl = `upi://pay?pa=${upiId}&pn=YourJewelryStore&am=${amount}&tn=${encodeURIComponent(note)}&cu=INR`;
+    const upiUrl = `upi://pay?pa=${upiId}&pn=${this.getCompanyName()}&am=${amount}&tn=${encodeURIComponent(note)}&cu=INR`;
 
     // Generate QR code using free service
     const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=${encodeURIComponent(upiUrl)}`;

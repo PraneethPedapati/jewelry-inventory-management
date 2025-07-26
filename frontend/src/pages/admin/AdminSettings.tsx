@@ -41,7 +41,7 @@ const defaultTheme: ColorTheme = {
     warning: '#F59E0B',
     warningForeground: '#FFFFFF'
   },
-  description: 'Default elegant theme for jewelry store'
+  description: 'Default elegant theme'
 };
 
 const AdminSettings: React.FC = () => {
@@ -235,7 +235,7 @@ const AdminSettings: React.FC = () => {
             Settings
           </h1>
           <p className="text-muted-foreground mt-2">
-            Customize your jewelry store's appearance and preferences
+            Customize your store's appearance and preferences
           </p>
         </div>
       </div>
@@ -395,7 +395,7 @@ const AdminSettings: React.FC = () => {
                             style={{ color: editingColors.primary || selectedTheme.colors.primary }}
                             className="text-lg font-semibold"
                           >
-                            Jewelry Store Preview
+                            Store Preview
                           </h3>
                           <div
                             className="p-3 rounded"
@@ -404,7 +404,7 @@ const AdminSettings: React.FC = () => {
                               borderColor: editingColors.border || selectedTheme.colors.border,
                             }}
                           >
-                            <p>This is how your jewelry store will look with the new colors.</p>
+                            <p>This is how your store will look with the new colors.</p>
                             <div className="flex gap-2 mt-3">
                               <button
                                 className="px-3 py-1 rounded text-sm"
@@ -449,7 +449,7 @@ const AdminSettings: React.FC = () => {
                 <CardHeader>
                   <CardTitle>Create New Theme</CardTitle>
                   <CardDescription>
-                    Create a custom color theme for your jewelry store
+                    Create a custom color theme for your store
                   </CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-4">
@@ -490,7 +490,7 @@ const AdminSettings: React.FC = () => {
               Font Management
             </h2>
             <p className="text-muted-foreground">
-              Choose the typography for your jewelry store
+              Choose the typography for your store
             </p>
           </div>
 
@@ -498,7 +498,7 @@ const AdminSettings: React.FC = () => {
             <CardHeader>
               <CardTitle>Font Selection</CardTitle>
               <CardDescription>
-                Select a font family for your jewelry store. Default: Roboto Flex
+                Select a font family for your store. Default: Roboto Flex
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">

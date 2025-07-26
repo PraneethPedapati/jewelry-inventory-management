@@ -232,7 +232,7 @@ const Cart: React.FC = () => {
           <p className="text-gray-600 mb-6">Add some beautiful jewelry to get started!</p>
           <button
             onClick={() => navigate('/products')}
-            className="bg-purple-600 text-white px-6 py-3 rounded-lg font-medium hover:bg-purple-700 transition-colors"
+            className="bg-primary text-white px-6 py-3 rounded-lg font-medium hover:bg-primary/90 transition-colors"
           >
             Browse Products
           </button>
@@ -301,7 +301,7 @@ const Cart: React.FC = () => {
         {/* Customer Details Form */}
         <div className="bg-white rounded-xl p-6 shadow-sm mb-6">
           <h2 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
-            <FiUser className="text-purple-600" />
+            <FiUser className="text-primary" />
             Customer Details
           </h2>
 
@@ -312,7 +312,7 @@ const Cart: React.FC = () => {
                 type="text"
                 value={customerDetails.name}
                 onChange={(e) => handleInputChange('name', e.target.value)}
-                className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent ${errors.name ? 'border-red-300' : 'border-gray-300'
+                className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent ${errors.name ? 'border-red-300' : 'border-gray-300'
                   }`}
                 placeholder="Enter your full name"
               />
@@ -328,7 +328,7 @@ const Cart: React.FC = () => {
                 type="tel"
                 value={customerDetails.phone}
                 onChange={(e) => handleInputChange('phone', e.target.value)}
-                className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent ${errors.phone ? 'border-red-300' : 'border-gray-300'
+                className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent ${errors.phone ? 'border-red-300' : 'border-gray-300'
                   }`}
                 placeholder="Enter your phone number"
               />
@@ -344,7 +344,7 @@ const Cart: React.FC = () => {
                 value={customerDetails.address}
                 onChange={(e) => handleInputChange('address', e.target.value)}
                 rows={3}
-                className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent ${errors.address ? 'border-red-300' : 'border-gray-300'
+                className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent ${errors.address ? 'border-red-300' : 'border-gray-300'
                   }`}
                 placeholder="Enter your complete address"
               />
@@ -357,7 +357,7 @@ const Cart: React.FC = () => {
                 type="text"
                 value={customerDetails.pincode}
                 onChange={(e) => handleInputChange('pincode', e.target.value.replace(/\D/g, '').slice(0, 6))}
-                className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent ${errors.pincode ? 'border-red-300' : 'border-gray-300'
+                className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent ${errors.pincode ? 'border-red-300' : 'border-gray-300'
                   }`}
                 placeholder="Enter 6-digit pincode"
                 maxLength={6}
@@ -370,7 +370,7 @@ const Cart: React.FC = () => {
         {/* Order Summary */}
         <div className="bg-white rounded-xl p-6 shadow-sm mb-6">
           <h2 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
-            <FiCreditCard className="text-purple-600" />
+            <FiCreditCard className="text-primary" />
             Order Summary
           </h2>
 
@@ -396,7 +396,7 @@ const Cart: React.FC = () => {
         <button
           onClick={handlePlaceOrder}
           disabled={isPlacingOrder}
-          className="w-full bg-purple-600 text-white py-4 px-6 rounded-xl font-semibold text-lg hover:bg-purple-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+          className="w-full bg-primary text-white py-4 px-6 rounded-xl font-semibold text-lg hover:bg-primary/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
         >
           {isPlacingOrder ? 'Placing Order...' : 'Place Order'}
         </button>

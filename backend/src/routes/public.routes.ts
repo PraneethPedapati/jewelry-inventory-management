@@ -7,7 +7,6 @@ import { orderRateLimit, publicApiRateLimit } from '../middleware/rate-limit.mid
 import {
   getProducts,
   getProductById,
-  getProductSpecifications,
   getProductTypes
 } from '../controllers/public/product.controller.js';
 import { getBrandConfig } from '../services/brand.service.js';
@@ -20,7 +19,6 @@ router.use(publicApiRateLimit);
 // Public routes for customers
 router.get('/products', getProducts);
 router.get('/products/:id', getProductById);
-router.get('/products/:id/specifications', getProductSpecifications);
 router.get('/product-types', getProductTypes);
 
 // Order creation with stricter rate limiting and CAPTCHA

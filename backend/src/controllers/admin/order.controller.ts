@@ -1,7 +1,7 @@
 import { Request, Response } from 'express';
 import { z } from 'zod';
 import { db } from '../../db/connection.js';
-import { orders, orderItems, products, productSpecifications } from '../../db/schema.js';
+import { orders, orderItems, products } from '../../db/schema.js';
 import { eq, desc, and, like, or, gte, lte, count } from 'drizzle-orm';
 import { asyncHandler } from '../../middleware/error-handler.middleware.js';
 import { WhatsAppService } from '../../services/whatsapp.service.js';
@@ -200,19 +200,11 @@ export const getOrderById = asyncHandler(async (req: Request, res: Response) => 
       product: {
         id: products.id,
         name: products.name,
-        charmDescription: products.charmDescription,
-        chainDescription: products.chainDescription
-      },
-      specification: {
-        id: productSpecifications.id,
-        specType: productSpecifications.specType,
-        specValue: productSpecifications.specValue,
-        displayName: productSpecifications.displayName
+        description: products.description
       }
     })
     .from(orderItems)
     .leftJoin(products, eq(orderItems.productId, products.id))
-    .leftJoin(productSpecifications, eq(orderItems.specificationId, productSpecifications.id))
     .where(eq(orderItems.orderId, id));
 
   res.json({
@@ -247,33 +239,26 @@ export const createOrder = asyncHandler(async (req: Request, res: Response) => {
       .where(eq(products.id, item.productId))
       .limit(1);
 
-    const specification = await db
-      .select()
-      .from(productSpecifications)
-      .where(eq(productSpecifications.id, item.specificationId))
-      .limit(1);
-
-    if (!product.length || !specification.length) {
-      console.error(`Product lookup failed - ProductID: ${item.productId}, SpecificationID: ${item.specificationId}`);
+    if (!product.length) {
+      console.error(`Product lookup failed - ProductID: ${item.productId}`);
       return res.status(400).json({
         success: false,
-        error: 'Invalid product or specification. Please ensure you are using valid product and specification IDs from the database.'
+        error: 'Invalid product. Please ensure you are using valid product IDs from the database.'
       });
     }
 
     const productData = product[0];
-    const specData = specification[0];
 
-    if (!productData || !specData) {
+    if (!productData) {
       return res.status(400).json({
         success: false,
-        error: 'Invalid product or specification data'
+        error: 'Invalid product data'
       });
     }
 
-    const basePrice = productData.basePrice ? parseFloat(productData.basePrice) : 0;
-    const priceModifier = specData.priceModifier ? parseFloat(specData.priceModifier) : 0;
-    const unitPrice = basePrice + priceModifier;
+    // Use 'price' as the base price since 'basePrice' does not exist on productData
+    const basePrice = productData.price ? parseFloat(productData.price) : 0;
+    const unitPrice = basePrice;
     const itemTotal = unitPrice * item.quantity;
     totalAmount += itemTotal;
 
@@ -283,8 +268,7 @@ export const createOrder = asyncHandler(async (req: Request, res: Response) => {
       quantity: item.quantity,
       unitPrice: unitPrice.toString(),
       productSnapshot: {
-        product: productData,
-        specification: specData
+        product: productData
       }
     });
   }

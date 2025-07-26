@@ -6,8 +6,7 @@ import {
   getProductById,
   createProduct,
   updateProduct,
-  deleteProduct,
-  getProductCategories
+  deleteProduct
 } from '../controllers/admin/product.controller.js';
 import {
   getOrders,
@@ -46,7 +45,6 @@ router.get('/dashboard', authenticateAdmin, getDashboardStats);
 
 // Product routes
 router.get('/products', getProducts);
-router.get('/products/categories', getProductCategories);
 router.get('/products/:id', getProductById);
 router.post('/products', authenticateAdmin, createProduct);
 router.put('/products/:id', authenticateAdmin, updateProduct);

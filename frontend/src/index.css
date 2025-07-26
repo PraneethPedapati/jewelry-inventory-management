@@ -6,7 +6,7 @@
 /* Root CSS Custom Properties for Dynamic Theme System */
 :root {
   /* Default theme colors (jewelry store elegant theme) */
-  --color-primary: #8B5CF6;
+  --color-primary: #6c3158;
   --color-secondary: #F59E0B;
   --color-accent: #EC4899;
   --color-background: #FFFFFF;
@@ -15,7 +15,7 @@
   --color-card-foreground: #111827;
   --color-border: #E5E7EB;
   --color-input: #FFFFFF;
-  --color-ring: #8B5CF6;
+  --color-ring: #6c3158;
   --color-muted: #F3F4F6;
   --color-muted-foreground: #6B7280;
   --color-destructive: #EF4444;
@@ -29,9 +29,9 @@
   --radius: 0.5rem;
   
   /* Font variables */
-  --font-sans: 'Inter', system-ui, sans-serif;
-  --font-heading: 'Playfair Display', serif;
-  --font-family: 'Roboto Flex', 'Inter', system-ui, sans-serif;
+  --font-sans: 'Lato', system-ui, sans-serif;
+  --font-heading: 'Lato', system-ui, sans-serif;
+  --font-family: 'Lato', system-ui, sans-serif;
 }
 
 /* Base layer styles */
@@ -175,6 +175,64 @@
     @apply bg-background px-4 text-muted-foreground;
   }
 
+  /* Product Card Utilities */
+  .product-card {
+    @apply bg-card rounded-lg border shadow-sm hover:shadow-md transition-shadow duration-200 flex flex-col;
+  }
+
+  .product-card-image {
+    @apply relative w-full h-48 flex-shrink-0 bg-muted;
+  }
+
+  .product-card-image img {
+    @apply w-full h-full object-cover object-center rounded-t-lg;
+  }
+
+  .product-card-content {
+    @apply p-3 md:p-4 flex flex-col flex-1 min-h-0;
+  }
+
+  .product-card-title {
+    @apply text-sm md:text-base font-semibold text-foreground line-clamp-2 mb-2 h-10 md:h-12 overflow-hidden;
+  }
+
+  .product-card-description {
+    @apply text-sm text-muted-foreground line-clamp-2 h-10 overflow-hidden flex-1;
+  }
+
+  .product-card-price {
+    @apply text-base md:text-lg font-bold text-foreground;
+  }
+
+  .product-card-actions {
+    @apply mt-auto flex-shrink-0;
+  }
+
+  /* Product Description Styles */
+  .product-description-container {
+    @apply mb-3 flex-1 min-h-0;
+  }
+
+  .product-description-item {
+    @apply text-xs text-muted-foreground mb-1;
+  }
+
+  .product-description-label {
+    @apply font-medium text-foreground;
+  }
+
+  .product-description-text {
+    @apply line-clamp-1 overflow-hidden;
+  }
+
+  /* Consistent card heights */
+  .product-card-customer {
+    @apply h-[480px] w-full;
+  }
+
+  .product-card-admin {
+    @apply h-[520px] w-full;
+  }
 
 
   /* Image aspect ratios for products */

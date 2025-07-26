@@ -40,7 +40,7 @@ const defaultTheme: ColorTheme = {
     warning: '#F59E0B',
     warningForeground: '#FFFFFF'
   },
-  description: 'Default elegant theme for jewelry store'
+  description: 'Default elegant theme'
 };
 
 const AdminThemes: React.FC = () => {
@@ -192,7 +192,7 @@ const AdminThemes: React.FC = () => {
             Color Theme Management
           </h1>
           <p className="text-muted-foreground mt-2">
-            Customize your jewelry store's appearance with configurable color palettes
+            Customize your store's appearance with configurable color palettes
           </p>
         </div>
         <Button onClick={resetToDefault} variant="outline">

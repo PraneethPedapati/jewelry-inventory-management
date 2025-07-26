@@ -44,8 +44,8 @@ export default {
         sm: "calc(var(--radius) - 4px)",
       },
       fontFamily: {
-        sans: ["Inter", "system-ui", "sans-serif"],
-        heading: ["Playfair Display", "serif"],
+        sans: ["Lato", "system-ui", "sans-serif"],
+        heading: ["Lato", "system-ui", "sans-serif"],
       },
       animation: {
         "accordion-down": "accordion-down 0.2s ease-out",

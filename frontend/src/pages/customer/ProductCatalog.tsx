@@ -5,41 +5,26 @@ import { Button } from '@/components/ui/button';
 import { useCart } from '@/context/CartContext';
 
 interface Product {
-  id: string; // Changed to string for UUID
-  name: string;
-  price: number;
-  originalPrice?: number;
-  image: string;
-  images: string[];
-  category: 'chain' | 'bracelet-anklet';
-  description: string;
-  charmDescription: string;
-  chainDescription: string;
-  sku: string;
-  createdAt: string; // ISO date string
-  specifications?: ProductSpecification[];
-}
-
-interface ProductSpecification {
   id: string;
-  displayName: string;
-  value: string;
-  type: 'size' | 'layer';
-  priceModifier: number;
-  stockQuantity: number;
-  isAvailable: boolean;
+  productCode: string;
+  name: string;
+  price: string;
+  discountedPrice?: string;
+  images: string[];
+  productType: 'chain' | 'bracelet-anklet';
+  description: string;
+  isActive: boolean;
+  createdAt: string;
 }
 
 const ProductCatalog: React.FC = () => {
-  const { addToCart: addToCartContext } = useCart();
+  const { addToCart: addToCartContext, isInCart } = useCart();
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('All');
   const [currentPage, setCurrentPage] = useState(1);
   const [showFilters, setShowFilters] = useState(false);
-  const [showSizeModal, setShowSizeModal] = useState(false);
-  const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
-  const [selectedSize, setSelectedSize] = useState('');
   const [quantity, setQuantity] = useState(1);
+  const [cartStates, setCartStates] = useState<Record<string, { quantity: number }>>({});
 
   // New state for API data
   const [products, setProducts] = useState<Product[]>([]);
@@ -69,7 +54,7 @@ const ProductCatalog: React.FC = () => {
       });
 
       if (searchTerm) params.append('search', searchTerm);
-      if (selectedCategory !== 'All') params.append('category', selectedCategory);
+      if (selectedCategory !== 'All') params.append('productType', selectedCategory);
 
       const response = await fetch(`${import.meta.env.VITE_API_URL}/api/products?${params}`);
 
@@ -93,27 +78,27 @@ const ProductCatalog: React.FC = () => {
     }
   };
 
-  // Fetch product specifications when needed
-  const fetchProductSpecifications = async (productId: string): Promise<ProductSpecification[]> => {
-    try {
-      const response = await fetch(`${import.meta.env.VITE_API_URL}/api/products/${productId}/specifications`);
 
-      if (!response.ok) {
-        throw new Error('Failed to fetch specifications');
-      }
-
-      const data = await response.json();
-      return data.success ? data.data : [];
-    } catch (err) {
-      console.error('Error fetching specifications:', err);
-      return [];
-    }
-  };
 
   // Load products when component mounts or filters change
   useEffect(() => {
     fetchProducts();
   }, [currentPage, searchTerm, selectedCategory]);
+
+  // Initialize cart states when products load
+  useEffect(() => {
+    if (products.length > 0) {
+      const initialCartStates: Record<string, { quantity: number; specification: ProductSpecification | null }> = {};
+
+      products.forEach(product => {
+        // Check if product is in cart and get its state
+        // This is a simplified approach - in a real app you'd sync with cart context
+        // For now, we'll rely on the cartStates being set when items are added
+      });
+
+      setCartStates(prev => ({ ...prev, ...initialCartStates }));
+    }
+  }, [products]);
 
   const categories = [
     { value: 'All', label: 'All Products' },
@@ -127,8 +112,14 @@ const ProductCatalog: React.FC = () => {
     setCurrentPage(1); // Reset to first page when searching
   };
 
-  const formatPrice = (price: number) => {
-    return `₹${price.toLocaleString('en-IN')}`;
+  const formatPrice = (price: string) => {
+    const numPrice = parseFloat(price);
+    return new Intl.NumberFormat('en-IN', {
+      style: 'currency',
+      currency: 'INR',
+      minimumFractionDigits: 0,
+      maximumFractionDigits: 0
+    }).format(numPrice);
   };
 
   const handleCategoryChange = (category: string) => {
@@ -143,68 +134,65 @@ const ProductCatalog: React.FC = () => {
   };
 
   const handleAddToCart = async (product: Product) => {
-    if (product.category === 'bracelet-anklet') {
-      // Fetch specifications for this product
-      const specifications = await fetchProductSpecifications(product.id);
-      const updatedProduct = { ...product, specifications };
-      setSelectedProduct(updatedProduct);
-      setQuantity(1);
-      setSelectedSize('');
-      setShowSizeModal(true);
-    } else {
-      // For chains, fetch specifications and use the first available one
-      const specifications = await fetchProductSpecifications(product.id);
-      const defaultSpec = specifications.find(spec => spec.isAvailable) || {
-        id: `default-${product.id}`,
-        displayName: 'Standard',
-        value: 'standard',
-        type: 'layer' as const,
-        priceModifier: 0,
-        stockQuantity: 1,
-        isAvailable: true
-      };
-
-      addToCart(product, 1, defaultSpec);
-    }
+    // Add directly to cart with default quantity
+    addToCart(product, 1);
   };
 
-  const addToCart = (product: Product, qty: number, specification: ProductSpecification) => {
+  const addToCart = (product: Product, qty: number) => {
     // Convert ProductCatalog Product to CartContext Product format
     const cartProduct = {
       id: product.id,
+      productCode: product.productCode,
       name: product.name,
       images: product.images,
-      category: product.category,
+      productType: product.productType,
       description: product.description
     };
 
-    // Convert to CartContext specification format
-    const cartSpecification = {
-      id: specification.id,
-      displayName: specification.displayName,
-      value: specification.value,
-      type: specification.type
-    };
-
-    // Calculate final price including specification modifier
-    const finalPrice = product.price + specification.priceModifier;
+    // Calculate final price
+    const finalPrice = parseFloat(product.price);
 
     // Add to cart using the context
-    addToCartContext(cartProduct, cartSpecification, qty, finalPrice);
+    addToCartContext(cartProduct, null, qty, finalPrice);
 
-    setShowSizeModal(false);
-    setSelectedProduct(null);
-
-    // Show success message
-    alert(`Added ${qty} ${product.name} (${specification.displayName}) to cart!`);
+    // Update cart state for inline controls
+    setCartStates(prev => ({
+      ...prev,
+      [product.id]: { quantity: qty }
+    }));
   };
 
-  const handleSizeModalSubmit = () => {
-    if (selectedProduct && selectedSize && quantity > 0) {
-      const selectedSpec = selectedProduct.specifications?.find(spec => spec.value === selectedSize);
-      if (selectedSpec) {
-        addToCart(selectedProduct, quantity, selectedSpec);
+  const handleInlineQuantityChange = (product: Product, newQuantity: number) => {
+    const cartState = cartStates[product.id];
+    if (cartState) {
+      if (newQuantity <= 0) {
+        // Remove from cart
+        setCartStates(prev => {
+          const newState = { ...prev };
+          delete newState[product.id];
+          return newState;
+        });
+        return;
       }
+
+      // Update quantity
+      setCartStates(prev => ({
+        ...prev,
+        [product.id]: { ...cartState, quantity: newQuantity }
+      }));
+
+      // Update cart context
+      const cartProduct = {
+        id: product.id,
+        productCode: product.productCode,
+        name: product.name,
+        images: product.images,
+        productType: product.productType,
+        description: product.description
+      };
+
+      const finalPrice = parseFloat(product.price);
+      addToCartContext(cartProduct, null, newQuantity, finalPrice);
     }
   };
 
@@ -236,7 +224,7 @@ const ProductCatalog: React.FC = () => {
             variant="outline"
             size="sm"
             onClick={() => setShowFilters(!showFilters)}
-            className="md:hidden"
+            className="md:hidden border-primary text-primary hover:bg-primary hover:text-white"
           >
             <Filter className="w-4 h-4 mr-2" />
             Filters
@@ -307,15 +295,14 @@ const ProductCatalog: React.FC = () => {
           </div>
         </div>
       ) : !loading && !error ? (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 md:gap-6">
+        <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3 md:gap-4 lg:gap-6">
           {products.map((product) => (
-            <div key={product.id} className="bg-card rounded-lg border shadow-sm hover:shadow-md transition-shadow duration-200">
-              {/* Product Image */}
-              <div className="relative aspect-square">
+            <div key={product.id} className="product-card product-card-customer h-[480px]">
+              {/* Product Image - Fixed Square Container */}
+              <div className="product-card-image">
                 <img
-                  src={product.image}
+                  src={product.images[0] || '/placeholder-image.jpg'}
                   alt={product.name}
-                  className="w-full h-full object-cover rounded-t-lg"
                   loading="lazy"
                 />
                 {isProductNew(product.createdAt) && (
@@ -323,47 +310,86 @@ const ProductCatalog: React.FC = () => {
                     New
                   </span>
                 )}
-                {product.originalPrice && (
+                {product.discountedPrice && (
                   <span className="absolute top-2 right-2 bg-destructive text-white px-2 py-1 text-xs font-medium rounded">
                     Sale
                   </span>
                 )}
               </div>
 
-              {/* Product Info */}
-              <div className="p-3 md:p-4">
-                <div className="mb-3">
-                  <span className="text-xs text-muted-foreground font-medium capitalize">
-                    {product.category === 'chain' ? 'Chain' : 'Bracelet/Anklet'}
-                  </span>
-                  <h3 className="text-sm md:text-base font-semibold text-foreground mt-1 line-clamp-2">
+              {/* Product Info - Fixed Height Content */}
+              <div className="product-card-content">
+                <div className="product-description-container">
+                  <div className="flex items-center justify-between mb-1">
+                    <span className="text-xs text-muted-foreground font-medium capitalize">
+                      {product.productType === 'chain' ? 'Chain' : 'Bracelet/Anklet'}
+                    </span>
+                    <span className="text-xs text-primary font-mono bg-primary/10 px-2 py-1 rounded">
+                      {product.productCode}
+                    </span>
+                  </div>
+                  <h3 className="product-card-title">
                     {product.name}
                   </h3>
+
+                  {/* Product Description */}
+                  <div className="space-y-1 mt-2">
+                    <div className="product-description-item">
+                      <span className="product-description-label">Description:</span>
+                      <span className="product-description-text ml-1">{product.description}</span>
+                    </div>
+                  </div>
                 </div>
 
-                {/* Price */}
-                <div className="flex items-center justify-between mb-4">
+                {/* Price - Fixed Position */}
+                <div className="mb-3 flex-shrink-0">
                   <div className="flex items-center space-x-2">
-                    <span className="text-base md:text-lg font-bold text-foreground">
-                      {formatPrice(product.price)}
+                    <span className="product-card-price">
+                      {formatPrice(product.discountedPrice || product.price)}
                     </span>
-                    {product.originalPrice && (
+                    {product.discountedPrice && (
                       <span className="text-xs md:text-sm text-muted-foreground line-through">
-                        {formatPrice(product.originalPrice)}
+                        {formatPrice(product.price)}
                       </span>
                     )}
                   </div>
                 </div>
 
-                {/* Add to Cart Button */}
-                <Button
-                  className="w-full h-10 text-sm font-medium"
-                  size="sm"
-                  onClick={() => handleAddToCart(product)}
-                >
-                  <ShoppingCart className="w-4 h-4 mr-2" />
-                  Add to Cart
-                </Button>
+                {/* Add to Cart Button or Quantity Controls - Fixed at Bottom */}
+                <div className="product-card-actions">
+                  {cartStates[product.id] ? (
+                    <div className="flex items-center justify-between bg-primary/10 border border-primary/20 rounded-lg p-2">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => handleInlineQuantityChange(product, cartStates[product.id].quantity - 1)}
+                        className="h-8 w-8 p-0 border-primary/30 text-primary hover:bg-primary hover:text-white"
+                      >
+                        <Minus className="w-4 h-4" />
+                      </Button>
+                      <span className="text-sm font-medium px-3 text-primary">
+                        {cartStates[product.id].quantity}
+                      </span>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => handleInlineQuantityChange(product, cartStates[product.id].quantity + 1)}
+                        className="h-8 w-8 p-0 border-primary/30 text-primary hover:bg-primary hover:text-white"
+                      >
+                        <Plus className="w-4 h-4" />
+                      </Button>
+                    </div>
+                  ) : (
+                    <Button
+                      className="w-full h-10 text-sm font-medium"
+                      size="sm"
+                      onClick={() => handleAddToCart(product)}
+                    >
+                      <ShoppingCart className="w-4 h-4 mr-2" />
+                      Add to Cart
+                    </Button>
+                  )}
+                </div>
               </div>
             </div>
           ))}
@@ -426,114 +452,7 @@ const ProductCatalog: React.FC = () => {
         </div>
       )}
 
-      {/* Size Selection Modal */}
-      {showSizeModal && selectedProduct && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-card rounded-lg w-full max-w-md p-6">
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="text-lg font-semibold">Select Size & Quantity</h3>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => setShowSizeModal(false)}
-                className="h-8 w-8 p-0"
-              >
-                <X className="w-4 h-4" />
-              </Button>
-            </div>
 
-            <div className="space-y-4">
-              <div>
-                <p className="text-sm font-medium mb-2">{selectedProduct.name}</p>
-                <p className="text-lg font-bold text-primary">{formatPrice(selectedProduct.price)}</p>
-              </div>
-
-              {/* Size/Specification Selection */}
-              <div>
-                <label className="block text-sm font-medium mb-2">
-                  Select {selectedProduct.category === 'bracelet-anklet' ? 'Size' : 'Option'}:
-                </label>
-                <div className="space-y-2">
-                  {selectedProduct.specifications?.map((spec) => (
-                    <label key={spec.id} className="flex items-center space-x-2 cursor-pointer">
-                      <input
-                        type="radio"
-                        name="specification"
-                        value={spec.value}
-                        checked={selectedSize === spec.value}
-                        onChange={(e) => setSelectedSize(e.target.value)}
-                        className="text-primary"
-                      />
-                      <span className="text-sm flex-1">{spec.displayName}</span>
-                      {spec.priceModifier > 0 && (
-                        <span className="text-sm text-primary font-medium">
-                          +{formatPrice(spec.priceModifier)}
-                        </span>
-                      )}
-                    </label>
-                  ))}
-                </div>
-              </div>
-
-              {/* Quantity Selection */}
-              <div>
-                <label className="block text-sm font-medium mb-2">Quantity:</label>
-                <div className="flex items-center space-x-3">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => setQuantity(Math.max(1, quantity - 1))}
-                    className="h-8 w-8 p-0"
-                  >
-                    <Minus className="w-4 h-4" />
-                  </Button>
-                  <span className="text-lg font-medium w-8 text-center">{quantity}</span>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => setQuantity(quantity + 1)}
-                    className="h-8 w-8 p-0"
-                  >
-                    <Plus className="w-4 h-4" />
-                  </Button>
-                </div>
-              </div>
-
-              {/* Total Price */}
-              <div className="border-t pt-4">
-                <div className="flex justify-between items-center">
-                  <span className="font-medium">Total:</span>
-                  <span className="text-lg font-bold text-primary">
-                    {formatPrice((() => {
-                      const selectedSpec = selectedProduct.specifications?.find(spec => spec.value === selectedSize);
-                      const finalPrice = selectedProduct.price + (selectedSpec?.priceModifier || 0);
-                      return finalPrice * quantity;
-                    })())}
-                  </span>
-                </div>
-              </div>
-
-              {/* Action Buttons */}
-              <div className="flex space-x-3 pt-4">
-                <Button
-                  variant="outline"
-                  onClick={() => setShowSizeModal(false)}
-                  className="flex-1"
-                >
-                  Cancel
-                </Button>
-                <Button
-                  onClick={handleSizeModalSubmit}
-                  disabled={!selectedSize}
-                  className="flex-1"
-                >
-                  Add to Cart
-                </Button>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   );
 };

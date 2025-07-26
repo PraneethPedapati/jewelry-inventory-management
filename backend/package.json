@@ -13,6 +13,8 @@
     "format": "prettier --write \"src/**/*.ts\"",
     "db:generate": "drizzle-kit generate",
     "db:migrate": "tsx src/db/migrate.ts",
+    "db:connection": "tsx src/db/connection.ts",
+    "db:test": "tsx src/db/test-connection.ts",
     "db:seed": "tsx src/db/seed.ts",
     "db:reset": "tsx src/db/reset.ts",
     "db:studio": "drizzle-kit studio",

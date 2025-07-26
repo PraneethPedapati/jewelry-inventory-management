@@ -33,6 +33,10 @@ const ConfigSchema = z.object({
   // External APIs
   IMGUR_CLIENT_ID: z.string().optional(),
 
+  // ImgBB Image Hosting
+  IMGBB_API_KEY: z.string().optional(),
+  IMGBB_EXPIRATION: z.string().optional(),
+
   // Monitoring
   ENABLE_TRACING: z.string().transform(val => val === 'true').default('false'),
   JAEGER_ENDPOINT: z.string().optional(),

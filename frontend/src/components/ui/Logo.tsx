@@ -22,8 +22,8 @@ const Logo: React.FC<LogoProps> = ({
   className = ''
 }) => {
   const [brandConfig, setBrandConfig] = useState<BrandConfig>({
-    companyName: '',
-    companyShortName: '',
+    companyName: env.VITE_COMPANY_NAME, // Use frontend environment variable as default
+    companyShortName: env.VITE_COMPANY_SHORT_NAME, // Use frontend environment variable as default
     logoUrl: env.VITE_LOGO_URL, // Use frontend environment variable directly
     faviconUrl: env.VITE_FAVICON_URL // Use frontend environment variable directly
   });
@@ -42,7 +42,13 @@ const Logo: React.FC<LogoProps> = ({
         }
       } catch (error) {
         console.error('Failed to fetch brand config:', error);
-        // Keep using default values with frontend env vars for logo/favicon
+        // Keep using frontend environment variables as fallback
+        setBrandConfig({
+          companyName: env.VITE_COMPANY_NAME,
+          companyShortName: env.VITE_COMPANY_SHORT_NAME,
+          logoUrl: env.VITE_LOGO_URL,
+          faviconUrl: env.VITE_FAVICON_URL
+        });
       }
     };
 

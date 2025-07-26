@@ -62,37 +62,19 @@ export interface ColorTheme {
 
 export interface Product {
   id: string;
+  productCode: string;
   name: string;
-  charmDescription: string;
-  chainDescription: string;
-  basePrice: string;
-  sku: string;
+  description: string;
+  productType: string;
+  price: string;
+  discountedPrice?: string;
   images: string[];
   isActive: boolean;
-  stockAlertThreshold: number;
-  metaDescription?: string;
   createdAt: string;
   updatedAt: string;
-  productType: {
-    id: string;
-    name: string;
-    displayName: string;
-    specificationType: string;
-  };
-  specifications?: ProductSpecification[];
 }
 
-export interface ProductSpecification {
-  id: string;
-  productId: string;
-  specType: 'size' | 'layer';
-  specValue: string;
-  displayName: string;
-  priceModifier: string;
-  stockQuantity: number;
-  isAvailable: boolean;
-  createdAt: string;
-}
+
 
 export interface Order {
   id: string;
@@ -115,14 +97,12 @@ export interface OrderItem {
   id: string;
   orderId: string;
   productId: string;
-  specificationId: string;
   quantity: number;
   unitPrice: string;
   totalPrice: string;
   productSnapshot: any;
   createdAt: string;
   product?: Product;
-  specification?: ProductSpecification;
 }
 
 export interface Expense {
@@ -154,13 +134,11 @@ export interface ExpenseCategory {
 
 export interface CreateProductRequest {
   name: string;
-  category: 'chain' | 'bracelet-anklet';
-  charmDescription: string;
-  chainDescription: string;
-  basePrice: number;
-  images?: string[];
-  metaDescription?: string;
-  stockAlertThreshold?: number;
+  productType: 'chain' | 'bracelet-anklet';
+  description: string;
+  price: number;
+  discountedPrice?: number;
+  isActive?: boolean;
 }
 
 export interface CreateOrderRequest {
@@ -170,7 +148,6 @@ export interface CreateOrderRequest {
   customerAddress: string;
   items: {
     productId: string;
-    specificationId: string;
     quantity: number;
   }[];
   notes?: string;
@@ -326,8 +303,8 @@ export const authService = {
 export const productService = {
   getProducts: async (params?: {
     search?: string;
-    category?: string;
-    status?: string;
+    productType?: string;
+    isActive?: boolean;
     page?: number;
     limit?: number;
   }) => {
@@ -348,8 +325,33 @@ export const productService = {
     return response.data.data;
   },
 
-  createProduct: async (product: CreateProductRequest): Promise<Product> => {
-    const response = await apiClient.post<ApiResponse<Product>>('/api/admin/products', product);
+  createProduct: async (product: CreateProductRequest, images: File[]): Promise<Product> => {
+    const formData = new FormData();
+
+    // Add product data
+    formData.append('name', product.name);
+    formData.append('productType', product.productType);
+    formData.append('description', product.description);
+    formData.append('price', product.price.toString());
+
+    if (product.discountedPrice) {
+      formData.append('discountedPrice', product.discountedPrice.toString());
+    }
+
+    if (product.isActive !== undefined) {
+      formData.append('isActive', product.isActive.toString());
+    }
+
+    // Add images
+    images.forEach(image => {
+      formData.append('images', image);
+    });
+
+    const response = await apiClient.post<ApiResponse<Product>>('/api/admin/products', formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data',
+      },
+    });
     return response.data.data;
   },
 
@@ -362,8 +364,8 @@ export const productService = {
     await apiClient.delete(`/api/admin/products/${id}`);
   },
 
-  getProductCategories: async () => {
-    const response = await apiClient.get<ApiResponse<any[]>>('/api/admin/products/categories');
+  getProductStats: async () => {
+    const response = await apiClient.get<ApiResponse<any>>('/api/admin/products/stats');
     return response.data.data;
   }
 };

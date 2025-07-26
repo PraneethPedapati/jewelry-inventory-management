@@ -7,6 +7,8 @@ import { Badge } from '@/components/ui/badge';
 import { toast } from 'sonner';
 import ConfirmationDialog from '@/components/ui/confirmation-dialog';
 import { orderService, type Order, type OrderItem } from '@/services/api';
+import { env } from '@/config/env';
+import { useDocumentTitle } from '@/hooks/useDocumentTitle';
 
 interface OrderModalProps {
   order: Order | null;
@@ -23,6 +25,9 @@ const AdminOrders: React.FC = () => {
   const [filterStatus, setFilterStatus] = useState('All');
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage] = useState(10);
+
+  // Set document title
+  useDocumentTitle('Orders');
 
   // API state
   const [orders, setOrders] = useState<Order[]>([]);
