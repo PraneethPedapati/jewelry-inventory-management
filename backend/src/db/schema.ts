@@ -56,19 +56,21 @@ export const products = pgTable('products', {
 export const orders = pgTable('orders', {
   id: uuid('id').primaryKey().defaultRandom(),
   orderNumber: varchar('order_number', { length: 20 }).notNull().unique(),
+  orderCode: varchar('order_code', { length: 10 }).notNull().unique(), // New: User-friendly order code (e.g., ORD001)
   customerName: varchar('customer_name', { length: 100 }).notNull(),
   customerEmail: varchar('customer_email', { length: 255 }).notNull(),
   customerPhone: varchar('customer_phone', { length: 20 }).notNull(),
   customerAddress: text('customer_address').notNull(),
   totalAmount: decimal('total_amount', { precision: 10, scale: 2 }).notNull(),
-  status: varchar('status', { length: 20 }).default('pending'),
+  status: varchar('status', { length: 20 }).default('payment_pending'), // Changed: default to 'payment_pending'
   whatsappMessageSent: boolean('whatsapp_message_sent').default(false),
   paymentReceived: boolean('payment_received').default(false),
   notes: text('notes'),
   createdAt: timestamp('created_at', { withTimezone: true }).defaultNow(),
   updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow(),
 }, (table) => ({
-  checkStatus: check('status_check', sql`${table.status} IN ('pending', 'confirmed', 'processing', 'shipped', 'delivered', 'cancelled')`),
+  // Updated: New status lifecycle
+  checkStatus: check('status_check', sql`${table.status} IN ('payment_pending', 'confirmed', 'processing', 'shipped', 'delivered', 'cancelled')`),
   checkTotalAmount: check('total_amount_check', sql`${table.totalAmount} > 0`),
 }));
 

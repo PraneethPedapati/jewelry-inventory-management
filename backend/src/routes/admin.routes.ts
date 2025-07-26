@@ -19,7 +19,10 @@ import {
   approveOrder,
   sendPaymentQR,
   confirmPayment,
-  sendWhatsAppMessage
+  sendWhatsAppMessage,
+  findOrderByCode,
+  generateStatusWhatsApp,
+  deleteStaleOrders
 } from '../controllers/admin/order.controller.js';
 import {
   getExpenses,
@@ -64,6 +67,11 @@ router.post('/orders/:id/approve', authenticateAdmin, approveOrder);
 router.post('/orders/:id/send-payment-qr', authenticateAdmin, sendPaymentQR);
 router.post('/orders/:id/confirm-payment', authenticateAdmin, confirmPayment);
 router.post('/orders/:id/send-whatsapp', authenticateAdmin, sendWhatsAppMessage);
+router.post('/orders/:id/status-whatsapp', authenticateAdmin, generateStatusWhatsApp);
+
+// Order management routes
+router.get('/orders/find/:orderCode', authenticateAdmin, findOrderByCode);
+router.post('/orders/delete-stale', authenticateAdmin, deleteStaleOrders);
 
 // Expense routes
 router.get('/expenses', getExpenses);

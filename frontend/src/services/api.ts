@@ -20,6 +20,20 @@ apiClient.interceptors.request.use((config) => {
   return config;
 });
 
+// Handle authentication errors
+apiClient.interceptors.response.use(
+  (response) => response,
+  (error) => {
+    if (error.response?.status === 401) {
+      // Token is invalid or expired, clear it and redirect to login
+      localStorage.removeItem('admin_token');
+      localStorage.removeItem('admin_info');
+      window.location.href = '/admin/login';
+    }
+    return Promise.reject(error);
+  }
+);
+
 // API Response wrapper
 interface ApiResponse<T> {
   success: boolean;
@@ -79,12 +93,13 @@ export interface Product {
 export interface Order {
   id: string;
   orderNumber: string;
+  orderCode: string; // New: User-friendly order code
   customerName: string;
   customerEmail: string;
   customerPhone: string;
   customerAddress: string;
   totalAmount: string;
-  status: 'pending' | 'confirmed' | 'processing' | 'shipped' | 'delivered' | 'cancelled';
+  status: 'payment_pending' | 'confirmed' | 'processing' | 'shipped' | 'delivered' | 'cancelled';
   whatsappMessageSent: boolean;
   paymentReceived: boolean;
   notes?: string;
@@ -411,13 +426,24 @@ export const orderService = {
     await apiClient.delete(`/api/admin/orders/${id}`);
   },
 
-  approveOrder: async (id: string, data?: { upiId?: string; sendPaymentQR?: boolean; customMessage?: string }) => {
+  approveOrder: async (id: string, data?: { sendPaymentQR?: boolean; customMessage?: string }) => {
     const response = await apiClient.post<ApiResponse<any>>(`/api/admin/orders/${id}/approve`, data);
     return response.data.data;
   },
 
   confirmPayment: async (id: string, data?: { paymentReference?: string; notes?: string }) => {
     const response = await apiClient.post<ApiResponse<any>>(`/api/admin/orders/${id}/confirm-payment`, data);
+    return response.data.data;
+  },
+
+  generateStatusWhatsApp: async (id: string) => {
+    const response = await apiClient.post<ApiResponse<{
+      whatsappUrl: string;
+      message: string;
+      customerPhone: string;
+      orderNumber: string;
+      status: string;
+    }>>(`/api/admin/orders/${id}/status-whatsapp`);
     return response.data.data;
   }
 };

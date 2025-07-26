@@ -2,9 +2,11 @@ import { Request, Response } from 'express';
 import { z } from 'zod';
 import { db } from '../../db/connection.js';
 import { orders, orderItems, products } from '../../db/schema.js';
-import { eq, desc, and, like, or, gte, lte, count } from 'drizzle-orm';
+import { eq, desc, and, like, or, gte, lte, lt, count } from 'drizzle-orm';
 import { asyncHandler } from '../../middleware/error-handler.middleware.js';
 import { WhatsAppService } from '../../services/whatsapp.service.js';
+import { OrderCodeService } from '../../services/order-code.service.js';
+import { config } from '../../config/app.js';
 
 // Validation schemas
 const CreateOrderSchema = z.object({
@@ -15,7 +17,7 @@ const CreateOrderSchema = z.object({
     customerAddress: z.string().min(1, 'Address is required'),
     items: z.array(z.object({
       productId: z.string().min(1, 'Product ID is required'),
-      specificationId: z.string().min(1, 'Specification ID is required'),
+      specificationId: z.string().optional(), // Made optional since current schema doesn't support it
       quantity: z.number().positive()
     })).min(1, 'At least one item is required'),
     notes: z.string().optional()
@@ -28,7 +30,7 @@ const UpdateOrderSchema = z.object({
     customerEmail: z.string().email().optional(),
     customerPhone: z.string().optional(),
     customerAddress: z.string().optional(),
-    status: z.enum(['pending', 'confirmed', 'processing', 'shipped', 'delivered', 'cancelled']).optional(),
+    status: z.enum(['payment_pending', 'confirmed', 'processing', 'shipped', 'delivered', 'cancelled']).optional(),
     whatsappMessageSent: z.boolean().optional(),
     paymentReceived: z.boolean().optional(),
     notes: z.string().optional()
@@ -44,7 +46,6 @@ const ApproveOrderSchema = z.object({
     id: z.string().uuid('Valid order ID is required')
   }),
   body: z.object({
-    upiId: z.string().optional().default('yourstore@paytm'),
     sendPaymentQR: z.boolean().optional().default(true),
     customMessage: z.string().optional()
   })
@@ -55,7 +56,6 @@ const SendPaymentQRSchema = z.object({
     id: z.string().uuid('Valid order ID is required')
   }),
   body: z.object({
-    upiId: z.string().optional().default('yourstore@paytm'),
     customMessage: z.string().optional()
   })
 });
@@ -91,8 +91,10 @@ export const getOrders = asyncHandler(async (req: Request, res: Response) => {
     conditions.push(
       or(
         like(orders.orderNumber, `%${search}%`),
+        like(orders.orderCode, `%${search}%`),
         like(orders.customerName, `%${search}%`),
-        like(orders.customerEmail, `%${search}%`)
+        like(orders.customerEmail, `%${search}%`),
+        like(orders.customerPhone, `%${search}%`)
       )
     );
   }
@@ -224,8 +226,9 @@ export const getOrderById = asyncHandler(async (req: Request, res: Response) => 
 export const createOrder = asyncHandler(async (req: Request, res: Response) => {
   const { body } = CreateOrderSchema.parse({ body: req.body });
 
-  // Generate order number
+  // Generate order number and order code
   const orderNumber = `ORD-${Date.now().toString().slice(-8)}`;
+  const orderCode = await OrderCodeService.generateOrderCode();
 
   // Calculate total amount
   let totalAmount = 0;
@@ -264,7 +267,6 @@ export const createOrder = asyncHandler(async (req: Request, res: Response) => {
 
     orderItemsData.push({
       productId: item.productId,
-      specificationId: item.specificationId,
       quantity: item.quantity,
       unitPrice: unitPrice.toString(),
       productSnapshot: {
@@ -278,6 +280,7 @@ export const createOrder = asyncHandler(async (req: Request, res: Response) => {
     .insert(orders)
     .values({
       orderNumber,
+      orderCode,
       customerName: body.customerName,
       customerEmail: body.customerEmail,
       customerPhone: body.customerPhone,
@@ -570,10 +573,10 @@ export const approveOrder = asyncHandler(async (req: Request, res: Response) => 
 
   if (body.sendPaymentQR) {
     try {
-      // Generate payment QR
-      paymentQR = WhatsAppService.generatePaymentQR(completeOrder as any, body.upiId);
+      // Generate payment deep link
+      paymentQR = WhatsAppService.generatePaymentDeepLink(completeOrder as any);
 
-      // Generate approval message with payment QR
+      // Generate approval message with payment deep link
       const approvalMessage = body.customMessage ||
         WhatsAppService.generateOrderApprovalMessage(completeOrder as any, paymentQR);
 
@@ -592,7 +595,7 @@ export const approveOrder = asyncHandler(async (req: Request, res: Response) => 
     success: true,
     data: {
       order: completeOrder,
-      paymentQR: paymentQR,
+      paymentDeepLink: paymentQR,
       whatsappUrl: whatsappUrl,
       actions: {
         sendPaymentQR: body.sendPaymentQR,
@@ -676,9 +679,9 @@ export const sendPaymentQR = asyncHandler(async (req: Request, res: Response) =>
   try {
     // Generate payment request message
     const paymentMessage = body.customMessage ||
-      WhatsAppService.generatePaymentRequestMessage(completeOrder as any, body.upiId);
+      WhatsAppService.generatePaymentRequestMessage(completeOrder as any);
 
-    const paymentQR = WhatsAppService.generatePaymentQR(completeOrder as any, body.upiId);
+    const paymentDeepLink = WhatsAppService.generatePaymentDeepLink(completeOrder as any);
 
     // Create WhatsApp URL
     const encodedMessage = encodeURIComponent(paymentMessage);
@@ -687,9 +690,9 @@ export const sendPaymentQR = asyncHandler(async (req: Request, res: Response) =>
     res.json({
       success: true,
       data: {
-        paymentQR: paymentQR,
+        paymentDeepLink: paymentDeepLink,
         whatsappUrl: whatsappUrl,
-        upiId: body.upiId,
+        upiId: config.BUSINESS_UPI_ID,
         amount: parseFloat(currentOrder.totalAmount),
         orderNumber: currentOrder.orderNumber
       },
@@ -907,4 +910,209 @@ export const sendWhatsAppMessage = asyncHandler(async (req: Request, res: Respon
       error: 'Failed to generate WhatsApp message'
     });
   }
+});
+
+
+
+/**
+ * Generate WhatsApp status update message for order
+ * POST /api/admin/orders/:id/status-whatsapp
+ */
+export const generateStatusWhatsApp = asyncHandler(async (req: Request, res: Response) => {
+  const { id } = req.params;
+
+  if (!id) {
+    return res.status(400).json({
+      success: false,
+      error: 'Order ID is required'
+    });
+  }
+
+  // Get order
+  const order = await db
+    .select()
+    .from(orders)
+    .where(eq(orders.id, id))
+    .limit(1);
+
+  if (!order.length) {
+    return res.status(404).json({
+      success: false,
+      error: 'Order not found'
+    });
+  }
+
+  const currentOrder = order[0];
+  if (!currentOrder) {
+    return res.status(404).json({
+      success: false,
+      error: 'Order data not found'
+    });
+  }
+
+  // Get order items
+  const items = await db
+    .select({
+      id: orderItems.id,
+      quantity: orderItems.quantity,
+      unitPrice: orderItems.unitPrice,
+      totalPrice: orderItems.totalPrice,
+      productSnapshot: orderItems.productSnapshot
+    })
+    .from(orderItems)
+    .where(eq(orderItems.orderId, id));
+
+  const completeOrder = {
+    id: currentOrder.id,
+    orderNumber: currentOrder.orderNumber || '',
+    customerName: currentOrder.customerName || '',
+    customerEmail: currentOrder.customerEmail || '',
+    customerPhone: currentOrder.customerPhone || '',
+    customerAddress: currentOrder.customerAddress || '',
+    totalAmount: parseFloat(currentOrder.totalAmount),
+    status: currentOrder.status || 'pending',
+    whatsappMessageSent: currentOrder.whatsappMessageSent || false,
+    paymentReceived: currentOrder.paymentReceived || false,
+    notes: currentOrder.notes || '',
+    createdAt: currentOrder.createdAt?.toISOString() || new Date().toISOString(),
+    updatedAt: currentOrder.updatedAt?.toISOString() || new Date().toISOString(),
+    items: items.map(item => ({
+      ...item,
+      unitPrice: parseFloat(item.unitPrice),
+      totalPrice: parseFloat(item.totalPrice || '0'),
+      productSnapshot: item.productSnapshot as any
+    }))
+  };
+
+  try {
+    // Generate status update message
+    const { url, message } = await WhatsAppService.generateStatusUpdateMessage(completeOrder as any);
+
+    res.json({
+      success: true,
+      data: {
+        whatsappUrl: url,
+        message: message,
+        customerPhone: currentOrder.customerPhone,
+        orderNumber: currentOrder.orderNumber,
+        status: currentOrder.status
+      },
+      message: 'WhatsApp status update message generated successfully'
+    });
+
+  } catch (error) {
+    console.error('Failed to generate status update message:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to generate status update message'
+    });
+  }
+});
+
+/**
+ * Find order by order code
+ * GET /api/admin/orders/find/:orderCode
+ */
+export const findOrderByCode = asyncHandler(async (req: Request, res: Response) => {
+  const { orderCode } = req.params;
+
+  if (!orderCode) {
+    return res.status(400).json({
+      success: false,
+      error: 'Order code is required'
+    });
+  }
+
+  // Validate order code format
+  if (!OrderCodeService.isValidOrderCode(orderCode)) {
+    return res.status(400).json({
+      success: false,
+      error: 'Invalid order code format'
+    });
+  }
+
+  // Find order by code
+  const order = await OrderCodeService.findOrderByCode(orderCode);
+
+  if (!order) {
+    return res.status(404).json({
+      success: false,
+      error: 'Order not found'
+    });
+  }
+
+  // Get order items
+  const items = await db
+    .select()
+    .from(orderItems)
+    .where(eq(orderItems.orderId, order.id));
+
+  const completeOrder = {
+    ...order,
+    items: items.map(item => ({
+      ...item,
+      unitPrice: parseFloat(item.unitPrice),
+      totalPrice: parseFloat(item.totalPrice || '0'),
+      productSnapshot: item.productSnapshot as any
+    }))
+  };
+
+  res.json({
+    success: true,
+    data: completeOrder,
+    message: 'Order found successfully'
+  });
+});
+
+/**
+ * Delete stale orders (payment_pending orders older than 6 hours)
+ * POST /api/admin/orders/delete-stale
+ */
+export const deleteStaleOrders = asyncHandler(async (req: Request, res: Response) => {
+  const sixHoursAgo = new Date(Date.now() - 6 * 60 * 60 * 1000);
+
+  // Find stale orders (payment_pending older than 6 hours)
+  const staleOrders = await db
+    .select()
+    .from(orders)
+    .where(
+      and(
+        eq(orders.status, 'payment_pending'),
+        lt(orders.createdAt, sixHoursAgo)
+      )
+    );
+
+  if (staleOrders.length === 0) {
+    return res.json({
+      success: true,
+      data: {
+        deletedCount: 0
+      },
+      message: 'No stale orders found (payment_pending orders older than 6 hours)'
+    });
+  }
+
+  // Delete stale orders and their items
+  const deletedOrders = await db
+    .delete(orders)
+    .where(
+      and(
+        eq(orders.status, 'payment_pending'),
+        lt(orders.createdAt, sixHoursAgo)
+      )
+    )
+    .returning();
+
+  res.json({
+    success: true,
+    data: {
+      deletedCount: deletedOrders.length,
+      deletedOrders: deletedOrders.map(order => ({
+        id: order.id,
+        orderCode: order.orderCode,
+        customerName: order.customerName
+      }))
+    },
+    message: `Successfully deleted ${deletedOrders.length} stale orders (payment_pending orders older than 6 hours)`
+  });
 }); 

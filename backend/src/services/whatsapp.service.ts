@@ -1,7 +1,7 @@
 import { config } from '../config/app.js';
 import { Order, OrderItem } from '../types/api.js';
 import { traceWhatsAppOperation } from '../utils/tracing.js';
-import { getCompanyName } from './brand.service.js';
+import { getCompanyName, getCompanyShortName } from './brand.service.js';
 
 export class WhatsAppService {
   private static readonly BUSINESS_PHONE = config.WHATSAPP_BUSINESS_PHONE;
@@ -14,7 +14,23 @@ export class WhatsAppService {
   }
 
   /**
-   * Generate WhatsApp URL for new order message
+   * Generate WhatsApp URL for customer to send order message
+   * This is the new flow where customer initiates WhatsApp contact
+   */
+  static async generateCustomerOrderMessage(order: Order): Promise<{ url: string; message: string }> {
+    // Use a valid operation name as per traceWhatsAppOperation's accepted types
+    const result = await traceWhatsAppOperation('generate_order_message', order.id, async () => {
+      const message = this.formatCustomerOrderMessage(order);
+      const encodedMessage = encodeURIComponent(message);
+      const url = `https://wa.me/${this.BUSINESS_PHONE}?text=${encodedMessage}`;
+
+      return { url, message };
+    });
+    return result;
+  }
+
+  /**
+   * Generate WhatsApp URL for new order message (legacy - kept for compatibility)
    * Note: Using explicit await pattern to resolve TypeScript type inference issues
    */
   static async generateOrderMessage(order: Order): Promise<{ url: string; message: string }> {
@@ -44,26 +60,25 @@ export class WhatsAppService {
   }
 
   /**
-   * Generate payment QR code URL using free UPI service
+   * Generate UPI deep link for direct payment
    */
-  static generatePaymentQR(order: Order, upiId: string = 'yourstore@paytm'): string {
+  static generatePaymentDeepLink(order: Order, upiId?: string): string {
+    const businessUpiId = upiId || config.BUSINESS_UPI_ID;
     const amount = parseFloat(order.totalAmount.toString());
     const note = `Payment for Order ${order.orderNumber}`;
 
     // UPI URL scheme - works with all Indian payment apps
-    const upiUrl = `upi://pay?pa=${upiId}&pn=${this.getCompanyName()}&am=${amount}&tn=${encodeURIComponent(note)}&cu=INR`;
+    const upiUrl = `upi://pay?pa=${businessUpiId}&pn=${getCompanyShortName()}&am=${amount}&tn=${encodeURIComponent(note)}&cu=INR`;
 
-    // Generate QR code using free service
-    const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=${encodeURIComponent(upiUrl)}`;
-
-    return qrUrl;
+    return upiUrl;
   }
 
   /**
-   * Generate payment request message with QR code
+   * Generate payment request message with UPI deep link
    */
-  static generatePaymentRequestMessage(order: Order, upiId: string = 'yourstore@paytm'): string {
-    const qrUrl = this.generatePaymentQR(order, upiId);
+  static generatePaymentRequestMessage(order: Order, upiId?: string): string {
+    const deepLink = this.generatePaymentDeepLink(order, upiId);
+    const businessUpiId = upiId || config.BUSINESS_UPI_ID;
 
     return `💳 *Payment Request - Order #${order.orderNumber}*
 
@@ -74,12 +89,11 @@ Your jewelry order is confirmed and ready for payment.
 *💰 Order Total: ₹${parseFloat(order.totalAmount.toString()).toLocaleString('en-IN')}*
 
 *📱 Payment Options:*
-1. Scan QR code: ${qrUrl}
-2. UPI ID: ${upiId}
-3. Google Pay/PhonePe: ${upiId}
+1. UPI ID: ${businessUpiId}
+2. Click to pay: ${deepLink}
 
 ✅ After payment, please send payment screenshot here
-⏰ Order valid for 24 hours
+⏰ Order valid for 30 minutes
 
 Your beautiful jewelry will be crafted once payment is confirmed! 💎
 
@@ -271,11 +285,32 @@ _This is an automated message from our jewelry inventory system._`;
   }
 
   /**
+   * Format customer-initiated order message (new flow)
+   * This message is sent by the customer to the business
+   */
+  private static formatCustomerOrderMessage(order: Order): string {
+    const items = order.items.map(item => {
+      const spec = this.getSpecificationDisplay(item);
+      return `• ${item.productSnapshot.name}${spec ? ` (${spec})` : ''} × ${item.quantity}`;
+    }).join('\n');
+
+    return `🛍️ *New Order - ${order.orderCode}*
+
+Hi! Here's my order:
+
+${items}
+
+*Total: ₹${parseFloat(order.totalAmount.toString()).toLocaleString('en-IN')}*
+
+Please confirm and share payment details. Thank you! 🙏`;
+  }
+
+  /**
    * Format status update message for customers
    */
   private static formatStatusMessage(order: Order): string {
     const statusMessages = {
-      pending: '⏳ Your jewelry order has been received and is being reviewed by our team.',
+      payment_pending: '⏳ Your jewelry order has been received and is being reviewed by our team.',
       confirmed: '✅ Your order has been confirmed! We\'re carefully preparing your beautiful jewelry pieces.',
       processing: '🔨 Your jewelry is being crafted with love and attention to detail by our skilled artisans.',
       shipped: '📦 Your jewelry order has been shipped! You\'ll receive tracking details soon. Almost there! ✨',
@@ -289,19 +324,25 @@ _This is an automated message from our jewelry inventory system._`;
     }).join('\n');
 
     const statusEmoji = {
-      pending: '⏳',
+      payment_pending: '⏳',
       confirmed: '✅',
       processing: '🔨',
       shipped: '📦',
       delivered: '🎉',
       cancelled: '❌'
-    };
+    } as const;
 
-    return `${statusEmoji[order.status]} *Order Update - #${order.orderNumber}*
+    type OrderStatus = keyof typeof statusEmoji;
+
+    if (!(order.status in statusEmoji) || !(order.status in statusMessages)) {
+      throw new Error(`Unknown order status: ${order.status}`);
+    }
+
+    return `${statusEmoji[order.status as OrderStatus]} *Order Update - #${order.orderNumber}*
 
 Hi ${order.customerName}! 👋
 
-${statusMessages[order.status]}
+${statusMessages[order.status as OrderStatus]}
 
 *Your Jewelry Order:*
 ${itemsList}
@@ -362,17 +403,17 @@ _Automated order notification from jewelry inventory system_`;
   /**
    * Generate order approval confirmation
    */
-  static generateOrderApprovalMessage(order: Order, paymentQR?: string): string {
+  static generateOrderApprovalMessage(order: Order, paymentDeepLink?: string): string {
     let paymentSection = '';
-    if (paymentQR) {
+    if (paymentDeepLink) {
       paymentSection = `
 
-*💳 Payment QR Code:*
-${paymentQR}
+*💳 Payment Link:*
+${paymentDeepLink}
 
 *Payment Instructions:*
-1. Scan the QR code above
-2. Enter amount: ₹${parseFloat(order.totalAmount.toString()).toLocaleString('en-IN')}
+1. Click the payment link above
+2. Amount will be pre-filled: ₹${parseFloat(order.totalAmount.toString()).toLocaleString('en-IN')}
 3. Complete payment
 4. Send screenshot as confirmation`;
     }
@@ -429,6 +470,28 @@ ${order.customerAddress}
 Your beautiful jewelry pieces are on their way! ✨
 
 _Automated confirmation from jewelry inventory system_`;
+  }
+
+  /**
+   * Generate WhatsApp status update message for admin to send to customer
+   * This is used when admin changes order status and wants to notify customer
+   */
+  static async generateStatusUpdateMessage(order: Order): Promise<{ url: string; message: string }> {
+    const result = await traceWhatsAppOperation('generate_status_message', order.id, async () => {
+      const message = this.formatStatusMessage(order);
+      const encodedMessage = encodeURIComponent(message);
+      const url = `https://wa.me/${order.customerPhone}?text=${encodedMessage}`;
+
+      return { url, message };
+    });
+    return result;
+  }
+
+  /**
+   * Generate WhatsApp URL for status update (legacy - kept for compatibility)
+   */
+  static async generateStatusUpdateURL(order: Order): Promise<{ url: string; message: string }> {
+    return this.generateStatusUpdateMessage(order);
   }
 
   /**

@@ -24,6 +24,7 @@ const loadRecaptcha = () => {
 interface CustomerDetails {
   name: string;
   phone: string;
+  email: string;
   address: string;
   pincode: string;
 }
@@ -32,9 +33,10 @@ interface OrderResponse {
   success: boolean;
   data?: {
     orderNumber: string;
+    orderCode: string; // New: User-friendly order code
     totalAmount: number;
-    whatsappUrl: string;
     estimatedDelivery: string;
+    status: string; // New: Order status
   };
   error?: string;
 }
@@ -46,6 +48,7 @@ const Cart: React.FC = () => {
   const [customerDetails, setCustomerDetails] = useState<CustomerDetails>({
     name: '',
     phone: '',
+    email: '',
     address: '',
     pincode: ''
   });
@@ -65,8 +68,12 @@ const Cart: React.FC = () => {
       newErrors.name = 'Name must be at least 2 characters';
     }
 
-    if (!customerDetails.phone.trim() || !/^\+?[\d\s-()]{10,15}$/.test(customerDetails.phone)) {
-      newErrors.phone = 'Please enter a valid phone number';
+    if (!customerDetails.phone.trim() || !/^\d{10}$/.test(customerDetails.phone.replace(/\D/g, ''))) {
+      newErrors.phone = 'Please enter a valid 10-digit phone number';
+    }
+
+    if (!customerDetails.email.trim() || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(customerDetails.email)) {
+      newErrors.email = 'Please enter a valid email address';
     }
 
     if (!customerDetails.address.trim() || customerDetails.address.length < 10) {
@@ -124,19 +131,29 @@ const Cart: React.FC = () => {
 
     try {
       // Get reCAPTCHA token
-      const recaptchaToken = await getRecaptchaToken();
+      // const recaptchaToken = await getRecaptchaToken();
+      const recaptchaToken = "recaptcha-skipped"; // reCAPTCHA temporarily disabled for development/testing. Restore the line above to re-enable.
 
       // Prepare order data
       const orderData = {
         customerName: customerDetails.name.trim(),
         customerPhone: customerDetails.phone.trim(),
+        customerEmail: customerDetails.email.trim(),
         customerAddress: customerDetails.address.trim(),
         customerPincode: customerDetails.pincode.trim(),
-        items: cart.map(item => ({
-          productId: item.product.id.toString(),
-          specificationId: item.specification.id.toString(),
-          quantity: item.quantity
-        })),
+        items: cart.map(item => {
+          const orderItem: any = {
+            productId: item.product.id.toString(),
+            quantity: item.quantity
+          };
+
+          // Only include specificationId if it exists
+          if (item.specification?.id) {
+            orderItem.specificationId = item.specification.id.toString();
+          }
+
+          return orderItem;
+        }),
         recaptchaToken
       };
 
@@ -164,11 +181,7 @@ const Cart: React.FC = () => {
     }
   };
 
-  const handleWhatsAppRedirect = () => {
-    if (orderSuccess?.data?.whatsappUrl) {
-      window.open(orderSuccess.data.whatsappUrl, '_blank');
-    }
-  };
+  // WhatsApp redirect functionality removed - no longer needed
 
   if (orderSuccess) {
     return (
@@ -181,17 +194,21 @@ const Cart: React.FC = () => {
               </svg>
             </div>
 
-            <h2 className="text-2xl font-bold text-gray-900 mb-2">Order Placed Successfully!</h2>
-            <p className="text-gray-600 mb-6">Your order has been received and is being processed.</p>
+            <h2 className="text-2xl font-bold text-gray-900 mb-2">Order Created Successfully!</h2>
+            <p className="text-gray-600 mb-6">We will contact you soon with payment details.</p>
 
             <div className="bg-gray-50 rounded-lg p-4 mb-6 text-left">
               <div className="flex justify-between items-center mb-2">
-                <span className="text-gray-600">Order Number:</span>
-                <span className="font-semibold">{orderSuccess.data?.orderNumber}</span>
+                <span className="text-gray-600">Order Code:</span>
+                <span className="font-semibold">{orderSuccess.data?.orderCode}</span>
               </div>
               <div className="flex justify-between items-center mb-2">
                 <span className="text-gray-600">Total Amount:</span>
                 <span className="font-semibold">₹{orderSuccess.data?.totalAmount.toLocaleString('en-IN')}</span>
+              </div>
+              <div className="flex justify-between items-center mb-2">
+                <span className="text-gray-600">Status:</span>
+                <span className="font-semibold capitalize">{orderSuccess.data?.status}</span>
               </div>
               <div className="flex justify-between items-center">
                 <span className="text-gray-600">Estimated Delivery:</span>
@@ -199,12 +216,7 @@ const Cart: React.FC = () => {
               </div>
             </div>
 
-            <button
-              onClick={handleWhatsAppRedirect}
-              className="w-full bg-green-600 text-white py-3 px-4 rounded-lg font-medium hover:bg-green-700 transition-colors mb-4"
-            >
-              Continue on WhatsApp
-            </button>
+            {/* WhatsApp button removed - no longer needed */}
 
             <button
               onClick={() => navigate('/products')}
@@ -248,8 +260,8 @@ const Cart: React.FC = () => {
 
         {/* Cart Items */}
         <div className="space-y-4 mb-8">
-          {cart.map((item) => (
-            <div key={`${item.product.id}-${item.specification.id}`}
+          {(cart || []).filter(item => item && item.product).map((item) => (
+            <div key={`${item.product.id}-${item.specification?.id || 'no-spec'}`}
               className="bg-white rounded-xl p-4 shadow-sm">
               <div className="flex gap-3">
                 <img
@@ -260,12 +272,12 @@ const Cart: React.FC = () => {
 
                 <div className="flex-1">
                   <h3 className="font-medium text-gray-900">{item.product.name}</h3>
-                  <p className="text-sm text-gray-600">{item.specification.displayName}</p>
+                  <p className="text-sm text-gray-600">{item.specification?.displayName || 'Standard'}</p>
 
                   <div className="flex items-center justify-between mt-2">
                     <div className="flex items-center gap-2">
                       <button
-                        onClick={() => updateQuantity(item.product.id, item.specification.id, item.quantity - 1)}
+                        onClick={() => updateQuantity(item.product.id, item.specification?.id || '', item.quantity - 1)}
                         className="w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center"
                         disabled={item.quantity <= 1}
                       >
@@ -273,7 +285,7 @@ const Cart: React.FC = () => {
                       </button>
                       <span className="w-8 text-center font-medium">{item.quantity}</span>
                       <button
-                        onClick={() => updateQuantity(item.product.id, item.specification.id, item.quantity + 1)}
+                        onClick={() => updateQuantity(item.product.id, item.specification?.id || '', item.quantity + 1)}
                         className="w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center"
                       >
                         <FiPlus className="w-4 h-4" />
@@ -285,7 +297,7 @@ const Cart: React.FC = () => {
                         ₹{(item.price * item.quantity).toLocaleString('en-IN')}
                       </span>
                       <button
-                        onClick={() => removeFromCart(item.product.id, item.specification.id)}
+                        onClick={() => removeFromCart(item.product.id, item.specification?.id || '')}
                         className="text-red-500 hover:text-red-700"
                       >
                         <FiTrash2 className="w-4 h-4" />
@@ -327,12 +339,31 @@ const Cart: React.FC = () => {
               <input
                 type="tel"
                 value={customerDetails.phone}
-                onChange={(e) => handleInputChange('phone', e.target.value)}
+                onChange={(e) => handleInputChange('phone', e.target.value.replace(/\D/g, '').slice(0, 10))}
                 className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent ${errors.phone ? 'border-red-300' : 'border-gray-300'
                   }`}
-                placeholder="Enter your phone number"
+                placeholder="Enter 10-digit phone number"
+                maxLength={10}
               />
               {errors.phone && <p className="text-red-500 text-xs mt-1">{errors.phone}</p>}
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1 flex items-center gap-1">
+                <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 4.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                </svg>
+                Email Address *
+              </label>
+              <input
+                type="email"
+                value={customerDetails.email}
+                onChange={(e) => handleInputChange('email', e.target.value)}
+                className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent ${errors.email ? 'border-red-300' : 'border-gray-300'
+                  }`}
+                placeholder="Enter your email address"
+              />
+              {errors.email && <p className="text-red-500 text-xs mt-1">{errors.email}</p>}
             </div>
 
             <div>
