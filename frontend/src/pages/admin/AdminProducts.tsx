@@ -417,76 +417,76 @@ const AdminProducts: React.FC = () => {
 
       {/* Enhanced Product Stats */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-        <Card className="bg-gradient-to-br from-blue-50 to-blue-100 border-blue-200 p-6">
+        <Card className="bg-brand-bg border-brand-border p-6">
           <div className="flex items-center justify-between mb-4">
-            <div className="p-3 bg-blue-500 rounded-2xl">
+            <div className="p-3 bg-brand-primary rounded-2xl">
               <Package className="h-6 w-6 text-white" />
             </div>
             <div className="text-right">
-              <div className="text-3xl font-bold text-blue-900">{totalInventory}</div>
-              <div className="text-xs text-blue-600 font-medium">Products</div>
+              <div className="text-3xl font-bold text-brand-primary">{totalInventory}</div>
+              <div className="text-xs text-brand-medium font-medium">Products</div>
             </div>
           </div>
           <div>
-            <h3 className="text-sm font-semibold text-blue-700 mb-1">Total Inventory</h3>
-            <p className="text-xs text-blue-600 flex items-center">
+            <h3 className="text-sm font-semibold text-brand-shade mb-1">Total Inventory</h3>
+            <p className="text-xs text-brand-medium flex items-center">
               <TrendingUp className="w-3 h-3 mr-1" />
               Active products
             </p>
           </div>
         </Card>
 
-        <Card className="bg-gradient-to-br from-green-50 to-green-100 border-green-200 p-6">
+        <Card className="bg-brand-bg border-brand-border p-6">
           <div className="flex items-center justify-between mb-4">
-            <div className="p-3 bg-green-500 rounded-2xl">
+            <div className="p-3 bg-brand-primary rounded-2xl">
               <ShoppingBag className="h-6 w-6 text-white" />
             </div>
             <div className="text-right">
-              <div className="text-3xl font-bold text-green-900">{inStockProducts}</div>
-              <div className="text-xs text-green-600 font-medium">Available</div>
+              <div className="text-3xl font-bold text-brand-primary">{inStockProducts}</div>
+              <div className="text-xs text-brand-medium font-medium">Available</div>
             </div>
           </div>
           <div>
-            <h3 className="text-sm font-semibold text-green-700 mb-1">Available Stock</h3>
-            <p className="text-xs text-green-600 flex items-center">
+            <h3 className="text-sm font-semibold text-brand-shade mb-1">Available Stock</h3>
+            <p className="text-xs text-brand-medium flex items-center">
               <TrendingUp className="w-3 h-3 mr-1" />
               Ready for sale ({totalInventory > 0 ? ((inStockProducts / totalInventory) * 100).toFixed(0) : 0}%)
             </p>
           </div>
         </Card>
 
-        <Card className="bg-gradient-to-br from-red-50 to-red-100 border-red-200 p-6">
+        <Card className="bg-brand-bg border-brand-border p-6">
           <div className="flex items-center justify-between mb-4">
-            <div className="p-3 bg-red-500 rounded-2xl">
+            <div className="p-3 bg-brand-primary rounded-2xl">
               <AlertTriangle className="h-6 w-6 text-white" />
             </div>
             <div className="text-right">
-              <div className="text-3xl font-bold text-red-900">{outOfStockProducts}</div>
-              <div className="text-xs text-red-600 font-medium">Out of Stock</div>
+              <div className="text-3xl font-bold text-brand-primary">{outOfStockProducts}</div>
+              <div className="text-xs text-brand-medium font-medium">Out of Stock</div>
             </div>
           </div>
           <div>
-            <h3 className="text-sm font-semibold text-red-700 mb-1">Needs Attention</h3>
-            <p className="text-xs text-red-600 flex items-center">
+            <h3 className="text-sm font-semibold text-brand-shade mb-1">Needs Attention</h3>
+            <p className="text-xs text-brand-medium flex items-center">
               <AlertTriangle className="w-3 h-3 mr-1" />
               Requires restocking
             </p>
           </div>
         </Card>
 
-        <Card className="bg-gradient-to-br from-purple-50 to-purple-100 border-purple-200 p-6">
+        <Card className="bg-brand-bg border-brand-border p-6">
           <div className="flex items-center justify-between mb-4">
-            <div className="p-3 bg-purple-500 rounded-2xl">
+            <div className="p-3 bg-brand-primary rounded-2xl">
               <TrendingUp className="h-6 w-6 text-white" />
             </div>
             <div className="text-right">
-              <div className="text-3xl font-bold text-purple-900">₹{(avgPrice / 1000).toFixed(0)}K</div>
-              <div className="text-xs text-purple-600 font-medium">Avg Price</div>
+              <div className="text-3xl font-bold text-brand-primary">₹{(avgPrice / 1000).toFixed(0)}K</div>
+              <div className="text-xs text-brand-medium font-medium">Avg Price</div>
             </div>
           </div>
           <div>
-            <h3 className="text-sm font-semibold text-purple-700 mb-1">Average Price</h3>
-            <p className="text-xs text-purple-600 flex items-center">
+            <h3 className="text-sm font-semibold text-brand-shade mb-1">Average Price</h3>
+            <p className="text-xs text-brand-medium flex items-center">
               <TrendingUp className="w-3 h-3 mr-1" />
               Per product value
             </p>

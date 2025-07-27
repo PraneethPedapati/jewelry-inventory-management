@@ -15,9 +15,9 @@ export const Badge: React.FC<BadgeProps> = ({
 
   const variantClasses = {
     default: 'border-transparent bg-primary text-white hover:bg-primary/80',
-    secondary: 'border-transparent bg-secondary text-white hover:bg-secondary/80',
+    secondary: 'border-transparent bg-brand-shade text-white hover:bg-brand-medium',
     destructive: 'border-transparent bg-destructive text-destructive-foreground hover:bg-destructive/80',
-    outline: 'text-foreground border-border'
+    outline: 'text-foreground border-brand-border'
   };
 
   const classes = `${baseClasses} ${variantClasses[variant]} ${className}`;

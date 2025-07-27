@@ -21,11 +21,6 @@ export const MonthlyRevenueWidget: React.FC<MonthlyRevenueWidgetProps> = ({
       subtitle="This Month"
       loading={loading}
       icon={DollarSign}
-      bgGradient="bg-gradient-to-br from-teal-50 to-teal-100 border-teal-200"
-      iconBg="bg-teal-500"
-      textColor="text-teal-900"
-      subtitleColor="text-teal-700"
-      changeColor="text-teal-600"
     />
   );
 }; 

@@ -6,9 +6,15 @@ import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { toast } from 'sonner';
 import ConfirmationDialog from '@/components/ui/confirmation-dialog';
-import { orderService, type Order } from '@/services/api';
+import { orderService, dashboardService, type Order, type DashboardWidgets } from '@/services/api';
 import { env } from '@/config/env';
 import { useDocumentTitle } from '@/hooks/useDocumentTitle';
+import {
+  MonthlyOrdersWidget,
+  PendingOrdersWidget,
+  StaleDataWidget,
+  OverallAOVWidget
+} from '@/components/admin/widgets';
 
 // OrderModalProps interface removed - no longer needed
 
@@ -29,6 +35,10 @@ const AdminOrders: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [updating, setUpdating] = useState(false);
   const [exporting, setExporting] = useState(false);
+
+  // Widgets state
+  const [widgetsData, setWidgetsData] = useState<DashboardWidgets | null>(null);
+  const [widgetsLoading, setWidgetsLoading] = useState(true);
 
   // Pagination state
   const [totalPages, setTotalPages] = useState(1);
@@ -70,10 +80,30 @@ const AdminOrders: React.FC = () => {
     }
   };
 
+  // Load widgets data from API
+  const loadWidgetsData = async () => {
+    try {
+      setWidgetsLoading(true);
+      const data = await dashboardService.getWidgets();
+      setWidgetsData(data);
+    } catch (error) {
+      console.error('Failed to load widgets data:', error);
+      toast.error('Failed to load order statistics. Please try again.');
+      setWidgetsData(null);
+    } finally {
+      setWidgetsLoading(false);
+    }
+  };
+
   // Load orders on component mount and when filters change
   useEffect(() => {
     loadOrders();
   }, [searchTerm, filterStatus, currentPage]);
+
+  // Load widgets data on component mount
+  useEffect(() => {
+    loadWidgetsData();
+  }, []);
 
   // Reset to first page when filters change
   useEffect(() => {
@@ -311,6 +341,26 @@ const AdminOrders: React.FC = () => {
             Export Orders
           </Button>
         </div>
+      </div>
+
+      {/* Order Statistics Widgets */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+        <MonthlyOrdersWidget
+          value={widgetsData?.monthlyOrders || 0}
+          loading={widgetsLoading}
+        />
+        <PendingOrdersWidget
+          value={widgetsData?.pendingOrders || 0}
+          loading={widgetsLoading}
+        />
+        <StaleDataWidget
+          value={widgetsData?.staleData || 0}
+          loading={widgetsLoading}
+        />
+        <OverallAOVWidget
+          value={widgetsData?.averageOrderValue || { aov: 0, formatted: '₹0.00' }}
+          loading={widgetsLoading}
+        />
       </div>
 
       {/* Search and Filter Bar */}

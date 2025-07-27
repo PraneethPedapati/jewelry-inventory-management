@@ -16,10 +16,10 @@ export const ExpenseBreakdownWidget: React.FC<ExpenseBreakdownWidgetProps> = ({
 
   if (loading) {
     return (
-      <Card>
+      <Card className="bg-brand-bg border-brand-border">
         <CardHeader>
-          <CardTitle>Expense Breakdown</CardTitle>
-          <CardDescription>Distribution of expenses by category</CardDescription>
+          <CardTitle className="text-brand-primary">Expense Breakdown</CardTitle>
+          <CardDescription className="text-brand-medium">Distribution of expenses by category</CardDescription>
         </CardHeader>
         <CardContent>
           <div className="space-y-4">
@@ -36,24 +36,24 @@ export const ExpenseBreakdownWidget: React.FC<ExpenseBreakdownWidgetProps> = ({
   }
 
   return (
-    <Card>
+    <Card className="bg-brand-bg border-brand-border">
       <CardHeader>
-        <CardTitle>Expense Breakdown</CardTitle>
-        <CardDescription>Distribution of expenses by category</CardDescription>
+        <CardTitle className="text-brand-primary">Expense Breakdown</CardTitle>
+        <CardDescription className="text-brand-medium">Distribution of expenses by category</CardDescription>
       </CardHeader>
       <CardContent>
         <div className="space-y-4">
           {value?.map((category, index) => (
             <div key={index} className="space-y-2">
               <div className="flex justify-between text-sm">
-                <span className="font-medium">{category.category}</span>
-                <span className="text-muted-foreground">
+                <span className="font-medium text-brand-primary">{category.category}</span>
+                <span className="text-brand-medium">
                   {formatCurrency(category.amount)} ({category.percentage}%)
                 </span>
               </div>
-              <div className="w-full bg-muted rounded-full h-2">
+              <div className="w-full bg-brand-lighter rounded-full h-2">
                 <div
-                  className="bg-primary h-2 rounded-full transition-all duration-300"
+                  className="bg-brand-primary h-2 rounded-full transition-all duration-300"
                   style={{ width: `${category.percentage}%` }}
                 />
               </div>

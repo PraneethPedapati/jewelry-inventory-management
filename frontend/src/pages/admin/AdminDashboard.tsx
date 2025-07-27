@@ -8,11 +8,7 @@ import { useDocumentTitle } from '@/hooks/useDocumentTitle';
 import {
   OverallRevenueWidget,
   MonthlyRevenueWidget,
-  MonthlyOrdersWidget,
   NetProfitWidget,
-  PendingOrdersWidget,
-  StaleDataWidget,
-  OverallAOVWidget,
   RevenueGrowthWidget,
   ExpenseBreakdownWidget,
   TopSellingProductsWidget
@@ -126,28 +122,8 @@ const AdminDashboard: React.FC = () => {
           value={widgetsData.monthlyRevenue}
           loading={loading}
         />
-        <MonthlyOrdersWidget
-          value={widgetsData.monthlyOrders}
-          loading={loading}
-        />
         <NetProfitWidget
           value={widgetsData.netProfit}
-          loading={loading}
-        />
-      </div>
-
-      {/* Row 2 - Operational Metrics (4 widgets) */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        <PendingOrdersWidget
-          value={widgetsData.pendingOrders}
-          loading={loading}
-        />
-        <StaleDataWidget
-          value={widgetsData.staleData}
-          loading={loading}
-        />
-        <OverallAOVWidget
-          value={widgetsData.averageOrderValue}
           loading={loading}
         />
         <RevenueGrowthWidget
@@ -156,19 +132,22 @@ const AdminDashboard: React.FC = () => {
         />
       </div>
 
-      {/* Row 3 - Detailed Analysis (2 widgets) */}
+      {/* Row 2 - Business Metrics (2 widgets sharing space equally) */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <ExpenseBreakdownWidget
-          value={widgetsData.expenseBreakdown}
-          loading={loading}
-        />
         <TopSellingProductsWidget
           value={widgetsData.topSellingProducts}
           loading={loading}
         />
+        <ExpenseBreakdownWidget
+          value={widgetsData.expenseBreakdown}
+          loading={loading}
+        />
       </div>
+
+
     </div>
   );
 };
 
-export default AdminDashboard; 
+export default AdminDashboard;
+

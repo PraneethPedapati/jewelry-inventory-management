@@ -21,11 +21,6 @@ export const NetProfitWidget: React.FC<NetProfitWidgetProps> = ({
       subtitle="All-time Profit"
       loading={loading}
       icon={TrendingUp}
-      bgGradient="bg-gradient-to-br from-blue-50 to-blue-100 border-blue-200"
-      iconBg="bg-blue-500"
-      textColor="text-blue-900"
-      subtitleColor="text-blue-700"
-      changeColor="text-blue-600"
     />
   );
 }; 

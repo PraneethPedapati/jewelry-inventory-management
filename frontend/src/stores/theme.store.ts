@@ -55,26 +55,26 @@ interface ThemeState {
   deleteTheme: (id: string) => Promise<void>;
 }
 
-// Default theme colors (jewelry store appropriate)
+// Default theme colors (monochromatic jewelry store theme)
 const defaultTheme: ColorTheme = {
   id: 'default',
   name: 'default',
   displayName: 'Default Jewelry Theme',
   isActive: true,
   isDefault: true,
-      colors: {
-      primary: '#6c3158',      // Dark magenta - updated color
-      secondary: '#F59E0B',    // Gold accent
-      accent: '#EC4899',       // Pink accent for feminine touch
-      background: '#FFFFFF',   // Clean white background
-      foreground: '#1F2937',   // Dark gray text
-      card: '#F9FAFB',        // Light gray cards
-      cardForeground: '#111827', // Dark card text
-      border: '#E5E7EB',      // Light borders
-      input: '#FFFFFF',       // White inputs
-      ring: '#6c3158',        // Focus ring matches primary
-    muted: '#F3F4F6',       // Muted backgrounds
-    mutedForeground: '#6B7280', // Muted text
+  colors: {
+    primary: '#6c3158',      // Deep elegant magenta - primary brand color
+    secondary: '#854b70',    // Primary shade - replaces gold secondary
+    accent: '#a0668a',       // Medium shade - for accents
+    background: '#FFFFFF',   // Pure white background
+    foreground: '#6c3158',   // Primary color for text
+    card: '#fbf7fa',        // Widget background - very light tint of primary
+    cardForeground: '#6c3158', // Primary color for card text
+    border: '#e4d9e0',      // Widget border - muted magenta-gray
+    input: '#FFFFFF',       // White inputs
+    ring: '#6c3158',        // Focus ring matches primary
+    muted: '#f0bcd9',       // Lightest accent for muted backgrounds
+    mutedForeground: '#a0668a', // Medium shade for muted text
     destructive: '#EF4444',  // Red for destructive actions
     destructiveForeground: '#FFFFFF', // White text on red
     success: '#10B981',      // Green for success
@@ -82,10 +82,10 @@ const defaultTheme: ColorTheme = {
     warning: '#F59E0B',      // Amber for warnings
     warningForeground: '#FFFFFF', // White text on amber
   },
-  description: 'Default elegant theme for jewelry store'
+  description: 'Sophisticated monochromatic theme for jewelry store'
 };
 
-// Seasonal theme examples
+// Seasonal theme examples (maintaining monochromatic approach)
 const seasonalThemes: ColorTheme[] = [
   {
     id: 'valentine',
@@ -96,10 +96,14 @@ const seasonalThemes: ColorTheme[] = [
     colors: {
       ...defaultTheme.colors,
       primary: '#EC4899',      // Pink primary
-      secondary: '#DC2626',    // Red secondary
-      accent: '#F97316',       // Orange accent
+      secondary: '#F472B6',    // Pink shade
+      accent: '#F9A8D4',       // Pink medium
+      card: '#fdf2f8',        // Light pink background
+      border: '#fbcfe8',      // Pink border
+      muted: '#fce7f3',       // Light pink muted
+      mutedForeground: '#F472B6', // Pink muted text
     },
-    description: 'Romantic theme for Valentine\'s Day collection'
+    description: 'Romantic monochromatic theme for Valentine\'s Day collection'
   },
   {
     id: 'summer',
@@ -110,10 +114,14 @@ const seasonalThemes: ColorTheme[] = [
     colors: {
       ...defaultTheme.colors,
       primary: '#06B6D4',      // Cyan primary
-      secondary: '#F59E0B',    // Gold secondary
-      accent: '#84CC16',       // Lime accent
+      secondary: '#22D3EE',    // Cyan shade
+      accent: '#67E8F9',       // Cyan medium
+      card: '#f0fdfa',        // Light cyan background
+      border: '#a5f3fc',      // Cyan border
+      muted: '#ccfbf1',       // Light cyan muted
+      mutedForeground: '#22D3EE', // Cyan muted text
     },
-    description: 'Bright and vibrant theme for summer collection'
+    description: 'Bright monochromatic theme for summer collection'
   },
   {
     id: 'luxury',
@@ -124,11 +132,14 @@ const seasonalThemes: ColorTheme[] = [
     colors: {
       ...defaultTheme.colors,
       primary: '#1F2937',      // Dark gray primary
-      secondary: '#F59E0B',    // Gold secondary
-      accent: '#8B5CF6',       // Purple accent
-      background: '#FAFAFA',   // Off-white background
+      secondary: '#374151',    // Gray shade
+      accent: '#4B5563',       // Gray medium
+      card: '#f9fafb',        // Light gray background
+      border: '#d1d5db',      // Gray border
+      muted: '#f3f4f6',       // Light gray muted
+      mutedForeground: '#374151', // Gray muted text
     },
-    description: 'Sophisticated theme for luxury jewelry pieces'
+    description: 'Sophisticated monochromatic theme for luxury jewelry pieces'
   }
 ];
 

@@ -21,11 +21,6 @@ export const OverallAOVWidget: React.FC<OverallAOVWidgetProps> = ({
       subtitle="All-time Average"
       loading={loading}
       icon={BarChart3}
-      bgGradient="bg-gradient-to-br from-purple-50 to-purple-100 border-purple-200"
-      iconBg="bg-purple-500"
-      textColor="text-purple-900"
-      subtitleColor="text-purple-700"
-      changeColor="text-purple-600"
     />
   );
 }; 

@@ -21,11 +21,6 @@ export const OverallRevenueWidget: React.FC<OverallRevenueWidgetProps> = ({
       subtitle="All-time Total"
       loading={loading}
       icon={DollarSign}
-      bgGradient="bg-gradient-to-br from-emerald-50 to-emerald-100 border-emerald-200"
-      iconBg="bg-emerald-500"
-      textColor="text-emerald-900"
-      subtitleColor="text-emerald-700"
-      changeColor="text-emerald-600"
     />
   );
 }; 

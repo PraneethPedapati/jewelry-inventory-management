@@ -224,76 +224,76 @@ const AdminExpenses: React.FC = () => {
 
       {/* Enhanced Expense Stats */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-5 mb-8">
-        <Card className="bg-gradient-to-br from-red-50 to-red-100 border-red-200 p-5">
+        <Card className="bg-brand-bg border-brand-border p-5">
           <div className="flex items-center justify-between mb-4">
-            <div className="p-2 bg-red-500 rounded-xl">
+            <div className="p-2 bg-brand-primary rounded-xl">
               <Receipt className="h-5 w-5 text-white" />
             </div>
             <div className="text-right">
-              <div className="text-2xl font-bold text-red-900">₹{(totalAmount / 1000).toFixed(0)}K</div>
-              <div className="text-xs text-red-600 font-medium">Total</div>
+              <div className="text-2xl font-bold text-brand-primary">₹{(totalAmount / 1000).toFixed(0)}K</div>
+              <div className="text-xs text-brand-medium font-medium">Total</div>
             </div>
           </div>
           <div>
-            <h3 className="text-sm font-semibold text-red-700 mb-1">Total Expenses</h3>
-            <p className="text-xs text-red-600 flex items-center">
+            <h3 className="text-sm font-semibold text-brand-shade mb-1">Total Expenses</h3>
+            <p className="text-xs text-brand-medium flex items-center">
               <TrendingUp className="w-3 h-3 mr-1" />
               {expenses.length} transactions
             </p>
           </div>
         </Card>
 
-        <Card className="bg-gradient-to-br from-blue-50 to-blue-100 border-blue-200 p-5">
+        <Card className="bg-brand-bg border-brand-border p-5">
           <div className="flex items-center justify-between mb-4">
-            <div className="p-2 bg-blue-500 rounded-xl">
+            <div className="p-2 bg-brand-primary rounded-xl">
               <DollarSign className="h-5 w-5 text-white" />
             </div>
             <div className="text-right">
-              <div className="text-2xl font-bold text-blue-900">₹{(avgExpense / 1000).toFixed(0)}K</div>
-              <div className="text-xs text-blue-600 font-medium">Average</div>
+              <div className="text-2xl font-bold text-brand-primary">₹{(avgExpense / 1000).toFixed(0)}K</div>
+              <div className="text-xs text-brand-medium font-medium">Average</div>
             </div>
           </div>
           <div>
-            <h3 className="text-sm font-semibold text-blue-700 mb-1">Average Expense</h3>
-            <p className="text-xs text-blue-600 flex items-center">
+            <h3 className="text-sm font-semibold text-brand-shade mb-1">Average Expense</h3>
+            <p className="text-xs text-brand-medium flex items-center">
               <TrendingUp className="w-3 h-3 mr-1" />
               Per transaction
             </p>
           </div>
         </Card>
 
-        <Card className="bg-gradient-to-br from-green-50 to-green-100 border-green-200 p-5">
+        <Card className="bg-brand-bg border-brand-border p-5">
           <div className="flex items-center justify-between mb-4">
-            <div className="p-2 bg-green-500 rounded-xl">
+            <div className="p-2 bg-brand-primary rounded-xl">
               <Calendar className="h-5 w-5 text-white" />
             </div>
             <div className="text-right">
-              <div className="text-2xl font-bold text-green-900">{expenses.length}</div>
-              <div className="text-xs text-green-600 font-medium">This Period</div>
+              <div className="text-2xl font-bold text-brand-primary">{expenses.length}</div>
+              <div className="text-xs text-brand-medium font-medium">This Period</div>
             </div>
           </div>
           <div>
-            <h3 className="text-sm font-semibold text-green-700 mb-1">Total Transactions</h3>
-            <p className="text-xs text-green-600 flex items-center">
+            <h3 className="text-sm font-semibold text-brand-shade mb-1">Total Transactions</h3>
+            <p className="text-xs text-brand-medium flex items-center">
               <TrendingUp className="w-3 h-3 mr-1" />
               Current period
             </p>
           </div>
         </Card>
 
-        <Card className="bg-gradient-to-br from-purple-50 to-purple-100 border-purple-200 p-5">
+        <Card className="bg-brand-bg border-brand-border p-5">
           <div className="flex items-center justify-between mb-4">
-            <div className="p-2 bg-purple-500 rounded-xl">
+            <div className="p-2 bg-brand-primary rounded-xl">
               <TrendingUp className="h-5 w-5 text-white" />
             </div>
             <div className="text-right">
-              <div className="text-2xl font-bold text-purple-900">{categoriesWithExpenses}</div>
-              <div className="text-xs text-purple-600 font-medium">Categories</div>
+              <div className="text-2xl font-bold text-brand-primary">{categoriesWithExpenses}</div>
+              <div className="text-xs text-brand-medium font-medium">Categories</div>
             </div>
           </div>
           <div>
-            <h3 className="text-sm font-semibold text-purple-700 mb-1">Categories Used</h3>
-            <p className="text-xs text-purple-600 flex items-center">
+            <h3 className="text-sm font-semibold text-brand-shade mb-1">Categories Used</h3>
+            <p className="text-xs text-brand-medium flex items-center">
               <TrendingUp className="w-3 h-3 mr-1" />
               With expenses
             </p>

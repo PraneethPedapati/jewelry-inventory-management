@@ -33,11 +33,11 @@ export const WidgetCard: React.FC<BaseWidgetProps> = ({
   icon: Icon,
   className,
   children,
-  bgGradient = "bg-gradient-to-br from-blue-50 to-blue-100 border-blue-200",
-  iconBg = "bg-blue-500",
-  textColor = "text-blue-900",
-  subtitleColor = "text-blue-700",
-  changeColor = "text-blue-600"
+  bgGradient = "bg-brand-bg border-brand-border",
+  iconBg = "bg-brand-primary",
+  textColor = "text-brand-primary",
+  subtitleColor = "text-brand-shade",
+  changeColor = "text-brand-medium"
 }) => {
   const getTrendIcon = () => {
     if (trend === 'up') {

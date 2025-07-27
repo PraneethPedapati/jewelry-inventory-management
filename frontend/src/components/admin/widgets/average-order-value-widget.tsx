@@ -21,11 +21,6 @@ export const AOVWidget: React.FC<AOVWidgetProps> = ({
       subtitle="This Month"
       loading={loading}
       icon={BarChart3}
-      bgGradient="bg-gradient-to-br from-blue-50 to-blue-100 border-blue-200"
-      iconBg="bg-blue-500"
-      textColor="text-blue-900"
-      subtitleColor="text-blue-700"
-      changeColor="text-blue-600"
     />
   );
 }; 

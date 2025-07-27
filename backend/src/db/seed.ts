@@ -83,27 +83,27 @@ const seedDatabase = async (): Promise<void> => {
       throw new Error('Failed to create admin user');
     }
 
-    // 2. Create color themes
-    console.log('🎨 Creating color themes...');
+    // 2. Create monochromatic color theme
+    console.log('🎨 Creating monochromatic color theme...');
     await db.insert(colorThemes).values([
       {
         name: 'default',
-        displayName: 'Default Jewelry Theme',
+        displayName: 'Sophisticated Monochromatic Theme',
         isActive: true,
         isDefault: true,
         colors: {
           primary: '#6c3158',
-          secondary: '#F59E0B',
-          accent: '#EC4899',
+          secondary: '#854b70',
+          accent: '#a0668a',
           background: '#FFFFFF',
-          foreground: '#1F2937',
-          card: '#F9FAFB',
-          cardForeground: '#111827',
-          border: '#E5E7EB',
+          foreground: '#6c3158',
+          card: '#fbf7fa',
+          cardForeground: '#6c3158',
+          border: '#e4d9e0',
           input: '#FFFFFF',
           ring: '#6c3158',
-          muted: '#F3F4F6',
-          mutedForeground: '#6B7280',
+          muted: '#f0bcd9',
+          mutedForeground: '#a0668a',
           destructive: '#EF4444',
           destructiveForeground: '#FFFFFF',
           success: '#10B981',
@@ -111,61 +111,7 @@ const seedDatabase = async (): Promise<void> => {
           warning: '#F59E0B',
           warningForeground: '#FFFFFF'
         },
-        description: 'Default elegant theme for jewelry store'
-      },
-      {
-        name: 'valentine',
-        displayName: 'Valentine\'s Collection',
-        isActive: false,
-        isDefault: false,
-        colors: {
-          primary: '#EC4899',
-          secondary: '#DC2626',
-          accent: '#F97316',
-          background: '#FDF2F8',
-          foreground: '#1F2937',
-          card: '#FCE7F3',
-          cardForeground: '#111827',
-          border: '#F9A8D4',
-          input: '#FFFFFF',
-          ring: '#EC4899',
-          muted: '#FDF2F8',
-          mutedForeground: '#6B7280',
-          destructive: '#EF4444',
-          destructiveForeground: '#FFFFFF',
-          success: '#10B981',
-          successForeground: '#FFFFFF',
-          warning: '#F59E0B',
-          warningForeground: '#FFFFFF'
-        },
-        description: 'Romantic theme for Valentine\'s Day collection'
-      },
-      {
-        name: 'luxury',
-        displayName: 'Luxury Collection',
-        isActive: false,
-        isDefault: false,
-        colors: {
-          primary: '#1F2937',
-          secondary: '#F59E0B',
-          accent: '#8B5CF6',
-          background: '#FAFAFA',
-          foreground: '#111827',
-          card: '#F8FAFC',
-          cardForeground: '#0F172A',
-          border: '#CBD5E1',
-          input: '#FFFFFF',
-          ring: '#1F2937',
-          muted: '#F1F5F9',
-          mutedForeground: '#64748B',
-          destructive: '#EF4444',
-          destructiveForeground: '#FFFFFF',
-          success: '#10B981',
-          successForeground: '#FFFFFF',
-          warning: '#F59E0B',
-          warningForeground: '#FFFFFF'
-        },
-        description: 'Sophisticated theme for luxury jewelry pieces'
+        description: 'Sophisticated monochromatic theme for jewelry store - elegant deep magenta with tonal variations'
       }
     ]);
 
@@ -1010,7 +956,7 @@ const seedDatabase = async (): Promise<void> => {
     console.log(`
 📊 Summary:
 - ✅ Admin user created (admin@jewelrystore.com / admin123!@#)
-- ✅ 3 color themes configured
+- ✅ 1 monochromatic color theme configured with brand palette
 - ✅ Product code sequences initialized (chain, bracelet-anklet)
 - ✅ ${sampleProducts.length} comprehensive products (15 chains + 10 bracelets/anklets)
 - ✅ ${sampleOrders.length} realistic orders with varied statuses
