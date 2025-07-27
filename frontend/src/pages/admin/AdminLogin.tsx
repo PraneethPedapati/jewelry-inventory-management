@@ -60,19 +60,8 @@ const AdminLogin: React.FC<AdminLoginProps> = ({ onLogin }) => {
       navigate('/admin/dashboard');
     } catch (error: any) {
       console.error('Login failed:', error);
-
-      // Handle different error types
-      if (error.response?.status === 401) {
-        setError('Invalid email or password. Please try again.');
-      } else if (error.response?.status === 429) {
-        setError('Too many login attempts. Please try again later.');
-      } else if (error.code === 'ECONNABORTED' || !error.response) {
-        setError('Connection failed. Please check your internet connection.');
-      } else {
-        setError('Login failed. Please try again.');
-      }
-
-      toast.error('Login failed. Please check your credentials.');
+      // Error handling is now done in the API service with toast notifications
+      setError('Login failed. Please check your credentials and try again.');
     } finally {
       setIsLoading(false);
     }

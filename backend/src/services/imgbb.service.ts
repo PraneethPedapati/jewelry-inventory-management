@@ -103,4 +103,42 @@ export class ImgBBService {
       return false;
     }
   }
+
+  /**
+   * Extract image ID from ImgBB URL and construct delete URL
+   */
+  static extractImageIdFromUrl(imageUrl: string): string | null {
+    // ImgBB URLs typically follow: https://i.ibb.co/XXXXX/filename.jpg
+    const urlMatch = imageUrl.match(/https:\/\/i\.ibb\.co\/([a-zA-Z0-9]+)\//);
+    return urlMatch ? urlMatch[1] : null;
+  }
+
+  /**
+   * Delete multiple images from ImgBB using their URLs
+   */
+  static async deleteMultipleImages(imageUrls: string[]): Promise<{ success: boolean; imageId: string | null; error?: string }[]> {
+    const results = await Promise.all(
+      imageUrls.map(async (imageUrl) => {
+        try {
+          const imageId = this.extractImageIdFromUrl(imageUrl);
+          if (!imageId) {
+            return { success: false, imageId: null, error: 'Could not extract image ID from URL' };
+          }
+
+          const deleteUrl = `https://ibb.co/delete/${imageId}`;
+          const success = await this.deleteImage(deleteUrl);
+
+          return { success, imageId };
+        } catch (error) {
+          return {
+            success: false,
+            imageId: null,
+            error: error instanceof Error ? error.message : 'Unknown error'
+          };
+        }
+      })
+    );
+
+    return results;
+  }
 } 

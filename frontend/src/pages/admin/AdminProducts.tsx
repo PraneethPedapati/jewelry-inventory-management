@@ -31,6 +31,7 @@ const AdminProducts: React.FC = () => {
   const [creating, setCreating] = useState(false);
   const [updating, setUpdating] = useState(false);
   const [deleting, setDeleting] = useState(false);
+  const [uploading, setUploading] = useState(false);
 
   // Filter state
   const [searchTerm, setSearchTerm] = useState('');
@@ -53,8 +54,8 @@ const AdminProducts: React.FC = () => {
     try {
       // Use dedicated stats endpoint for accurate counts
       const stats = await productService.getProductStats();
-      setTotalActiveProducts(stats.active);
-      setTotalInactiveProducts(stats.total - stats.active);
+      setTotalActiveProducts(Number(stats.active) || 0);
+      setTotalInactiveProducts(Number(stats.total) - Number(stats.active) || 0);
 
       // Get average product value from dashboard cache
       try {
@@ -86,11 +87,20 @@ const AdminProducts: React.FC = () => {
       };
       if (searchTerm) params.search = searchTerm;
       if (filterCategory !== 'All') params.productType = filterCategory;
-      if (filterStatus !== 'All') params.isActive = filterStatus === 'In Stock';
+      // Don't filter by isActive - show all products and let UI handle status display
+      // if (filterStatus !== 'All') params.isActive = filterStatus === 'In Stock';
       const data = await productService.getProducts(params);
-      setProducts(data.products);
-      setTotalPages(data.pagination.totalPages);
-      setTotalProducts(data.pagination.total);
+
+      // Apply client-side filtering for stock status
+      let filteredProducts = data.products;
+      if (filterStatus !== 'All') {
+        const isInStock = filterStatus === 'In Stock';
+        filteredProducts = data.products.filter(product => product.isActive === isInStock);
+      }
+
+      setProducts(filteredProducts);
+      setTotalPages(Math.ceil(filteredProducts.length / itemsPerPage));
+      setTotalProducts(filteredProducts.length);
     } catch (error) {
       console.error('Failed to load products:', error);
       toast.error('Failed to load products. Please try again.');
@@ -185,15 +195,24 @@ const AdminProducts: React.FC = () => {
     const file = event.target.files?.[0];
     if (file) {
       try {
+        setUploading(true);
+
         // Validate file type
         if (!file.type.startsWith('image/')) {
           toast.error('Please select a valid image file.');
           return;
         }
 
-        // Validate file size (max 10MB)
-        if (file.size > 10 * 1024 * 1024) {
-          toast.error('Image size should be less than 10MB.');
+        // Validate file size (max 5MB for better performance)
+        if (file.size > 5 * 1024 * 1024) {
+          toast.error('Image size should be less than 5MB for better upload performance.');
+          return;
+        }
+
+        // Additional validation for common image formats
+        const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp'];
+        if (!allowedTypes.includes(file.type)) {
+          toast.error('Please select a JPEG, PNG, or WebP image file.');
           return;
         }
 
@@ -209,6 +228,8 @@ const AdminProducts: React.FC = () => {
         // setSelectedImage(imgurUrl);
       } catch (error) {
         toast.error('Failed to upload image. Please try again.');
+      } finally {
+        setUploading(false);
       }
     }
   };
@@ -221,6 +242,7 @@ const AdminProducts: React.FC = () => {
         productType: productData.productType as 'chain' | 'bracelet-anklet',
         description: productData.description,
         price: parseFloat(productData.price),
+        isActive: productData.isActive ?? true, // Default to true if not provided
       };
       if (productData.discountedPrice) {
         createData.discountedPrice = parseFloat(productData.discountedPrice);
@@ -246,9 +268,9 @@ const AdminProducts: React.FC = () => {
       setSelectedImage(null);
       await loadProducts();
       await loadTotalStats();
-    } catch (error) {
+    } catch (error: any) {
       console.error('Failed to create product:', error);
-      toast.error('Failed to create product. Please try again.');
+      // Error handling is now done in the API service with toast notifications
     } finally {
       setCreating(false);
     }
@@ -288,9 +310,9 @@ const AdminProducts: React.FC = () => {
       setSelectedImage(null);
       await loadProducts();
       await loadTotalStats();
-    } catch (error) {
+    } catch (error: any) {
       console.error('Failed to update product:', error);
-      toast.error('Failed to update product. Please try again.');
+      // Error handling is now done in the API service with toast notifications
     } finally {
       setUpdating(false);
     }
@@ -308,9 +330,10 @@ const AdminProducts: React.FC = () => {
   };
 
   // Calculate statistics for widgets
-  const inStockProducts = totalActiveProducts;
-  const outOfStockProducts = totalInactiveProducts;
-  const avgPrice = avgProductPrice;
+  const inStockProducts = Number(totalActiveProducts) || 0;
+  const outOfStockProducts = Number(totalInactiveProducts) || 0;
+  const totalInventory = inStockProducts + outOfStockProducts;
+  const avgPrice = Number(avgProductPrice) || 0;
 
   if (loading && products.length === 0) {
     return (
@@ -400,7 +423,7 @@ const AdminProducts: React.FC = () => {
               <Package className="h-6 w-6 text-white" />
             </div>
             <div className="text-right">
-              <div className="text-3xl font-bold text-blue-900">{totalActiveProducts + totalInactiveProducts}</div>
+              <div className="text-3xl font-bold text-blue-900">{totalInventory}</div>
               <div className="text-xs text-blue-600 font-medium">Products</div>
             </div>
           </div>
@@ -427,7 +450,7 @@ const AdminProducts: React.FC = () => {
             <h3 className="text-sm font-semibold text-green-700 mb-1">Available Stock</h3>
             <p className="text-xs text-green-600 flex items-center">
               <TrendingUp className="w-3 h-3 mr-1" />
-              Ready for sale ({(totalActiveProducts + totalInactiveProducts) > 0 ? ((inStockProducts / (totalActiveProducts + totalInactiveProducts)) * 100).toFixed(0) : 0}%)
+              Ready for sale ({totalInventory > 0 ? ((inStockProducts / totalInventory) * 100).toFixed(0) : 0}%)
             </p>
           </div>
         </Card>
@@ -670,7 +693,7 @@ const AdminProducts: React.FC = () => {
           selectedImage={selectedImage}
           setSelectedImage={setSelectedImage}
           handleImageUpload={handleImageUpload}
-          uploading={false}
+          uploading={uploading}
           saving={creating}
         />
       )}
@@ -689,7 +712,7 @@ const AdminProducts: React.FC = () => {
           selectedImage={selectedImage}
           setSelectedImage={setSelectedImage}
           handleImageUpload={handleImageUpload}
-          uploading={false}
+          uploading={uploading}
           saving={updating}
         />
       )}

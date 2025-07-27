@@ -2,7 +2,7 @@ import { db } from '../db/connection.js';
 import { products } from '../db/schema.js';
 import { ImgBBService } from './imgbb.service.js';
 import { ProductCodeService } from './product-code.service.js';
-import { eq, or, like, desc } from 'drizzle-orm';
+import { eq, or, like, desc, and } from 'drizzle-orm';
 import { sql } from 'drizzle-orm';
 
 interface CreateProductRequest {
@@ -110,15 +110,28 @@ export class ProductService {
       conditions.push(eq(products.isActive, isActive));
     }
 
+    // Apply conditions if any exist
     if (conditions.length > 0) {
-      query = query.where(conditions.length === 1 ? conditions[0] : conditions.reduce((acc, condition) => acc && condition));
+      query = query.where(
+        conditions.length === 1
+          ? conditions[0]
+          : and(...conditions)
+      ) as typeof query;
     }
 
     // Get total count for pagination
-    let countQuery = db.select({ count: sql<number>`count(*)` }).from(products);
+    let countQuery = db
+      .select({ count: sql<number>`count(*)` })
+      .from(products);
+
     if (conditions.length > 0) {
-      countQuery = countQuery.where(conditions.length === 1 ? conditions[0] : conditions.reduce((acc, condition) => acc && condition));
+      countQuery = countQuery.where(
+        conditions.length === 1
+          ? conditions[0]
+          : and(...conditions)
+      ) as typeof countQuery;
     }
+
     const countResult = await countQuery;
     const count = countResult[0]?.count || 0;
 
@@ -139,14 +152,18 @@ export class ProductService {
     };
   }
 
-  /**
-   * Get product by ID
-   */
-  static async getProductById(id: string) {
-    const product = await db.select().from(products)
+  static async getProductById(id: string): Promise<typeof products.$inferSelect | null> {
+    if (!id) {
+      throw new Error("Product ID is required");
+    }
+    const result = await db
+      .select()
+      .from(products)
       .where(eq(products.id, id))
       .limit(1);
-    return product[0] || null;
+
+    // Return the first product if found, otherwise null
+    return result[0] ?? null;
   }
 
   /**
@@ -165,13 +182,15 @@ export class ProductService {
   static async searchProducts(query: string) {
     return await db.select().from(products)
       .where(
-        or(
-          like(products.productCode, `%${query}%`),
-          like(products.name, `%${query}%`),
-          like(products.description, `%${query}%`)
+        and(
+          or(
+            like(products.productCode, `%${query}%`),
+            like(products.name, `%${query}%`),
+            like(products.description, `%${query}%`)
+          ),
+          eq(products.isActive, true)
         )
       )
-      .where(eq(products.isActive, true))
       .orderBy(desc(products.createdAt));
   }
 
@@ -194,6 +213,26 @@ export class ProductService {
         // Get existing product to use its code for image naming
         const existingProduct = await this.getProductById(id);
         if (existingProduct) {
+          // Clean up old images from ImgBB if they exist
+          if (Array.isArray(existingProduct.images) && existingProduct.images.length > 0) {
+            try {
+              console.log(`🗑️ Cleaning up ${existingProduct.images.length} old images for product ${existingProduct.productCode}`);
+              const deleteResults = await ImgBBService.deleteMultipleImages(existingProduct.images);
+
+              const successfulDeletions = deleteResults.filter(result => result.success);
+              const failedDeletions = deleteResults.filter(result => !result.success);
+
+              console.log(`✅ Successfully deleted ${successfulDeletions.length} old images from ImgBB`);
+              if (failedDeletions.length > 0) {
+                console.warn(`⚠️ Failed to delete ${failedDeletions.length} old images:`, failedDeletions);
+              }
+            } catch (cleanupError) {
+              console.warn('⚠️ Failed to clean up old images:', cleanupError);
+              // Continue with upload even if cleanup fails
+            }
+          }
+
+          // Upload new images
           const uploadResults = await ImgBBService.uploadMultipleImages(
             imageFiles.map(file => file.buffer),
             imageFiles.map(file => `${existingProduct.productCode}-${file.originalname}`)
@@ -201,7 +240,7 @@ export class ProductService {
 
           const imageUrls = uploadResults.map(result => result.url);
           updateData.images = imageUrls;
-          console.log(`✅ Uploaded ${imageUrls.length} images for product update`);
+          console.log(`✅ Uploaded ${imageUrls.length} new images for product update`);
         }
       } catch (uploadError) {
         console.warn('⚠️ Image upload failed during update:', uploadError);
@@ -220,14 +259,51 @@ export class ProductService {
   }
 
   /**
-   * Delete product
+   * Delete product and clean up associated images
    */
   static async deleteProduct(id: string) {
-    const deletedProduct = await db.delete(products)
-      .where(eq(products.id, id))
-      .returning();
+    try {
+      // First get the product to access its images
+      const product = await this.getProductById(id);
+      if (!product) {
+        throw new Error('Product not found');
+      }
 
-    return deletedProduct[0] || null;
+      // Delete images from ImgBB if they exist
+      if (Array.isArray(product.images) && product.images.length > 0) {
+        try {
+          console.log(`🗑️ Cleaning up ${product.images.length} images for product ${product.productCode}`);
+
+          // Delete all images from ImgBB
+          const deleteResults = await ImgBBService.deleteMultipleImages(product.images);
+
+          // Log results
+          const successfulDeletions = deleteResults.filter(result => result.success);
+          const failedDeletions = deleteResults.filter(result => !result.success);
+
+          console.log(`✅ Successfully deleted ${successfulDeletions.length} images from ImgBB`);
+          if (failedDeletions.length > 0) {
+            console.warn(`⚠️ Failed to delete ${failedDeletions.length} images:`, failedDeletions);
+          }
+
+          console.log(`✅ Image cleanup completed for product ${product.productCode}`);
+        } catch (imageError) {
+          console.warn('⚠️ Failed to clean up images:', imageError);
+          // Continue with product deletion even if image cleanup fails
+        }
+      }
+
+      // Delete the product from database
+      const deletedProduct = await db.delete(products)
+        .where(eq(products.id, id))
+        .returning();
+
+      console.log(`✅ Product ${product.productCode} deleted successfully`);
+      return deletedProduct[0] || null;
+    } catch (error) {
+      console.error('❌ Failed to delete product:', error);
+      throw error;
+    }
   }
 
   /**

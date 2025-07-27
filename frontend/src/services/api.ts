@@ -1,4 +1,5 @@
 import axios from 'axios';
+import { toast } from 'sonner';
 
 // API Configuration
 const API_BASE_URL = (import.meta as any).env?.VITE_API_URL || 'http://localhost:3000';
@@ -11,6 +12,98 @@ const apiClient = axios.create({
   },
 });
 
+// Separate client for file uploads with longer timeout
+const uploadClient = axios.create({
+  baseURL: API_BASE_URL,
+  timeout: 60000, // 60 seconds for file uploads
+  headers: {
+    'Content-Type': 'multipart/form-data',
+  },
+});
+
+// Enhanced error handling function
+const handleApiError = (error: any, customMessage?: string) => {
+  console.error('API Error:', error);
+
+  // Extract error details from response
+  const errorResponse = error.response?.data;
+  const statusCode = error.response?.status;
+  const errorCode = errorResponse?.code;
+  const errorMessage = errorResponse?.error || error.message;
+
+  // Handle different types of errors with user-friendly messages
+  if (error.code === 'ECONNABORTED' || error.message?.includes('timeout')) {
+    toast.error('Request timed out. Please check your internet connection and try again.');
+  } else if (statusCode === 400) {
+    if (errorCode === 'VALIDATION_ERROR') {
+      const details = errorResponse?.details;
+      if (details && Array.isArray(details)) {
+        const fieldErrors = details.map((err: any) => `${err.field}: ${err.message}`).join(', ');
+        toast.error(`Validation failed: ${fieldErrors}`);
+      } else {
+        toast.error(errorMessage || 'Invalid request data. Please check your input.');
+      }
+    } else if (errorCode === 'FILE_TOO_LARGE') {
+      toast.error('File size is too large. Please use a smaller file.');
+    } else if (errorCode === 'TOO_MANY_FILES') {
+      toast.error('Too many files selected. Please select fewer files.');
+    } else if (errorCode === 'UNEXPECTED_FILE') {
+      toast.error('Unexpected file type. Please select a valid file.');
+    } else {
+      toast.error(errorMessage || 'Bad request. Please check your input and try again.');
+    }
+  } else if (statusCode === 401) {
+    if (errorCode === 'INVALID_TOKEN' || errorCode === 'EXPIRED_TOKEN') {
+      toast.error('Your session has expired. Please log in again.');
+      // Clear auth data and redirect to login
+      localStorage.removeItem('admin_token');
+      localStorage.removeItem('admin_info');
+      window.location.href = '/admin/login';
+    } else {
+      toast.error('Authentication required. Please log in.');
+    }
+  } else if (statusCode === 403) {
+    toast.error('You do not have permission to perform this action.');
+  } else if (statusCode === 404) {
+    if (errorCode === 'ROUTE_NOT_FOUND') {
+      toast.error('The requested resource was not found.');
+    } else {
+      toast.error('Resource not found. Please check the URL and try again.');
+    }
+  } else if (statusCode === 409) {
+    if (errorCode === 'DUPLICATE_RESOURCE') {
+      toast.error('This resource already exists. Please use a different value.');
+    } else if (errorCode === 'INSUFFICIENT_STOCK') {
+      toast.error(errorMessage || 'Insufficient stock available.');
+    } else {
+      toast.error('Conflict occurred. Please try again with different data.');
+    }
+  } else if (statusCode === 413) {
+    toast.error('Request payload is too large. Please reduce the file size or data amount.');
+  } else if (statusCode === 429) {
+    const remainingTime = errorResponse?.remainingMinutes || 1;
+    toast.error(`Too many requests. Please wait ${remainingTime} minute(s) before trying again.`);
+  } else if (statusCode === 500) {
+    if (errorCode === 'DATABASE_ERROR') {
+      toast.error('Database error occurred. Please try again later.');
+    } else if (errorCode === 'SERVICE_UNAVAILABLE') {
+      toast.error('External service is currently unavailable. Please try again later.');
+    } else {
+      toast.error('Server error occurred. Please try again later.');
+    }
+  } else if (statusCode === 503) {
+    toast.error('Service temporarily unavailable. Please try again later.');
+  } else if (!error.response) {
+    // Network error
+    toast.error('Network error. Please check your internet connection and try again.');
+  } else {
+    // Generic error
+    toast.error(customMessage || errorMessage || 'An unexpected error occurred. Please try again.');
+  }
+
+  return error;
+};
+
 // Add token to requests if available
 apiClient.interceptors.request.use((config) => {
   const token = localStorage.getItem('admin_token');
@@ -20,8 +113,31 @@ apiClient.interceptors.request.use((config) => {
   return config;
 });
 
+// Add token to upload requests if available
+uploadClient.interceptors.request.use((config) => {
+  const token = localStorage.getItem('admin_token');
+  if (token && config.url?.includes('/admin/')) {
+    config.headers.Authorization = `Bearer ${token}`;
+  }
+  return config;
+});
+
 // Handle authentication errors
 apiClient.interceptors.response.use(
+  (response) => response,
+  (error) => {
+    if (error.response?.status === 401) {
+      // Token is invalid or expired, clear it and redirect to login
+      localStorage.removeItem('admin_token');
+      localStorage.removeItem('admin_info');
+      window.location.href = '/admin/login';
+    }
+    return Promise.reject(error);
+  }
+);
+
+// Handle authentication errors for upload client
+uploadClient.interceptors.response.use(
   (response) => response,
   (error) => {
     if (error.response?.status === 401) {
@@ -286,10 +402,13 @@ export interface DashboardWidgets {
 export const healthService = {
   check: async (): Promise<boolean> => {
     try {
-      const response = await apiClient.get('/api/health');
-      return response.data.success;
+      const response = await apiClient.get('/health', {
+        timeout: 5000, // Short timeout for health check
+      });
+      return response.status === 200;
     } catch (error) {
-      console.error('Health check failed:', error);
+      console.warn('Health check failed - API may not be available:', error);
+      // Don't show toast for health check failures as they're expected when API is down
       return false;
     }
   }
@@ -298,25 +417,45 @@ export const healthService = {
 // Theme API Services
 export const themeService = {
   getThemes: async (): Promise<ColorTheme[]> => {
-    const response = await apiClient.get<ApiResponse<ColorTheme[]>>('/api/themes');
-    return response.data.data;
+    try {
+      const response = await apiClient.get<ApiResponse<ColorTheme[]>>('/api/themes');
+      return response.data.data;
+    } catch (error) {
+      handleApiError(error, 'Failed to load themes. Please try again.');
+      throw error;
+    }
   },
 
   getActiveTheme: async (): Promise<ColorTheme | null> => {
-    const themes = await themeService.getThemes();
-    return themes.find(theme => theme.isActive) || null;
+    try {
+      const themes = await themeService.getThemes();
+      return themes.find(theme => theme.isActive) || null;
+    } catch (error) {
+      handleApiError(error, 'Failed to load active theme. Please try again.');
+      throw error;
+    }
   },
 
   setActiveTheme: async (themeId: string): Promise<void> => {
-    await apiClient.post('/api/themes/activate', { themeId });
+    try {
+      await apiClient.post('/api/themes/activate', { themeId });
+    } catch (error) {
+      handleApiError(error, 'Failed to activate theme. Please try again.');
+      throw error;
+    }
   },
 };
 
 // Auth API Services  
 export const authService = {
   login: async (credentials: AdminLoginRequest): Promise<AdminLoginResponse> => {
-    const response = await apiClient.post<ApiResponse<AdminLoginResponse>>('/api/admin/auth/login', credentials);
-    return response.data.data;
+    try {
+      const response = await apiClient.post<ApiResponse<AdminLoginResponse>>('/api/admin/auth/login', credentials);
+      return response.data.data;
+    } catch (error) {
+      handleApiError(error, 'Login failed. Please check your credentials and try again.');
+      throw error;
+    }
   },
 
   logout: (): void => {
@@ -324,8 +463,13 @@ export const authService = {
   },
 
   getProfile: async () => {
-    const response = await apiClient.get<ApiResponse<any>>('/api/admin/auth/profile');
-    return response.data.data;
+    try {
+      const response = await apiClient.get<ApiResponse<any>>('/api/admin/auth/profile');
+      return response.data.data;
+    } catch (error) {
+      handleApiError(error, 'Failed to load profile. Please try again.');
+      throw error;
+    }
   }
 };
 
@@ -338,85 +482,107 @@ export const productService = {
     page?: number;
     limit?: number;
   }) => {
-    const response = await apiClient.get<ApiResponse<{
-      products: Product[];
-      pagination: {
-        page: number;
-        limit: number;
-        total: number;
-        totalPages: number;
-      };
-    }>>('/api/admin/products', { params });
-    return response.data.data;
+    try {
+      const response = await apiClient.get<ApiResponse<{
+        products: Product[];
+        pagination: {
+          page: number;
+          limit: number;
+          total: number;
+          totalPages: number;
+        };
+      }>>('/api/admin/products', { params });
+      return response.data.data;
+    } catch (error) {
+      handleApiError(error, 'Failed to load products. Please try again.');
+      throw error;
+    }
   },
 
   getProductById: async (id: string): Promise<Product> => {
-    const response = await apiClient.get<ApiResponse<Product>>(`/api/admin/products/${id}`);
-    return response.data.data;
+    try {
+      const response = await apiClient.get<ApiResponse<Product>>(`/api/admin/products/${id}`);
+      return response.data.data;
+    } catch (error) {
+      handleApiError(error, 'Failed to load product details. Please try again.');
+      throw error;
+    }
   },
 
   createProduct: async (product: CreateProductRequest, images: File[]): Promise<Product> => {
-    const formData = new FormData();
+    try {
+      const formData = new FormData();
 
-    // Add product data
-    formData.append('name', product.name);
-    formData.append('productType', product.productType);
-    formData.append('description', product.description);
-    formData.append('price', product.price.toString());
+      // Add product data
+      formData.append('name', product.name);
+      formData.append('productType', product.productType);
+      formData.append('description', product.description);
+      formData.append('price', product.price.toString());
 
-    if (product.discountedPrice) {
-      formData.append('discountedPrice', product.discountedPrice.toString());
-    }
-
-    if (product.isActive !== undefined) {
-      formData.append('isActive', product.isActive.toString());
-    }
-
-    // Add images
-    images.forEach(image => {
-      formData.append('images', image);
-    });
-
-    const response = await apiClient.post<ApiResponse<Product>>('/api/admin/products', formData, {
-      headers: {
-        'Content-Type': 'multipart/form-data',
-      },
-    });
-    return response.data.data;
-  },
-
-  updateProduct: async (id: string, updates: Partial<CreateProductRequest>, images?: File[]): Promise<Product> => {
-    const formData = new FormData();
-
-    // Add product data
-    Object.entries(updates).forEach(([key, value]) => {
-      if (value !== undefined) {
-        formData.append(key, value.toString());
+      if (product.discountedPrice) {
+        formData.append('discountedPrice', product.discountedPrice.toString());
       }
-    });
 
-    // Add images if provided
-    if (images && images.length > 0) {
+      if (product.isActive !== undefined) {
+        formData.append('isActive', product.isActive.toString());
+      }
+
+      // Add images
       images.forEach(image => {
         formData.append('images', image);
       });
-    }
 
-    const response = await apiClient.put<ApiResponse<Product>>(`/api/admin/products/${id}`, formData, {
-      headers: {
-        'Content-Type': 'multipart/form-data',
-      },
-    });
-    return response.data.data;
+      const response = await uploadClient.post<ApiResponse<Product>>('/api/admin/products', formData);
+      return response.data.data;
+    } catch (error) {
+      handleApiError(error, 'Failed to create product. Please try again.');
+      throw error;
+    }
+  },
+
+  updateProduct: async (id: string, updates: Partial<CreateProductRequest>, images?: File[]): Promise<Product> => {
+    try {
+      const formData = new FormData();
+
+      // Add product data
+      Object.entries(updates).forEach(([key, value]) => {
+        if (value !== undefined) {
+          formData.append(key, value.toString());
+        }
+      });
+
+      // Add images if provided
+      if (images && images.length > 0) {
+        images.forEach(image => {
+          formData.append('images', image);
+        });
+      }
+
+      const response = await uploadClient.put<ApiResponse<Product>>(`/api/admin/products/${id}`, formData);
+      return response.data.data;
+    } catch (error) {
+      handleApiError(error, 'Failed to update product. Please try again.');
+      throw error;
+    }
   },
 
   deleteProduct: async (id: string): Promise<void> => {
-    await apiClient.delete(`/api/admin/products/${id}`);
+    try {
+      await apiClient.delete(`/api/admin/products/${id}`);
+    } catch (error) {
+      handleApiError(error, 'Failed to delete product. Please try again.');
+      throw error;
+    }
   },
 
   getProductStats: async () => {
-    const response = await apiClient.get<ApiResponse<any>>('/api/admin/products/stats');
-    return response.data.data;
+    try {
+      const response = await apiClient.get<ApiResponse<any>>('/api/admin/products/stats');
+      return response.data.data;
+    } catch (error) {
+      handleApiError(error, 'Failed to load product statistics. Please try again.');
+      throw error;
+    }
   }
 };
 
@@ -430,56 +596,96 @@ export const orderService = {
     dateFrom?: string;
     dateTo?: string;
   }) => {
-    const response = await apiClient.get<ApiResponse<{
-      orders: Order[];
-      pagination: {
-        page: number;
-        limit: number;
-        total: number;
-        totalPages: number;
-      };
-    }>>('/api/admin/orders', { params });
-    return response.data.data;
+    try {
+      const response = await apiClient.get<ApiResponse<{
+        orders: Order[];
+        pagination: {
+          page: number;
+          limit: number;
+          total: number;
+          totalPages: number;
+        };
+      }>>('/api/admin/orders', { params });
+      return response.data.data;
+    } catch (error) {
+      handleApiError(error, 'Failed to load orders. Please try again.');
+      throw error;
+    }
   },
 
   getOrderById: async (id: string): Promise<Order> => {
-    const response = await apiClient.get<ApiResponse<Order>>(`/api/admin/orders/${id}`);
-    return response.data.data;
+    try {
+      const response = await apiClient.get<ApiResponse<Order>>(`/api/admin/orders/${id}`);
+      return response.data.data;
+    } catch (error) {
+      handleApiError(error, 'Failed to load order details. Please try again.');
+      throw error;
+    }
   },
 
   createOrder: async (order: CreateOrderRequest): Promise<Order> => {
-    const response = await apiClient.post<ApiResponse<Order>>('/api/admin/orders', order);
-    return response.data.data;
+    try {
+      const response = await apiClient.post<ApiResponse<Order>>('/api/admin/orders', order);
+      return response.data.data;
+    } catch (error) {
+      handleApiError(error, 'Failed to create order. Please try again.');
+      throw error;
+    }
   },
 
   updateOrder: async (id: string, updates: Partial<Order>): Promise<Order> => {
-    const response = await apiClient.put<ApiResponse<Order>>(`/api/admin/orders/${id}`, updates);
-    return response.data.data;
+    try {
+      const response = await apiClient.put<ApiResponse<Order>>(`/api/admin/orders/${id}`, updates);
+      return response.data.data;
+    } catch (error) {
+      handleApiError(error, 'Failed to update order. Please try again.');
+      throw error;
+    }
   },
 
   deleteOrder: async (id: string): Promise<void> => {
-    await apiClient.delete(`/api/admin/orders/${id}`);
+    try {
+      await apiClient.delete(`/api/admin/orders/${id}`);
+    } catch (error) {
+      handleApiError(error, 'Failed to delete order. Please try again.');
+      throw error;
+    }
   },
 
   approveOrder: async (id: string, data?: { sendPaymentQR?: boolean; customMessage?: string }) => {
-    const response = await apiClient.post<ApiResponse<any>>(`/api/admin/orders/${id}/approve`, data);
-    return response.data.data;
+    try {
+      const response = await apiClient.post<ApiResponse<any>>(`/api/admin/orders/${id}/approve`, data);
+      return response.data.data;
+    } catch (error) {
+      handleApiError(error, 'Failed to approve order. Please try again.');
+      throw error;
+    }
   },
 
   confirmPayment: async (id: string, data?: { paymentReference?: string; notes?: string }) => {
-    const response = await apiClient.post<ApiResponse<any>>(`/api/admin/orders/${id}/confirm-payment`, data);
-    return response.data.data;
+    try {
+      const response = await apiClient.post<ApiResponse<any>>(`/api/admin/orders/${id}/confirm-payment`, data);
+      return response.data.data;
+    } catch (error) {
+      handleApiError(error, 'Failed to confirm payment. Please try again.');
+      throw error;
+    }
   },
 
   generateStatusWhatsApp: async (id: string) => {
-    const response = await apiClient.post<ApiResponse<{
-      whatsappUrl: string;
-      message: string;
-      customerPhone: string;
-      orderNumber: string;
-      status: string;
-    }>>(`/api/admin/orders/${id}/status-whatsapp`);
-    return response.data.data;
+    try {
+      const response = await apiClient.post<ApiResponse<{
+        whatsappUrl: string;
+        message: string;
+        customerPhone: string;
+        orderNumber: string;
+        status: string;
+      }>>(`/api/admin/orders/${id}/status-whatsapp`);
+      return response.data.data;
+    } catch (error) {
+      handleApiError(error, 'Failed to generate WhatsApp message. Please try again.');
+      throw error;
+    }
   }
 };
 
@@ -493,83 +699,148 @@ export const expenseService = {
     dateFrom?: string;
     dateTo?: string;
   }) => {
-    const response = await apiClient.get<ApiResponse<{
-      expenses: Expense[];
-      pagination: {
-        page: number;
-        limit: number;
-        total: number;
-        totalPages: number;
-      };
-    }>>('/api/admin/expenses', { params });
-    return response.data.data;
+    try {
+      const response = await apiClient.get<ApiResponse<{
+        expenses: Expense[];
+        pagination: {
+          page: number;
+          limit: number;
+          total: number;
+          totalPages: number;
+        };
+      }>>('/api/admin/expenses', { params });
+      return response.data.data;
+    } catch (error) {
+      handleApiError(error, 'Failed to load expenses. Please try again.');
+      throw error;
+    }
   },
 
   getExpenseById: async (id: string): Promise<Expense> => {
-    const response = await apiClient.get<ApiResponse<Expense>>(`/api/admin/expenses/${id}`);
-    return response.data.data;
+    try {
+      const response = await apiClient.get<ApiResponse<Expense>>(`/api/admin/expenses/${id}`);
+      return response.data.data;
+    } catch (error) {
+      handleApiError(error, 'Failed to load expense details. Please try again.');
+      throw error;
+    }
   },
 
   createExpense: async (expense: CreateExpenseRequest): Promise<Expense> => {
-    const response = await apiClient.post<ApiResponse<Expense>>('/api/admin/expenses', expense);
-    return response.data.data;
+    try {
+      const response = await apiClient.post<ApiResponse<Expense>>('/api/admin/expenses', expense);
+      return response.data.data;
+    } catch (error) {
+      handleApiError(error, 'Failed to create expense. Please try again.');
+      throw error;
+    }
   },
 
   updateExpense: async (id: string, updates: Partial<CreateExpenseRequest>): Promise<Expense> => {
-    const response = await apiClient.put<ApiResponse<Expense>>(`/api/admin/expenses/${id}`, updates);
-    return response.data.data;
+    try {
+      const response = await apiClient.put<ApiResponse<Expense>>(`/api/admin/expenses/${id}`, updates);
+      return response.data.data;
+    } catch (error) {
+      handleApiError(error, 'Failed to update expense. Please try again.');
+      throw error;
+    }
   },
 
   deleteExpense: async (id: string): Promise<void> => {
-    await apiClient.delete(`/api/admin/expenses/${id}`);
+    try {
+      await apiClient.delete(`/api/admin/expenses/${id}`);
+    } catch (error) {
+      handleApiError(error, 'Failed to delete expense. Please try again.');
+      throw error;
+    }
   },
 
   getExpenseCategories: async (): Promise<ExpenseCategory[]> => {
-    const response = await apiClient.get<ApiResponse<ExpenseCategory[]>>('/api/admin/expenses/categories');
-    return response.data.data;
+    try {
+      const response = await apiClient.get<ApiResponse<ExpenseCategory[]>>('/api/admin/expenses/categories');
+      return response.data.data;
+    } catch (error) {
+      handleApiError(error, 'Failed to load expense categories. Please try again.');
+      throw error;
+    }
   },
 
   getExpenseStats: async () => {
-    const response = await apiClient.get<ApiResponse<any>>('/api/admin/expenses/stats');
-    return response.data.data;
+    try {
+      const response = await apiClient.get<ApiResponse<any>>('/api/admin/expenses/stats');
+      return response.data.data;
+    } catch (error) {
+      handleApiError(error, 'Failed to load expense statistics. Please try again.');
+      throw error;
+    }
   }
 };
 
 // Dashboard API Services
 export const dashboardService = {
   getStats: async (): Promise<DashboardStats> => {
-    const response = await apiClient.get<ApiResponse<DashboardStats>>('/api/admin/dashboard');
-    return response.data.data;
+    try {
+      const response = await apiClient.get<ApiResponse<DashboardStats>>('/api/admin/dashboard');
+      return response.data.data;
+    } catch (error) {
+      handleApiError(error, 'Failed to load dashboard statistics. Please try again.');
+      throw error;
+    }
   },
 
   getWidgets: async (): Promise<DashboardWidgets> => {
-    const response = await apiClient.get<ApiResponse<DashboardWidgets>>('/api/admin/dashboard/widgets');
-    return response.data.data;
+    try {
+      const response = await apiClient.get<ApiResponse<DashboardWidgets>>('/api/admin/dashboard/widgets');
+      return response.data.data;
+    } catch (error) {
+      handleApiError(error, 'Failed to load dashboard widgets. Please try again.');
+      throw error;
+    }
   },
 
   refreshWidgets: async (): Promise<DashboardWidgets> => {
-    const response = await apiClient.post<ApiResponse<DashboardWidgets>>('/api/admin/dashboard/widgets/refresh');
-    return response.data.data;
+    try {
+      const response = await apiClient.post<ApiResponse<DashboardWidgets>>('/api/admin/dashboard/widgets/refresh');
+      return response.data.data;
+    } catch (error) {
+      handleApiError(error, 'Failed to refresh dashboard widgets. Please try again.');
+      throw error;
+    }
   }
 };
 
 // Analytics API Services
 export const analyticsService = {
   getAnalytics: async (period?: string): Promise<AnalyticsData> => {
-    const response = await apiClient.get<ApiResponse<AnalyticsData>>('/api/admin/analytics', {
-      params: { period }
-    });
-    return response.data.data;
+    try {
+      const response = await apiClient.get<ApiResponse<AnalyticsData>>('/api/admin/analytics', {
+        params: { period }
+      });
+      return response.data.data;
+    } catch (error) {
+      handleApiError(error, 'Failed to load analytics data. Please try again.');
+      throw error;
+    }
   },
 
   refreshAnalytics: async (): Promise<AnalyticsRefreshResponse> => {
-    const response = await apiClient.post<AnalyticsRefreshResponse>('/api/admin/analytics/refresh');
-    return response.data;
+    try {
+      const response = await apiClient.post<AnalyticsRefreshResponse>('/api/admin/analytics/refresh');
+      return response.data;
+    } catch (error) {
+      handleApiError(error, 'Failed to refresh analytics data. Please try again.');
+      throw error;
+    }
   },
 
   getAnalyticsStatus: async (): Promise<AnalyticsStatus> => {
-    const response = await apiClient.get<ApiResponse<AnalyticsStatus>>('/api/admin/analytics/status');
-    return response.data.data;
+    try {
+      const response = await apiClient.get<ApiResponse<AnalyticsStatus>>('/api/admin/analytics/status');
+      return response.data.data;
+    } catch (error) {
+      handleApiError(error, 'Failed to load analytics status. Please try again.');
+      throw error;
+    }
   }
 };
 

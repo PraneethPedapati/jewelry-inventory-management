@@ -490,26 +490,11 @@ const seedDatabase = async (): Promise<void> => {
       };
     });
 
-    // Fix: Ensure all required fields are non-undefined for type safety
-    const sanitizedOrders = sampleOrders.map(order => ({
-      ...order,
-      customerName: order.customerName ?? '',
-      customerEmail: order.customerEmail ?? '',
-      customerPhone: order.customerPhone ?? '',
-      customerAddress: order.customerAddress ?? '',
-    }));
-
-    // Fix: Ensure all required fields are non-undefined and status is never undefined
-    const sanitizedOrdersWithStatus = sanitizedOrders.map(order => ({
-      ...order,
-      status: order.status ?? 'payment_pending', // fallback to a valid status if undefined
-    }));
-
-    const insertedOrders = await db.insert(orders).values(sanitizedOrdersWithStatus).returning();
+    const insertedOrders = await db.insert(orders).values(sampleOrders).returning();
 
     // 6. Create order status history for each order
     console.log('📋 Creating order status history...');
-    const statusHistoryData: any[] = [];
+    const statusHistoryData = [];
 
     for (const order of insertedOrders) {
       if (!order) continue;
@@ -577,11 +562,11 @@ const seedDatabase = async (): Promise<void> => {
 
       // Randomly select 1-3 products per order
       const numProducts = Math.floor(Math.random() * 3) + 1;
-      const selectedProducts: typeof insertedProducts = [];
+      const selectedProducts = [];
 
       for (let j = 0; j < numProducts; j++) {
         const randomProduct = insertedProducts[Math.floor(Math.random() * insertedProducts.length)];
-        if (randomProduct && !selectedProducts.find((p) => p.id === randomProduct.id)) {
+        if (randomProduct && !selectedProducts.find(p => p.id === randomProduct.id)) {
           selectedProducts.push(randomProduct);
         }
       }

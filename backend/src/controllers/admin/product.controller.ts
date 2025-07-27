@@ -158,7 +158,7 @@ export const createProduct = [
         productType: req.body.productType,
         price: parseFloat(req.body.price),
         discountedPrice: req.body.discountedPrice ? parseFloat(req.body.discountedPrice) : undefined,
-        isActive: req.body.isActive === 'true'
+        isActive: req.body.isActive === 'true' ? true : req.body.isActive === 'false' ? false : undefined
       });
 
       // Validate discounted price
@@ -241,7 +241,7 @@ export const updateProduct = [
       productType: req.body.productType,
       price: req.body.price ? parseFloat(req.body.price) : undefined,
       discountedPrice: req.body.discountedPrice ? parseFloat(req.body.discountedPrice) : undefined,
-      isActive: req.body.isActive ? req.body.isActive === 'true' : undefined
+      isActive: req.body.isActive === 'true' ? true : req.body.isActive === 'false' ? false : undefined
     });
 
     // Get uploaded files

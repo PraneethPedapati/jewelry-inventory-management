@@ -16,6 +16,7 @@
     "db:connection": "tsx src/db/connection.ts",
     "db:test": "tsx src/db/test-connection.ts",
     "db:seed": "tsx src/db/seed.ts",
+    "db:seed:enhanced": "tsx src/db/seed-enhanced.ts",
     "db:reset": "tsx src/db/reset.ts",
     "db:studio": "drizzle-kit studio",
     "setup": "npm install && npm run db:generate"

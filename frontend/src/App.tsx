@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { Routes, Route, Navigate, useLocation } from 'react-router-dom';
+import { Toaster } from 'sonner';
 import { useThemeStore } from './stores/theme.store';
 import { healthService } from './services/api';
 import { CartProvider } from './context/CartContext';
@@ -116,6 +117,12 @@ function App() {
           <Route path="*" element={<Navigate to="/shop/products" />} />
         </Routes>
       </div>
+      <Toaster
+        position="top-right"
+        richColors
+        closeButton
+        duration={4000}
+      />
     </CartProvider>
   );
 }
