@@ -181,8 +181,9 @@
   }
 
   .product-card-image {
-    @apply relative w-full aspect-square flex-shrink-0 bg-brand-lightest;
+    @apply relative w-full aspect-square bg-brand-lightest;
     position: relative;
+    flex-shrink: 0;
     /* Ensure perfect square aspect ratio */
     aspect-ratio: 1 / 1;
   }
@@ -217,7 +218,8 @@
   }
 
   .product-card-actions {
-    @apply mt-auto flex-shrink-0;
+    @apply mt-auto;
+    flex-shrink: 0;
   }
 
   /* Product Description Styles */
@@ -317,9 +319,124 @@
     @apply absolute top-3 left-3 text-xs font-medium px-2 py-1 rounded-md bg-white/95 backdrop-blur-sm border border-brand-border text-brand-shade;
   }
 
-  /* Consistent card heights */
+  /* Customer Product Card Specific Styles */
   .product-card-customer {
-    @apply h-[480px] w-full;
+    @apply w-full transition-all duration-300 hover:scale-[1.02] hover:shadow-xl;
+    /* Responsive height: taller on mobile, shorter on desktop */
+    height: 600px;
+  }
+
+  /* Mobile-specific styles (1 column) */
+  @media (max-width: 767px) {
+    .product-card-customer {
+      height: 500px;
+      /* Better touch targets on mobile */
+      border-radius: 12px;
+    }
+    
+    .product-card-customer .product-card-image {
+      height: 300px;
+      border-radius: 12px 12px 0 0;
+    }
+    
+    .product-card-customer .product-card-content {
+      padding: 1.25rem;
+    }
+
+    .product-card-customer .product-card-title {
+      font-size: 1.125rem;
+      line-height: 1.4;
+    }
+
+    .product-card-customer .product-card-actions {
+      margin-top: 1rem;
+    }
+
+    .product-card-customer .product-card-actions button {
+      height: 44px; /* Better touch target */
+      font-size: 1rem;
+    }
+  }
+
+  /* Tablet and desktop styles (2+ columns) */
+  @media (min-width: 768px) {
+    .product-card-customer {
+      height: 520px;
+    }
+  }
+
+  /* Large desktop styles (4 columns) */
+  @media (min-width: 1280px) {
+    .product-card-customer {
+      height: 500px;
+    }
+    
+    .product-card-customer .product-card-image {
+      height: 280px;
+    }
+  }
+
+  /* Grid layout improvements */
+  .product-grid {
+    display: grid;
+    gap: 1rem;
+  }
+
+  @media (min-width: 768px) {
+    .product-grid {
+      gap: 1.5rem;
+    }
+  }
+
+  @media (min-width: 1024px) {
+    .product-grid {
+      gap: 1.5rem;
+    }
+  }
+
+  .product-card-customer .product-card-image {
+    @apply aspect-square;
+    /* Ensure perfect square for customer cards */
+    aspect-ratio: 1 / 1;
+    min-height: 0;
+  }
+
+  .product-card-customer .product-card-image img {
+    /* Ensure customer card images are always square */
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    object-position: center;
+    display: block;
+  }
+
+  .product-card-customer .product-card-content {
+    @apply flex flex-col justify-between;
+    /* Add more padding to the content area */
+    padding: 1rem;
+  }
+
+  .product-card-customer .product-info-section {
+    @apply space-y-1.5 flex-1;
+    /* Add smaller top margin to create space between image and product name */
+    margin-top: 0.25rem;
+  }
+
+  .product-card-customer .price-section {
+    @apply flex items-center gap-2 mb-2 mt-auto;
+  }
+
+  .product-card-customer .current-price {
+    @apply text-lg font-bold text-brand-primary;
+  }
+
+  .product-card-customer .original-price {
+    @apply text-sm text-brand-medium line-through;
+  }
+
+  .product-card-customer .product-card-actions {
+    @apply mt-auto;
+    flex-shrink: 0;
   }
 
   /* Image aspect ratios for products */
@@ -398,6 +515,50 @@
     to {
       opacity: 1;
       transform: translateY(0);
+    }
+  }
+
+  /* Brand-themed loading spinner */
+  .brand-spinner {
+    position: relative;
+    width: 48px;
+    height: 48px;
+  }
+
+  .brand-spinner::before,
+  .brand-spinner::after {
+    content: '';
+    position: absolute;
+    border-radius: 50%;
+    animation: brand-spin 1.5s linear infinite;
+  }
+
+  .brand-spinner::before {
+    width: 100%;
+    height: 100%;
+    border: 3px solid transparent;
+    border-top: 3px solid #6c3158;
+    border-right: 3px solid #854b70;
+  }
+
+  .brand-spinner::after {
+    width: 70%;
+    height: 70%;
+    top: 15%;
+    left: 15%;
+    border: 2px solid transparent;
+    border-top: 2px solid #a0668a;
+    border-right: 2px solid #d4b5c7;
+    animation-direction: reverse;
+    animation-duration: 1s;
+  }
+
+  @keyframes brand-spin {
+    0% {
+      transform: rotate(0deg);
+    }
+    100% {
+      transform: rotate(360deg);
     }
   }
 

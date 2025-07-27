@@ -88,7 +88,7 @@ const ProductCatalog: React.FC = () => {
   // Initialize cart states when products load
   useEffect(() => {
     if (products.length > 0) {
-      const initialCartStates: Record<string, { quantity: number; specification: ProductSpecification | null }> = {};
+      const initialCartStates: Record<string, { quantity: number }> = {};
 
       products.forEach(product => {
         // Check if product is in cart and get its state
@@ -142,15 +142,14 @@ const ProductCatalog: React.FC = () => {
     // Convert ProductCatalog Product to CartContext Product format
     const cartProduct = {
       id: product.id,
-      productCode: product.productCode,
       name: product.name,
       images: product.images,
-      productType: product.productType,
+      category: product.productType,
       description: product.description
     };
 
     // Calculate final price
-    const finalPrice = parseFloat(product.price);
+    const finalPrice = parseFloat(product.discountedPrice || product.price);
 
     // Add to cart using the context
     addToCartContext(cartProduct, null, qty, finalPrice);
@@ -184,20 +183,19 @@ const ProductCatalog: React.FC = () => {
       // Update cart context
       const cartProduct = {
         id: product.id,
-        productCode: product.productCode,
         name: product.name,
         images: product.images,
-        productType: product.productType,
+        category: product.productType,
         description: product.description
       };
 
-      const finalPrice = parseFloat(product.price);
+      const finalPrice = parseFloat(product.discountedPrice || product.price);
       addToCartContext(cartProduct, null, newQuantity, finalPrice);
     }
   };
 
   return (
-    <div className="container mx-auto px-4 py-6 pb-24 md:pb-8">
+    <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-6 pb-24 md:pb-8">
       {/* Header */}
       <div className="mb-6">
         <h1 className="text-2xl md:text-3xl font-bold text-foreground mb-2">Jewelry Collection</h1>
@@ -269,8 +267,8 @@ const ProductCatalog: React.FC = () => {
       {loading && (
         <div className="flex justify-center items-center py-12">
           <div className="text-center">
-            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-purple-600 mx-auto mb-4"></div>
-            <p className="text-gray-600">Loading products...</p>
+            <div className="brand-spinner mx-auto mb-4"></div>
+            <p className="text-brand-medium font-medium">Loading products...</p>
           </div>
         </div>
       )}
@@ -295,9 +293,9 @@ const ProductCatalog: React.FC = () => {
           </div>
         </div>
       ) : !loading && !error ? (
-        <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3 md:gap-4 lg:gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 md:gap-6">
           {products.map((product) => (
-            <div key={product.id} className="product-card product-card-customer h-[480px]">
+            <div key={product.id} className="product-card product-card-customer">
               {/* Product Image - Fixed Square Container */}
               <div className="product-card-image">
                 <img
@@ -305,50 +303,54 @@ const ProductCatalog: React.FC = () => {
                   alt={product.name}
                   loading="lazy"
                 />
+
+                {/* Product Type Badge */}
+                <div className="absolute top-3 left-3 text-xs font-medium px-2 py-1 rounded-md bg-white/95 backdrop-blur-sm border border-brand-border text-brand-shade">
+                  {product.productType === 'chain' ? 'Chain' : 'Bracelet/Anklet'}
+                </div>
+
+                {/* Product Code Badge */}
+                <div className="absolute top-3 right-3 text-xs font-mono text-brand-medium bg-brand-lightest px-2 py-1 rounded-md border border-brand-border">
+                  {product.productCode}
+                </div>
+
+                {/* New Badge */}
                 {isProductNew(product.createdAt) && (
-                  <span className="absolute top-2 left-2 bg-primary text-white px-2 py-1 text-xs font-medium rounded">
+                  <div className="absolute bottom-3 left-3 bg-brand-primary text-white px-2 py-1 text-xs font-medium rounded-md">
                     New
-                  </span>
+                  </div>
                 )}
+
+                {/* Sale Badge */}
                 {product.discountedPrice && (
-                  <span className="absolute top-2 right-2 bg-destructive text-white px-2 py-1 text-xs font-medium rounded">
+                  <div className="absolute bottom-3 right-3 bg-red-500 text-white px-2 py-1 text-xs font-medium rounded-md">
                     Sale
-                  </span>
+                  </div>
                 )}
               </div>
 
               {/* Product Info - Fixed Height Content */}
               <div className="product-card-content">
-                <div className="product-description-container">
-                  <div className="flex items-center justify-between mb-1">
-                    <span className="text-xs text-muted-foreground font-medium capitalize bg-white/90 backdrop-blur-sm px-2 py-1 rounded border border-gray-200">
-                      {product.productType === 'chain' ? 'Chain' : 'Bracelet/Anklet'}
-                    </span>
-                    <span className="text-xs text-primary font-mono bg-primary/10 px-2 py-1 rounded">
-                      {product.productCode}
-                    </span>
-                  </div>
-                  <h3 className="product-card-title">
+                <div className="product-info-section">
+                  {/* Product Name */}
+                  <h3 className="product-card-title" title={product.name}>
                     {product.name}
                   </h3>
 
                   {/* Product Description */}
-                  <div className="space-y-1 mt-2">
-                    <div className="product-description-item">
-                      <span className="product-description-label">Description:</span>
-                      <span className="product-description-text ml-1">{product.description}</span>
-                    </div>
+                  <div className="product-description-item">
+                    <span className="product-description-text" title={product.description}>
+                      {product.description}
+                    </span>
                   </div>
-                </div>
 
-                {/* Price - Fixed Position */}
-                <div className="mb-3 flex-shrink-0">
-                  <div className="flex items-center space-x-2">
-                    <span className="product-card-price">
+                  {/* Price Section */}
+                  <div className="price-section">
+                    <span className="current-price">
                       {formatPrice(product.discountedPrice || product.price)}
                     </span>
                     {product.discountedPrice && (
-                      <span className="text-xs md:text-sm text-muted-foreground line-through">
+                      <span className="original-price">
                         {formatPrice(product.price)}
                       </span>
                     )}
@@ -358,30 +360,30 @@ const ProductCatalog: React.FC = () => {
                 {/* Add to Cart Button or Quantity Controls - Fixed at Bottom */}
                 <div className="product-card-actions">
                   {cartStates[product.id] ? (
-                    <div className="flex items-center justify-between bg-primary/10 border border-primary/20 rounded-lg p-2">
+                    <div className="flex items-center justify-between bg-brand-lightest border border-brand-border rounded-lg p-2">
                       <Button
                         variant="outline"
                         size="sm"
                         onClick={() => handleInlineQuantityChange(product, cartStates[product.id].quantity - 1)}
-                        className="h-8 w-8 p-0 border-primary/30 text-primary hover:bg-primary hover:text-white"
+                        className="h-8 w-8 p-0 border-brand-border text-brand-shade hover:bg-brand-primary hover:text-white hover:border-brand-primary"
                       >
                         <Minus className="w-4 h-4" />
                       </Button>
-                      <span className="text-sm font-medium px-3 text-primary">
+                      <span className="text-sm font-medium px-3 text-brand-shade">
                         {cartStates[product.id].quantity}
                       </span>
                       <Button
                         variant="outline"
                         size="sm"
                         onClick={() => handleInlineQuantityChange(product, cartStates[product.id].quantity + 1)}
-                        className="h-8 w-8 p-0 border-primary/30 text-primary hover:bg-primary hover:text-white"
+                        className="h-8 w-8 p-0 border-brand-border text-brand-shade hover:bg-brand-primary hover:text-white hover:border-brand-primary"
                       >
                         <Plus className="w-4 h-4" />
                       </Button>
                     </div>
                   ) : (
                     <Button
-                      className="w-full h-10 text-sm font-medium"
+                      className="w-full h-10 text-sm font-medium bg-brand-primary hover:bg-brand-shade text-white border-0"
                       size="sm"
                       onClick={() => handleAddToCart(product)}
                     >
