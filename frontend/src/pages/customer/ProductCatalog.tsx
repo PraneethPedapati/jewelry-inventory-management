@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useEffect } from 'react';
+import React, { useState, useMemo, useEffect, useCallback, useRef } from 'react';
 import { ShoppingCart, Filter, Search, ChevronLeft, ChevronRight, Plus, Minus, X } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
@@ -33,6 +33,20 @@ const ProductCatalog: React.FC = () => {
   const [totalPages, setTotalPages] = useState(1);
 
   const itemsPerPage = 8;
+  const isRequestingRef = useRef(false);
+
+  // Check if API URL is configured
+  const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:3000';
+  const isApiConfigured = apiUrl !== 'http://localhost:3000' || import.meta.env.VITE_API_URL;
+
+  // Debug logging
+  useEffect(() => {
+    console.log('API Configuration Debug:', {
+      VITE_API_URL: import.meta.env.VITE_API_URL,
+      apiUrl,
+      isApiConfigured
+    });
+  }, []);
 
   // Helper function to check if product is new (created within last week)
   const isProductNew = (createdAt: string): boolean => {
@@ -43,8 +57,12 @@ const ProductCatalog: React.FC = () => {
   };
 
   // Fetch products from API
-  const fetchProducts = async () => {
+  const fetchProducts = useCallback(async () => {
+    // Prevent multiple simultaneous API calls
+    if (isRequestingRef.current) return;
+
     try {
+      isRequestingRef.current = true;
       setLoading(true);
       setError(null);
 
@@ -56,13 +74,16 @@ const ProductCatalog: React.FC = () => {
       if (searchTerm) params.append('search', searchTerm);
       if (selectedCategory !== 'All') params.append('productType', selectedCategory);
 
-      const response = await fetch(`${import.meta.env.VITE_API_URL}/api/products?${params}`);
+      console.log('Fetching products from:', `${apiUrl}/api/products?${params}`);
+
+      const response = await fetch(`${apiUrl}/api/products?${params}`);
 
       if (!response.ok) {
-        throw new Error('Failed to fetch products');
+        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
       }
 
       const data = await response.json();
+      console.log('API response:', data);
 
       if (data.success) {
         setProducts(data.data.products || []);
@@ -71,12 +92,14 @@ const ProductCatalog: React.FC = () => {
         throw new Error(data.error || 'Failed to load products');
       }
     } catch (err) {
+      console.error('Error fetching products:', err);
       setError(err instanceof Error ? err.message : 'An error occurred');
       setProducts([]);
     } finally {
       setLoading(false);
+      isRequestingRef.current = false;
     }
-  };
+  }, [currentPage, searchTerm, selectedCategory, apiUrl]);
 
 
 
@@ -263,8 +286,22 @@ const ProductCatalog: React.FC = () => {
         </div>
       </div>
 
+      {/* Configuration Error State */}
+      {!isApiConfigured && (
+        <div className="text-center py-12">
+          <div className="text-red-600 mb-4">
+            <p className="text-lg font-medium">API Configuration Error</p>
+            <p className="text-sm">VITE_API_URL environment variable is not set.</p>
+            <p className="text-sm">Please check your .env file and restart the development server.</p>
+          </div>
+          <Button onClick={() => window.location.reload()} variant="outline">
+            Retry
+          </Button>
+        </div>
+      )}
+
       {/* Loading State */}
-      {loading && (
+      {loading && isApiConfigured && (
         <div className="flex justify-center items-center py-12">
           <div className="text-center">
             <div className="brand-spinner mx-auto mb-4"></div>
@@ -274,7 +311,7 @@ const ProductCatalog: React.FC = () => {
       )}
 
       {/* Error State */}
-      {error && (
+      {error && isApiConfigured && (
         <div className="text-center py-12">
           <p className="text-red-600 mb-4">{error}</p>
           <Button onClick={fetchProducts} variant="outline">
@@ -284,7 +321,7 @@ const ProductCatalog: React.FC = () => {
       )}
 
       {/* Product Grid */}
-      {!loading && !error && products.length === 0 ? (
+      {!loading && !error && isApiConfigured && products.length === 0 ? (
         <div className="text-center py-12">
           <div className="text-muted-foreground mb-4">
             <ShoppingCart className="w-12 h-12 mx-auto mb-2 opacity-50" />
@@ -292,7 +329,7 @@ const ProductCatalog: React.FC = () => {
             <p className="text-sm">Try adjusting your search or filter criteria</p>
           </div>
         </div>
-      ) : !loading && !error ? (
+      ) : !loading && !error && isApiConfigured ? (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 md:gap-6">
           {products.map((product) => (
             <div key={product.id} className="product-card product-card-customer">
@@ -360,26 +397,24 @@ const ProductCatalog: React.FC = () => {
                 {/* Add to Cart Button or Quantity Controls - Fixed at Bottom */}
                 <div className="product-card-actions">
                   {cartStates[product.id] ? (
-                    <div className="flex items-center justify-between bg-brand-lightest border border-brand-border rounded-lg p-2">
-                      <Button
-                        variant="outline"
-                        size="sm"
+                    <div className="flex items-center justify-between bg-brand-lightest border border-brand-border rounded-lg px-2 h-10">
+                      <div
                         onClick={() => handleInlineQuantityChange(product, cartStates[product.id].quantity - 1)}
-                        className="h-8 w-8 p-0 border-brand-border text-brand-shade hover:bg-brand-primary hover:text-white hover:border-brand-primary"
+                        className="w-8 h-8 rounded-full bg-white border border-brand-border flex items-center justify-center cursor-pointer hover:bg-brand-primary hover:text-white hover:border-brand-primary transition-all duration-200 shadow-sm"
                       >
-                        <Minus className="w-4 h-4" />
-                      </Button>
-                      <span className="text-sm font-medium px-3 text-brand-shade">
-                        {cartStates[product.id].quantity}
-                      </span>
-                      <Button
-                        variant="outline"
-                        size="sm"
+                        <Minus className="w-3 h-3" />
+                      </div>
+                      <div className="text-center">
+                        <span className="text-sm font-semibold text-brand-shade">
+                          {cartStates[product.id].quantity}
+                        </span>
+                      </div>
+                      <div
                         onClick={() => handleInlineQuantityChange(product, cartStates[product.id].quantity + 1)}
-                        className="h-8 w-8 p-0 border-brand-border text-brand-shade hover:bg-brand-primary hover:text-white hover:border-brand-primary"
+                        className="w-8 h-8 rounded-full bg-brand-primary border border-brand-primary flex items-center justify-center cursor-pointer hover:bg-brand-shade transition-all duration-200 shadow-sm text-white"
                       >
-                        <Plus className="w-4 h-4" />
-                      </Button>
+                        <Plus className="w-3 h-3" />
+                      </div>
                     </div>
                   ) : (
                     <Button
