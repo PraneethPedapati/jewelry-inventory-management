@@ -56,10 +56,10 @@ const Logo: React.FC<LogoProps> = ({
   }, []);
 
   const sizeClasses = {
-    sm: 'h-6',
-    md: 'h-8',
-    lg: 'h-12',
-    xl: 'h-16'
+    sm: 'h-6 w-6',
+    md: 'h-8 w-8',
+    lg: 'h-12 w-12',
+    xl: 'h-16 w-16'
   };
 
   const textSizes = {
@@ -75,7 +75,7 @@ const Logo: React.FC<LogoProps> = ({
         <img
           src={brandConfig.logoUrl}
           alt={`${brandConfig.companyName} Logo`}
-          className={`${sizeClasses[size]} w-auto object-contain`}
+          className={`${sizeClasses[size]} rounded-full object-cover`}
           onError={(e) => {
             // Fallback to text if image fails to load
             const target = e.target as HTMLImageElement;
@@ -104,7 +104,7 @@ const Logo: React.FC<LogoProps> = ({
       <img
         src={brandConfig.logoUrl}
         alt={`${brandConfig.companyName} Logo`}
-        className={`${sizeClasses[size]} w-auto object-contain`}
+        className={`${sizeClasses[size]} rounded-full object-cover`}
         onError={(e) => {
           // Fallback to text if image fails to load
           const target = e.target as HTMLImageElement;

@@ -24,7 +24,7 @@ export const TopSellingProductsWidget: React.FC<TopSellingProductsWidgetProps> =
         <CardContent>
           <div className="space-y-4">
             {[1, 2, 3].map((i) => (
-              <div key={i} className="animate-pulse p-3 bg-brand-lightest rounded-lg">
+              <div key={i} className="animate-pulse p-3 bg-brand-ultra-light rounded-lg">
                 <div className="flex items-center space-x-3">
                   <div className="w-8 h-8 bg-brand-light rounded-full"></div>
                   <div className="flex-1">
@@ -49,7 +49,7 @@ export const TopSellingProductsWidget: React.FC<TopSellingProductsWidgetProps> =
       <CardContent>
         <div className="space-y-4">
           {value?.map((product, index) => (
-            <div key={index} className="flex items-center justify-between p-3 bg-brand-lightest rounded-lg">
+            <div key={index} className="flex items-center justify-between p-3 bg-brand-ultra-light rounded-lg">
               <div className="flex items-center space-x-3">
                 <div className="w-8 h-8 bg-brand-primary rounded-full flex items-center justify-center text-white text-sm font-bold border border-brand-border">
                   {index + 1}

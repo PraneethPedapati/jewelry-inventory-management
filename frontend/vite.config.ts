@@ -13,7 +13,7 @@ export default defineConfig({
         name: process.env.VITE_PWA_NAME || 'Elegant Jewelry Store',
         short_name: process.env.VITE_PWA_SHORT_NAME || 'EJS',
         description: process.env.VITE_PWA_DESCRIPTION || 'Premium jewelry collection with elegant designs',
-        theme_color: process.env.VITE_PWA_THEME_COLOR || '#6366f1',
+        theme_color: process.env.VITE_PWA_THEME_COLOR || '#6c3158',
         background_color: process.env.VITE_PWA_BACKGROUND_COLOR || '#ffffff',
         display: 'standalone',
         orientation: 'portrait',

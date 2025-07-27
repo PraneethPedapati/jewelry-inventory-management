@@ -37,7 +37,7 @@ export default {
         "success-foreground": "var(--color-success-foreground)",
         warning: "var(--color-warning)",
         "warning-foreground": "var(--color-warning-foreground)",
-        
+
         // Brand monochromatic color palette
         brand: {
           primary: '#6c3158',
@@ -46,6 +46,7 @@ export default {
           light: '#ba82a4',
           lighter: '#d59fbf',
           lightest: '#f0bcd9',
+          'ultra-light': '#f8f2f6',
           bg: '#fbf7fa',
           border: '#e4d9e0',
         }
