@@ -321,7 +321,7 @@ const ProductCatalog: React.FC = () => {
               <div className="product-card-content">
                 <div className="product-description-container">
                   <div className="flex items-center justify-between mb-1">
-                    <span className="text-xs text-muted-foreground font-medium capitalize">
+                    <span className="text-xs text-muted-foreground font-medium capitalize bg-white/90 backdrop-blur-sm px-2 py-1 rounded border border-gray-200">
                       {product.productType === 'chain' ? 'Chain' : 'Bracelet/Anklet'}
                     </span>
                     <span className="text-xs text-primary font-mono bg-primary/10 px-2 py-1 rounded">

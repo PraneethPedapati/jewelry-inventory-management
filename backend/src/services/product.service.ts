@@ -32,9 +32,26 @@ export class ProductService {
       const productCode = await ProductCodeService.generateProductCode(productData.productType);
       console.log(`✅ Generated product code: ${productCode}`);
 
-      // 2. Handle images (simplified for now)
+      // 2. Upload images to ImgBB (if configured)
       let imageUrls: string[] = [];
-      console.log('📷 Image upload disabled for now, creating product without images');
+
+      if (imageFiles && imageFiles.length > 0) {
+        try {
+          const uploadResults = await ImgBBService.uploadMultipleImages(
+            imageFiles.map(file => file.buffer),
+            imageFiles.map(file => `${productCode}-${file.originalname}`) // Use product code in filename
+          );
+
+          imageUrls = uploadResults.map(result => result.url);
+          console.log(`✅ Uploaded ${imageUrls.length} images to ImgBB`);
+        } catch (uploadError) {
+          console.warn('⚠️ Image upload failed, creating product without images:', uploadError);
+          // Continue without images if upload fails
+          imageUrls = [];
+        }
+      } else {
+        console.log('📷 No images provided, creating product without images');
+      }
 
       // 3. Save product to database with generated code
       const newProduct = await db.insert(products).values({
@@ -161,7 +178,7 @@ export class ProductService {
   /**
    * Update product
    */
-  static async updateProduct(id: string, updates: Partial<CreateProductRequest> & { [key: string]: any }) {
+  static async updateProduct(id: string, updates: Partial<CreateProductRequest> & { [key: string]: any }, imageFiles?: Express.Multer.File[]) {
     const updateData: any = {};
 
     if (updates.name !== undefined) updateData.name = updates.name;
@@ -170,6 +187,27 @@ export class ProductService {
     if (updates.price !== undefined) updateData.price = updates.price.toString();
     if (updates.discountedPrice !== undefined) updateData.discountedPrice = updates.discountedPrice?.toString() || null;
     if (updates.isActive !== undefined) updateData.isActive = updates.isActive;
+
+    // Handle image updates
+    if (imageFiles && imageFiles.length > 0) {
+      try {
+        // Get existing product to use its code for image naming
+        const existingProduct = await this.getProductById(id);
+        if (existingProduct) {
+          const uploadResults = await ImgBBService.uploadMultipleImages(
+            imageFiles.map(file => file.buffer),
+            imageFiles.map(file => `${existingProduct.productCode}-${file.originalname}`)
+          );
+
+          const imageUrls = uploadResults.map(result => result.url);
+          updateData.images = imageUrls;
+          console.log(`✅ Uploaded ${imageUrls.length} images for product update`);
+        }
+      } catch (uploadError) {
+        console.warn('⚠️ Image upload failed during update:', uploadError);
+        // Continue without updating images
+      }
+    }
 
     updateData.updatedAt = new Date();
 

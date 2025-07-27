@@ -222,33 +222,47 @@ export const createProduct = [
  * Update product
  * PUT /api/admin/products/:id
  */
-export const updateProduct = asyncHandler(async (req: Request, res: Response) => {
-  const { id } = req.params;
+export const updateProduct = [
+  upload.array('images', 5),
+  asyncHandler(async (req: Request, res: Response) => {
+    const { id } = req.params;
 
-  if (!id) {
-    return res.status(400).json({
-      success: false,
-      error: 'Product ID is required'
+    if (!id) {
+      return res.status(400).json({
+        success: false,
+        error: 'Product ID is required'
+      });
+    }
+
+    // Convert FormData string values to proper types before validation
+    const validatedData = UpdateProductSchema.parse({
+      name: req.body.name,
+      description: req.body.description,
+      productType: req.body.productType,
+      price: req.body.price ? parseFloat(req.body.price) : undefined,
+      discountedPrice: req.body.discountedPrice ? parseFloat(req.body.discountedPrice) : undefined,
+      isActive: req.body.isActive ? req.body.isActive === 'true' : undefined
     });
-  }
 
-  const validatedData = UpdateProductSchema.parse(req.body);
+    // Get uploaded files
+    const files = req.files as Express.Multer.File[];
 
-  const updatedProduct = await ProductService.updateProduct(id, validatedData as any);
+    const updatedProduct = await ProductService.updateProduct(id, validatedData as any, files);
 
-  if (!updatedProduct) {
-    return res.status(404).json({
-      success: false,
-      error: 'Product not found'
+    if (!updatedProduct) {
+      return res.status(404).json({
+        success: false,
+        error: 'Product not found'
+      });
+    }
+
+    res.json({
+      success: true,
+      data: updatedProduct,
+      message: 'Product updated successfully'
     });
-  }
-
-  res.json({
-    success: true,
-    data: updatedProduct,
-    message: 'Product updated successfully'
-  });
-});
+  })
+];
 
 /**
  * Delete product

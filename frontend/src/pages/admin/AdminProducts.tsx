@@ -254,7 +254,7 @@ const AdminProducts: React.FC = () => {
     }
   };
 
-  const handleEditSubmit = async (productData: Omit<Product, 'id' | 'sku' | 'createdAt' | 'updatedAt' | 'productType'> & { productType: string; price: string; discountedPrice?: string; }) => {
+  const handleEditSubmit = async (productData: Omit<Product, 'id' | 'sku' | 'createdAt' | 'updatedAt' | 'productType'> & { productType: string; price: string; discountedPrice?: string; isActive?: boolean; }) => {
     if (!selectedProduct) return;
     try {
       setUpdating(true);
@@ -262,11 +262,26 @@ const AdminProducts: React.FC = () => {
         name: productData.name,
         description: productData.description,
         price: parseFloat(productData.price),
+        isActive: productData.isActive,
       };
       if (productData.discountedPrice) {
         updateData.discountedPrice = parseFloat(productData.discountedPrice);
       }
-      await productService.updateProduct(selectedProduct.id, updateData);
+      // Convert selectedImage to File if it exists
+      let imageFiles: File[] = [];
+      if (selectedImage) {
+        try {
+          // Convert base64 to File object
+          const response = await fetch(selectedImage);
+          const blob = await response.blob();
+          const file = new File([blob], 'product-image.jpg', { type: 'image/jpeg' });
+          imageFiles = [file];
+        } catch (imageError) {
+          console.warn('Failed to convert image, updating product without image:', imageError);
+        }
+      }
+
+      await productService.updateProduct(selectedProduct.id, updateData, imageFiles);
       toast.success('Product updated successfully!');
       setShowEditModal(false);
       setSelectedProduct(null);
@@ -512,7 +527,7 @@ const AdminProducts: React.FC = () => {
                     </Badge>
                   </div>
                   <div className="absolute top-2 left-2">
-                    <Badge variant="outline" className="text-xs capitalize">
+                    <Badge variant="outline" className="text-xs capitalize bg-white/90 backdrop-blur-sm border-gray-300 text-gray-700">
                       {categoryDisplayNames[product.productType] || product.productType}
                     </Badge>
                   </div>
@@ -686,7 +701,7 @@ const AdminProducts: React.FC = () => {
 interface ProductModalProps {
   mode: 'create' | 'edit';
   product?: Product;
-  onSave: (data: Omit<Product, 'id' | 'sku' | 'createdAt' | 'updatedAt' | 'productType'> & { productType: string; price: string; discountedPrice?: string; }) => void;
+  onSave: (data: Omit<Product, 'id' | 'sku' | 'createdAt' | 'updatedAt' | 'productType'> & { productType: string; price: string; discountedPrice?: string; isActive?: boolean; }) => void;
   onClose: () => void;
   selectedImage: string | null;
   setSelectedImage: (image: string | null) => void;

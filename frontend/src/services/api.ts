@@ -385,8 +385,28 @@ export const productService = {
     return response.data.data;
   },
 
-  updateProduct: async (id: string, updates: Partial<CreateProductRequest>): Promise<Product> => {
-    const response = await apiClient.put<ApiResponse<Product>>(`/api/admin/products/${id}`, updates);
+  updateProduct: async (id: string, updates: Partial<CreateProductRequest>, images?: File[]): Promise<Product> => {
+    const formData = new FormData();
+
+    // Add product data
+    Object.entries(updates).forEach(([key, value]) => {
+      if (value !== undefined) {
+        formData.append(key, value.toString());
+      }
+    });
+
+    // Add images if provided
+    if (images && images.length > 0) {
+      images.forEach(image => {
+        formData.append('images', image);
+      });
+    }
+
+    const response = await apiClient.put<ApiResponse<Product>>(`/api/admin/products/${id}`, formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data',
+      },
+    });
     return response.data.data;
   },
 
