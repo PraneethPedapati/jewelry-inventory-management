@@ -1,14 +1,12 @@
-import React, { useState, useMemo, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Package, Plus, Search, Edit, Upload, X, Trash2, TrendingUp, ShoppingBag, AlertTriangle, ChevronLeft, ChevronRight } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Badge } from '@/components/ui/badge';
 import { toast } from 'sonner';
 import ConfirmationDialog from '@/components/ui/confirmation-dialog';
 import { productService, dashboardService, type Product, type CreateProductRequest } from '@/services/api';
-import { env } from '@/config/env';
 import { useDocumentTitle } from '@/hooks/useDocumentTitle';
 
 // Placeholder image for products without images
@@ -366,55 +364,6 @@ const AdminProducts: React.FC = () => {
         </Button>
       </div>
 
-      {/* Search and Filter Bar */}
-      <div className="flex gap-4 mb-6">
-        <div className="relative flex-1">
-          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground w-4 h-4" />
-          <Input
-            placeholder="Search products by name or description..."
-            className="pl-10"
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-          />
-        </div>
-
-        {/* Modern Category Dropdown */}
-        <div className="relative">
-          <select
-            value={filterCategory}
-            onChange={(e) => setFilterCategory(e.target.value)}
-            className="appearance-none bg-background border border-border rounded-lg px-4 py-2 pr-10 text-foreground font-medium focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent min-w-[160px]"
-          >
-            <option value="All">All Categories</option>
-            <option value="chain">Chain</option>
-            <option value="bracelet-anklet">Bracelet & Anklet</option>
-          </select>
-          <div className="absolute right-3 top-1/2 transform -translate-y-1/2 pointer-events-none">
-            <svg className="w-4 h-4 text-muted-foreground" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-            </svg>
-          </div>
-        </div>
-
-        {/* Modern Status Dropdown */}
-        <div className="relative">
-          <select
-            value={filterStatus}
-            onChange={(e) => setFilterStatus(e.target.value)}
-            className="appearance-none bg-background border border-border rounded-lg px-4 py-2 pr-10 text-foreground font-medium focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent min-w-[140px]"
-          >
-            <option value="All">All Products</option>
-            <option value="In Stock">In Stock</option>
-            <option value="Out of Stock">Out of Stock</option>
-          </select>
-          <div className="absolute right-3 top-1/2 transform -translate-y-1/2 pointer-events-none">
-            <svg className="w-4 h-4 text-muted-foreground" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-            </svg>
-          </div>
-        </div>
-      </div>
-
       {/* Enhanced Product Stats */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
         <Card className="bg-brand-bg border-brand-border p-6">
@@ -494,6 +443,55 @@ const AdminProducts: React.FC = () => {
         </Card>
       </div>
 
+      {/* Search and Filter Bar */}
+      <div className="flex gap-4 mb-6">
+        <div className="relative flex-1">
+          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground w-4 h-4" />
+          <Input
+            placeholder="Search products by name or description..."
+            className="pl-10"
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+          />
+        </div>
+
+        {/* Modern Category Dropdown */}
+        <div className="relative">
+          <select
+            value={filterCategory}
+            onChange={(e) => setFilterCategory(e.target.value)}
+            className="appearance-none bg-background border border-border rounded-lg px-4 py-2 pr-10 text-foreground font-medium focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent min-w-[160px]"
+          >
+            <option value="All">All Categories</option>
+            <option value="chain">Chain</option>
+            <option value="bracelet-anklet">Bracelet & Anklet</option>
+          </select>
+          <div className="absolute right-3 top-1/2 transform -translate-y-1/2 pointer-events-none">
+            <svg className="w-4 h-4 text-muted-foreground" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+            </svg>
+          </div>
+        </div>
+
+        {/* Modern Status Dropdown */}
+        <div className="relative">
+          <select
+            value={filterStatus}
+            onChange={(e) => setFilterStatus(e.target.value)}
+            className="appearance-none bg-background border border-border rounded-lg px-4 py-2 pr-10 text-foreground font-medium focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent min-w-[140px]"
+          >
+            <option value="All">All Products</option>
+            <option value="In Stock">In Stock</option>
+            <option value="Out of Stock">Out of Stock</option>
+          </select>
+          <div className="absolute right-3 top-1/2 transform -translate-y-1/2 pointer-events-none">
+            <svg className="w-4 h-4 text-muted-foreground" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+            </svg>
+          </div>
+        </div>
+      </div>
+
       {/* Products Grid */}
       <div>
         <div className="flex items-center justify-between mb-4">
@@ -531,79 +529,82 @@ const AdminProducts: React.FC = () => {
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
             {products.map((product) => (
-              <Card key={product.id} className="product-card product-card-admin h-[520px]">
-                {/* Product Image - Fixed Square Container */}
+              <Card key={product.id} className="product-card product-card-admin">
+                {/* Product Image - Square Container */}
                 <div className="product-card-image">
                   <img
                     src={product.images?.[0] || PLACEHOLDER_IMAGE}
-                    alt={product.name}
+                    alt={product.name || 'Product Image'}
                     onError={(e) => {
                       e.currentTarget.src = PLACEHOLDER_IMAGE;
                     }}
                   />
-                  <div className="absolute top-2 right-2 flex flex-col gap-1">
-                    <Badge
-                      variant={product.isActive ? 'default' : 'destructive'}
-                      className={`text-xs ${product.isActive ? 'bg-green-500 hover:bg-green-600' : ''}`}
-                    >
-                      {product.isActive ? 'In Stock' : 'Out of Stock'}
-                    </Badge>
+
+                  {/* Stock Status Badge */}
+                  <div className={`status-badge ${product.isActive ? 'in-stock' : 'out-of-stock'}`}>
+                    {product.isActive ? 'In Stock' : 'Out of Stock'}
                   </div>
-                  <div className="absolute top-2 left-2">
-                    <Badge variant="outline" className="text-xs capitalize bg-white/90 backdrop-blur-sm border-gray-300 text-gray-700">
-                      {categoryDisplayNames[product.productType] || product.productType}
-                    </Badge>
+
+                  {/* Product Type Badge */}
+                  <div className="type-badge">
+                    {categoryDisplayNames[product.productType] || product.productType || 'Unknown'}
                   </div>
                 </div>
 
-                {/* Product Content - Fixed Height */}
+                {/* Product Content */}
                 <CardContent className="product-card-content">
-                  <div className="space-y-2 flex flex-col flex-1 min-h-0">
-                    <h3 className="product-card-title" title={product.name}>{product.name}</h3>
+                  <div className="product-info-section">
+                    {/* Product Name */}
+                    <h3 className="product-card-title" title={product.name || 'Untitled Product'}>
+                      {product.name || 'Untitled Product'}
+                    </h3>
 
-                    {/* Product Descriptions */}
-                    <div className="space-y-1">
-                      <div className="product-description-item">
-                        <span className="product-description-label">Description:</span>
-                        <span className="product-description-text ml-1" title={product.description}>
-                          {product.description}
-                        </span>
-                      </div>
+                    {/* Product Code */}
+                    <div className="product-code">
+                      {product.productCode || 'N/A'}
                     </div>
-                    <div className="flex items-center justify-between pt-2 flex-shrink-0">
-                      <div className="flex items-center space-x-2">
-                        <span className="product-card-price text-primary">
-                          ₹{product.discountedPrice ? Number(product.discountedPrice).toLocaleString() : Number(product.price).toLocaleString()}
-                        </span>
-                        {product.discountedPrice && (
-                          <span className="text-xs text-muted-foreground line-through">
-                            ₹{Number(product.price).toLocaleString()}
-                          </span>
-                        )}
-                      </div>
-                      <div className="flex gap-2">
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => handleEditProduct(product)}
-                          className="h-9 px-3 border-blue-200 text-blue-700 hover:bg-blue-50 hover:text-blue-800 hover:border-blue-300"
-                          disabled={updating}
-                        >
-                          <Edit className="w-4 h-4 mr-1" />
-                          Edit
-                        </Button>
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => handleDeleteProduct(product)}
-                          className="h-9 px-3 border-red-200 text-red-700 hover:bg-red-50 hover:text-red-800 hover:border-red-300"
-                          disabled={deleting}
-                        >
-                          <Trash2 className="w-4 h-4 mr-1" />
-                          Delete
-                        </Button>
-                      </div>
+
+                    {/* Product Description */}
+                    <div className="product-description-item">
+                      <span className="product-description-text" title={product.description || 'No description available'}>
+                        {product.description || 'No description available'}
+                      </span>
                     </div>
+
+                    {/* Price Section */}
+                    <div className="price-section">
+                      <span className="current-price">
+                        ₹{product.discountedPrice ? Number(product.discountedPrice).toLocaleString() : Number(product.price || 0).toLocaleString()}
+                      </span>
+                      {product.discountedPrice && product.price && Number(product.discountedPrice) < Number(product.price) && (
+                        <span className="original-price">
+                          ₹{Number(product.price).toLocaleString()}
+                        </span>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Action Buttons */}
+                  <div className="action-buttons">
+                    <Button
+                      size="sm"
+                      onClick={() => handleEditProduct(product)}
+                      className="edit-button"
+                      disabled={updating}
+                    >
+                      <Edit className="w-4 h-4 mr-1" />
+                      Edit
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => handleDeleteProduct(product)}
+                      className="delete-button"
+                      disabled={deleting}
+                    >
+                      <Trash2 className="w-4 h-4 mr-1" />
+                      Delete
+                    </Button>
                   </div>
                 </CardContent>
               </Card>

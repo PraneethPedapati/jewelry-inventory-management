@@ -177,31 +177,43 @@
 
   /* Product Card Utilities */
   .product-card {
-    @apply bg-card rounded-lg border shadow-sm hover:shadow-md transition-shadow duration-200 flex flex-col;
+    @apply bg-brand-bg border-brand-border rounded-xl shadow-sm hover:shadow-lg transition-all duration-300 flex flex-col overflow-hidden;
   }
 
   .product-card-image {
-    @apply relative w-full h-48 flex-shrink-0 bg-muted;
+    @apply relative w-full aspect-square flex-shrink-0 bg-brand-lightest;
+    position: relative;
+    /* Ensure perfect square aspect ratio */
+    aspect-ratio: 1 / 1;
   }
 
   .product-card-image img {
-    @apply w-full h-full object-cover object-center rounded-t-lg;
+    @apply w-full h-full object-cover object-center;
+    /* Ensure image fills the square container perfectly */
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    object-position: center;
   }
 
   .product-card-content {
-    @apply p-3 md:p-4 flex flex-col flex-1 min-h-0;
+    @apply p-4 flex flex-col flex-1 min-h-0;
   }
 
   .product-card-title {
-    @apply text-sm md:text-base font-semibold text-foreground line-clamp-2 mb-2 h-10 md:h-12 overflow-hidden;
+    @apply text-base font-semibold text-brand-shade line-clamp-2 mb-2 leading-tight;
+    min-height: 2rem;
+    max-height: 2.5rem;
   }
 
   .product-card-description {
-    @apply text-sm text-muted-foreground line-clamp-2 h-10 overflow-hidden flex-1;
+    @apply text-sm text-brand-medium line-clamp-2 flex-1;
+    min-height: 2.5rem;
+    max-height: 2.5rem;
   }
 
   .product-card-price {
-    @apply text-base md:text-lg font-bold text-foreground;
+    @apply text-lg font-bold text-brand-primary;
   }
 
   .product-card-actions {
@@ -214,26 +226,101 @@
   }
 
   .product-description-item {
-    @apply text-xs text-muted-foreground mb-1;
+    @apply text-xs text-brand-medium mb-1;
   }
 
   .product-description-label {
-    @apply font-medium text-foreground;
+    @apply font-medium text-brand-shade;
   }
 
   .product-description-text {
-    @apply line-clamp-1 overflow-hidden;
+    @apply line-clamp-2 overflow-hidden text-xs;
+  }
+
+  /* Admin Product Card Specific Styles */
+  .product-card-admin {
+    @apply h-[580px] w-full transition-all duration-300 hover:scale-[1.02] hover:shadow-xl;
+  }
+
+  .product-card-admin .product-card-image {
+    @apply aspect-square;
+    /* Ensure perfect square for admin cards */
+    aspect-ratio: 1 / 1;
+    min-height: 0;
+  }
+
+  .product-card-admin .product-card-image img {
+    /* Ensure admin card images are always square */
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    object-position: center;
+    display: block;
+  }
+
+  .product-card-admin .product-card-content {
+    @apply flex flex-col justify-between;
+    /* Add more padding to the content area */
+    padding: 1.25rem;
+  }
+
+  .product-card-admin .product-info-section {
+    @apply space-y-1.5 flex-1;
+    /* Add smaller top margin to create space between image and product name */
+    margin-top: 0.25rem;
+  }
+
+  .product-card-admin .product-code {
+    @apply text-xs font-mono text-brand-medium bg-brand-lightest px-2 py-1 rounded-md inline-block border border-brand-border;
+  }
+
+  .product-card-admin .price-section {
+    @apply flex items-center gap-2 mb-2;
+  }
+
+  .product-card-admin .current-price {
+    @apply text-lg font-bold text-brand-primary;
+  }
+
+  .product-card-admin .original-price {
+    @apply text-sm text-brand-medium line-through;
+  }
+
+  .product-card-admin .action-buttons {
+    @apply flex gap-2 mt-auto;
+    /* Add bottom padding to create space at the end of the card */
+    padding-bottom: 0.5rem;
+  }
+
+  .product-card-admin .edit-button {
+    @apply flex-1 bg-brand-primary hover:bg-brand-shade text-white border-0;
+  }
+
+  .product-card-admin .delete-button {
+    @apply flex-1 bg-red-50 hover:bg-red-100 text-red-700 border-red-200 hover:border-red-300;
+  }
+
+  /* Badge Styles for Admin Cards */
+  .product-card-admin .status-badge {
+    @apply absolute top-3 right-3 text-xs font-medium px-2 py-1 rounded-md;
+  }
+
+  .product-card-admin .status-badge.in-stock {
+    @apply bg-green-100 text-green-800 border border-green-200;
+  }
+
+  .product-card-admin .status-badge.out-of-stock {
+    @apply bg-red-100 text-red-800 border border-red-200;
+  }
+
+  .product-card-admin .type-badge {
+    @apply absolute top-3 left-3 text-xs font-medium px-2 py-1 rounded-md bg-white/95 backdrop-blur-sm border border-brand-border text-brand-shade;
   }
 
   /* Consistent card heights */
   .product-card-customer {
     @apply h-[480px] w-full;
   }
-
-  .product-card-admin {
-    @apply h-[520px] w-full;
-  }
-
 
   /* Image aspect ratios for products */
   .aspect-jewelry {
