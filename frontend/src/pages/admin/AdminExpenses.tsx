@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Receipt, Plus, Search, Edit, Trash2, TrendingUp, DollarSign, Calendar, Eye, X, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Receipt, Plus, Search, Edit, Trash2, TrendingUp, DollarSign, Calendar, X, ChevronLeft, ChevronRight } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -16,7 +16,7 @@ const AdminExpenses: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [filterCategory, setFilterCategory] = useState('All');
   const [filterDateRange, setFilterDateRange] = useState('All');
-  const [selectedReceipt, setSelectedReceipt] = useState<string | null>(null);
+
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [expenseToDelete, setExpenseToDelete] = useState<Expense | null>(null);
 
@@ -91,17 +91,14 @@ const AdminExpenses: React.FC = () => {
     }
   }, [searchTerm, filterCategory]);
 
-  const handleCreateExpense = async (expenseData: Omit<Expense, 'id' | 'createdAt' | 'updatedAt' | 'category' | 'addedBy'>) => {
+  const handleCreateExpense = async (expenseData: { title: string; amount: string; categoryId: string; expenseDate: string }) => {
     try {
       setCreating(true);
       const createData: CreateExpenseRequest = {
         title: expenseData.title,
-        description: expenseData.description,
         amount: parseFloat(expenseData.amount),
         categoryId: expenseData.categoryId,
-        expenseDate: expenseData.expenseDate,
-        receipt: expenseData.receipt,
-        tags: expenseData.tags
+        expenseDate: expenseData.expenseDate
       };
 
       await expenseService.createExpense(createData);
@@ -121,19 +118,16 @@ const AdminExpenses: React.FC = () => {
     setShowEditModal(true);
   };
 
-  const handleUpdateExpense = async (expenseData: Omit<Expense, 'id' | 'createdAt' | 'updatedAt' | 'category' | 'addedBy'>) => {
+  const handleUpdateExpense = async (expenseData: { title: string; amount: string; categoryId: string; expenseDate: string }) => {
     if (!selectedExpense) return;
 
     try {
       setUpdating(true);
       const updateData: Partial<CreateExpenseRequest> = {
         title: expenseData.title,
-        description: expenseData.description,
         amount: parseFloat(expenseData.amount),
         categoryId: expenseData.categoryId,
-        expenseDate: expenseData.expenseDate,
-        receipt: expenseData.receipt,
-        tags: expenseData.tags
+        expenseDate: expenseData.expenseDate
       };
 
       await expenseService.updateExpense(selectedExpense.id, updateData);
@@ -212,31 +206,31 @@ const AdminExpenses: React.FC = () => {
 
   return (
     <div className="p-6">
-      <div className="flex items-center justify-between mb-6">
+      <div className="flex items-center justify-between mb-4">
         <div>
-          <h1 className="text-3xl font-bold flex items-center gap-2">
-            <Receipt className="w-8 h-8" />
+          <h1 className="text-2xl font-bold flex items-center gap-2">
+            <Receipt className="w-6 h-6" />
             Expense Management
           </h1>
-          <p className="text-muted-foreground mt-2">
-            Track and manage business expenses, monitor spending patterns
+          <p className="text-muted-foreground text-sm mt-1">
+            Track and manage business expenses
           </p>
         </div>
-        <Button onClick={() => setShowCreateModal(true)} disabled={creating}>
+        <Button onClick={() => setShowCreateModal(true)} disabled={creating} size="sm">
           <Plus className="w-4 h-4 mr-2" />
           Add Expense
         </Button>
       </div>
 
       {/* Enhanced Expense Stats */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-        <Card className="bg-gradient-to-br from-red-50 to-red-100 border-red-200 p-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-5 mb-8">
+        <Card className="bg-gradient-to-br from-red-50 to-red-100 border-red-200 p-5">
           <div className="flex items-center justify-between mb-4">
-            <div className="p-3 bg-red-500 rounded-2xl">
-              <Receipt className="h-6 w-6 text-white" />
+            <div className="p-2 bg-red-500 rounded-xl">
+              <Receipt className="h-5 w-5 text-white" />
             </div>
             <div className="text-right">
-              <div className="text-3xl font-bold text-red-900">₹{(totalAmount / 1000).toFixed(0)}K</div>
+              <div className="text-2xl font-bold text-red-900">₹{(totalAmount / 1000).toFixed(0)}K</div>
               <div className="text-xs text-red-600 font-medium">Total</div>
             </div>
           </div>
@@ -249,13 +243,13 @@ const AdminExpenses: React.FC = () => {
           </div>
         </Card>
 
-        <Card className="bg-gradient-to-br from-blue-50 to-blue-100 border-blue-200 p-6">
+        <Card className="bg-gradient-to-br from-blue-50 to-blue-100 border-blue-200 p-5">
           <div className="flex items-center justify-between mb-4">
-            <div className="p-3 bg-blue-500 rounded-2xl">
-              <DollarSign className="h-6 w-6 text-white" />
+            <div className="p-2 bg-blue-500 rounded-xl">
+              <DollarSign className="h-5 w-5 text-white" />
             </div>
             <div className="text-right">
-              <div className="text-3xl font-bold text-blue-900">₹{(avgExpense / 1000).toFixed(0)}K</div>
+              <div className="text-2xl font-bold text-blue-900">₹{(avgExpense / 1000).toFixed(0)}K</div>
               <div className="text-xs text-blue-600 font-medium">Average</div>
             </div>
           </div>
@@ -268,13 +262,13 @@ const AdminExpenses: React.FC = () => {
           </div>
         </Card>
 
-        <Card className="bg-gradient-to-br from-green-50 to-green-100 border-green-200 p-6">
+        <Card className="bg-gradient-to-br from-green-50 to-green-100 border-green-200 p-5">
           <div className="flex items-center justify-between mb-4">
-            <div className="p-3 bg-green-500 rounded-2xl">
-              <Calendar className="h-6 w-6 text-white" />
+            <div className="p-2 bg-green-500 rounded-xl">
+              <Calendar className="h-5 w-5 text-white" />
             </div>
             <div className="text-right">
-              <div className="text-3xl font-bold text-green-900">{expenses.length}</div>
+              <div className="text-2xl font-bold text-green-900">{expenses.length}</div>
               <div className="text-xs text-green-600 font-medium">This Period</div>
             </div>
           </div>
@@ -287,13 +281,13 @@ const AdminExpenses: React.FC = () => {
           </div>
         </Card>
 
-        <Card className="bg-gradient-to-br from-purple-50 to-purple-100 border-purple-200 p-6">
+        <Card className="bg-gradient-to-br from-purple-50 to-purple-100 border-purple-200 p-5">
           <div className="flex items-center justify-between mb-4">
-            <div className="p-3 bg-purple-500 rounded-2xl">
-              <TrendingUp className="h-6 w-6 text-white" />
+            <div className="p-2 bg-purple-500 rounded-xl">
+              <TrendingUp className="h-5 w-5 text-white" />
             </div>
             <div className="text-right">
-              <div className="text-3xl font-bold text-purple-900">{categoriesWithExpenses}</div>
+              <div className="text-2xl font-bold text-purple-900">{categoriesWithExpenses}</div>
               <div className="text-xs text-purple-600 font-medium">Categories</div>
             </div>
           </div>
@@ -312,8 +306,8 @@ const AdminExpenses: React.FC = () => {
         <div className="relative flex-1">
           <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground w-4 h-4" />
           <Input
-            placeholder="Search expenses by title or description..."
-            className="pl-10"
+            placeholder="Search expenses..."
+            className="pl-10 h-10"
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
           />
@@ -321,7 +315,7 @@ const AdminExpenses: React.FC = () => {
         <select
           value={filterCategory}
           onChange={(e) => setFilterCategory(e.target.value)}
-          className="px-4 py-2 border border-border rounded-md bg-background text-foreground min-w-[180px]"
+          className="px-4 py-2 border border-border rounded-md bg-background text-foreground min-w-[180px] h-10 text-sm"
         >
           <option value="All">All Categories</option>
           {expenseCategories.map((category) => (
@@ -333,7 +327,7 @@ const AdminExpenses: React.FC = () => {
       </div>
 
       {/* Expenses List */}
-      <div className="space-y-4">
+      <div className="space-y-3">
         {loading ? (
           <div className="text-center py-12">
             <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
@@ -351,78 +345,60 @@ const AdminExpenses: React.FC = () => {
           </div>
         ) : (
           expenses.map((expense) => (
-            <Card key={expense.id} className="hover:shadow-md transition-shadow">
-              <CardContent className="p-6">
+            <Card key={expense.id} className="hover:shadow-md hover:scale-[1.02] transition-all duration-200 border-l-4 border-l-primary">
+              <CardContent className="pt-6 pb-5 px-4">
                 <div className="flex items-center justify-between">
-                  <div className="flex-1">
-                    <div className="flex items-center gap-4 mb-2">
-                      <div>
-                        <h3 className="font-semibold text-lg">{expense.title}</h3>
-                        <p className="text-muted-foreground text-sm">
-                          {formatDate(expense.expenseDate)}
-                        </p>
-                      </div>
-                      <Badge variant="outline" className="text-xs">
-                        {expense.category.name}
-                      </Badge>
-                      <div className="text-right">
-                        <p className="text-2xl font-bold text-primary">
-                          {formatCurrency(expense.amount)}
-                        </p>
+                  <div className="flex items-center gap-4 flex-1">
+                    <div className="p-2 bg-primary/10 rounded-lg">
+                      <Receipt className="w-4 h-4 text-primary" />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center justify-between">
+                        <div className="flex-1 min-w-0">
+                          <h3 className="font-semibold text-base text-foreground truncate mb-1">{expense.title}</h3>
+                          <div className="flex items-center gap-4">
+                            <div className="flex items-center gap-1.5">
+                              <Calendar className="w-3.5 h-3.5 text-muted-foreground" />
+                              <span className="text-sm text-muted-foreground">
+                                {formatDate(expense.expenseDate)}
+                              </span>
+                            </div>
+                            <Badge variant="secondary" className="text-xs font-medium px-2 py-0.5">
+                              {expense.category.name}
+                            </Badge>
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-3 ml-4">
+                          <div className="text-right">
+                            <p className="text-lg font-bold text-primary">
+                              {formatCurrency(expense.amount)}
+                            </p>
+                          </div>
+                          <div className="flex gap-2">
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => handleEditExpense(expense)}
+                              disabled={updating}
+                              className="h-9 px-3 hover:bg-primary/10"
+                            >
+                              <Edit className="w-4 h-4 mr-1.5" />
+                              Edit
+                            </Button>
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => handleDeleteExpense(expense)}
+                              disabled={deleting}
+                              className="h-9 px-3 text-red-600 hover:text-red-700 hover:bg-red-50"
+                            >
+                              <Trash2 className="w-4 h-4 mr-1.5" />
+                              Delete
+                            </Button>
+                          </div>
+                        </div>
                       </div>
                     </div>
-
-                    {expense.description && (
-                      <p className="text-muted-foreground mb-4">
-                        {expense.description}
-                      </p>
-                    )}
-
-                    {expense.tags && expense.tags.length > 0 && (
-                      <div className="flex flex-wrap gap-1 mb-4">
-                        {expense.tags.map((tag, index) => (
-                          <Badge key={index} variant="secondary" className="text-xs">
-                            {tag}
-                          </Badge>
-                        ))}
-                      </div>
-                    )}
-
-                    <div className="text-xs text-muted-foreground">
-                      Added by {expense.addedBy.name} on {formatDate(expense.createdAt)}
-                    </div>
-                  </div>
-
-                  <div className="flex flex-col gap-2 ml-4">
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => handleEditExpense(expense)}
-                      disabled={updating}
-                    >
-                      <Edit className="w-4 h-4 mr-1" />
-                      Edit
-                    </Button>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => handleDeleteExpense(expense)}
-                      disabled={deleting}
-                      className="text-red-600 hover:text-red-700 hover:bg-red-50"
-                    >
-                      <Trash2 className="w-4 h-4 mr-1" />
-                      Delete
-                    </Button>
-                    {expense.receipt && (
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => setSelectedReceipt(expense.receipt!)}
-                      >
-                        <Eye className="w-4 h-4 mr-1" />
-                        Receipt
-                      </Button>
-                    )}
                   </div>
                 </div>
               </CardContent>
@@ -433,13 +409,13 @@ const AdminExpenses: React.FC = () => {
 
       {/* Pagination */}
       {totalPages > 1 && (
-        <div className="flex items-center justify-center gap-2 mt-8">
+        <div className="flex items-center justify-center gap-2 mt-6">
           <Button
             variant="outline"
             size="sm"
             onClick={() => handlePageChange(currentPage - 1)}
             disabled={currentPage === 1 || loading}
-            className="h-10 px-3"
+            className="h-8 px-2"
           >
             <ChevronLeft className="w-4 h-4" />
           </Button>
@@ -477,7 +453,7 @@ const AdminExpenses: React.FC = () => {
             size="sm"
             onClick={() => handlePageChange(currentPage + 1)}
             disabled={currentPage === totalPages || loading}
-            className="h-10 px-3"
+            className="h-8 px-2"
           >
             <ChevronRight className="w-4 h-4" />
           </Button>
@@ -526,34 +502,7 @@ const AdminExpenses: React.FC = () => {
         />
       )}
 
-      {/* Receipt Modal */}
-      {selectedReceipt && (
-        <div className="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-50 p-4">
-          <div className="bg-background rounded-lg max-w-2xl max-h-[90vh] overflow-auto">
-            <div className="p-4 flex items-center justify-between border-b">
-              <h3 className="text-lg font-semibold">Receipt</h3>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => setSelectedReceipt(null)}
-              >
-                <X className="w-4 h-4" />
-              </Button>
-            </div>
-            <div className="p-4">
-              <img
-                src={selectedReceipt}
-                alt="Receipt"
-                className="max-w-full h-auto"
-                onError={() => {
-                  toast.error('Failed to load receipt image');
-                  setSelectedReceipt(null);
-                }}
-              />
-            </div>
-          </div>
-        </div>
-      )}
+
     </div>
   );
 };
@@ -562,7 +511,7 @@ const AdminExpenses: React.FC = () => {
 interface ExpenseModalProps {
   mode: 'create' | 'edit';
   expense?: Expense;
-  onSave: (data: Omit<Expense, 'id' | 'createdAt' | 'updatedAt' | 'category' | 'addedBy'>) => void;
+  onSave: (data: { title: string; amount: string; categoryId: string; expenseDate: string }) => void;
   onClose: () => void;
   categories: ExpenseCategory[];
   saving: boolean;
@@ -578,15 +527,10 @@ const ExpenseModal: React.FC<ExpenseModalProps> = ({
 }) => {
   const [formData, setFormData] = useState({
     title: expense?.title || '',
-    description: expense?.description || '',
     amount: expense?.amount || '',
     categoryId: expense?.categoryId || (categories[0]?.id || ''),
-    expenseDate: expense?.expenseDate ? expense.expenseDate.split('T')[0] : new Date().toISOString().split('T')[0],
-    receipt: expense?.receipt || '',
-    tags: expense?.tags || []
+    expenseDate: expense?.expenseDate ? expense.expenseDate.split('T')[0] : new Date().toISOString().split('T')[0]
   });
-
-  const [tagInput, setTagInput] = useState('');
 
   const handleSubmit = () => {
     if (!formData.title || !formData.amount || !formData.categoryId) {
@@ -597,29 +541,12 @@ const ExpenseModal: React.FC<ExpenseModalProps> = ({
     onSave(formData);
   };
 
-  const addTag = () => {
-    if (tagInput.trim() && !formData.tags.includes(tagInput.trim())) {
-      setFormData({
-        ...formData,
-        tags: [...formData.tags, tagInput.trim()]
-      });
-      setTagInput('');
-    }
-  };
-
-  const removeTag = (tagToRemove: string) => {
-    setFormData({
-      ...formData,
-      tags: formData.tags.filter(tag => tag !== tagToRemove)
-    });
-  };
-
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-      <div className="bg-background rounded-lg shadow-lg w-full max-w-2xl max-h-[90vh] overflow-y-auto">
+      <div className="bg-background rounded-lg shadow-lg w-full max-w-md max-h-[90vh] overflow-y-auto">
         <div className="p-6">
           <div className="flex items-center justify-between mb-6">
-            <h2 className="text-2xl font-bold">
+            <h2 className="text-xl font-bold">
               {mode === 'create' ? 'Add New Expense' : 'Edit Expense'}
             </h2>
             <Button variant="outline" size="sm" onClick={onClose}>
@@ -635,17 +562,6 @@ const ExpenseModal: React.FC<ExpenseModalProps> = ({
                 value={formData.title}
                 onChange={(e) => setFormData({ ...formData, title: e.target.value })}
                 placeholder="Enter expense title"
-              />
-            </div>
-
-            <div>
-              <Label htmlFor="expense-description">Description</Label>
-              <textarea
-                id="expense-description"
-                value={formData.description}
-                onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                placeholder="Enter expense description"
-                className="w-full px-3 py-2 border border-border rounded-md bg-background min-h-[80px]"
               />
             </div>
 
@@ -687,45 +603,6 @@ const ExpenseModal: React.FC<ExpenseModalProps> = ({
                   </option>
                 ))}
               </select>
-            </div>
-
-            <div>
-              <Label htmlFor="expense-receipt">Receipt URL</Label>
-              <Input
-                id="expense-receipt"
-                value={formData.receipt}
-                onChange={(e) => setFormData({ ...formData, receipt: e.target.value })}
-                placeholder="Enter receipt image URL"
-              />
-            </div>
-
-            <div>
-              <Label>Tags</Label>
-              <div className="flex gap-2 mb-2">
-                <Input
-                  value={tagInput}
-                  onChange={(e) => setTagInput(e.target.value)}
-                  placeholder="Add a tag"
-                  onKeyPress={(e) => e.key === 'Enter' && (e.preventDefault(), addTag())}
-                />
-                <Button type="button" onClick={addTag} size="sm">
-                  Add
-                </Button>
-              </div>
-              <div className="flex flex-wrap gap-1">
-                {formData.tags.map((tag, index) => (
-                  <Badge key={index} variant="secondary" className="text-xs">
-                    {tag}
-                    <button
-                      type="button"
-                      onClick={() => removeTag(tag)}
-                      className="ml-1 hover:text-destructive"
-                    >
-                      ×
-                    </button>
-                  </Badge>
-                ))}
-              </div>
             </div>
           </div>
 
