@@ -92,10 +92,9 @@ const AdminOrders: React.FC = () => {
 
     try {
       setUpdating(true);
-      // Send status and notes since they are editable
+      // Send status since it's editable
       const updateData: Partial<Order> = {};
       if (orderData.status) updateData.status = orderData.status;
-      if (orderData.notes !== undefined) updateData.notes = orderData.notes;
 
       // First, update the order in the database
       await orderService.updateOrder(selectedOrder.id, updateData);
@@ -237,7 +236,9 @@ const AdminOrders: React.FC = () => {
     return new Date(dateString).toLocaleDateString('en-US', {
       year: 'numeric',
       month: 'short',
-      day: 'numeric'
+      day: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit'
     });
   };
 
@@ -339,7 +340,7 @@ const AdminOrders: React.FC = () => {
       </div>
 
       {/* Orders List */}
-      <div className="space-y-4">
+      <div className="space-y-3">
         {loading ? (
           <div className="text-center py-12">
             <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
@@ -357,92 +358,100 @@ const AdminOrders: React.FC = () => {
           </div>
         ) : (
           orders.map((order) => (
-            <Card key={order.id} className="hover:shadow-md transition-shadow">
-              <CardContent className="p-6">
+            <Card key={order.id} className="hover:shadow-md hover:scale-[1.02] transition-all duration-200 border-l-4 border-l-primary">
+              <CardContent className="pt-6 pb-5 px-4">
                 <div className="flex items-center justify-between">
-                  <div className="flex-1">
-                    <div className="flex items-center gap-4 mb-4">
-                      <div>
-                        <h3 className="font-semibold text-lg">{order.orderCode}</h3>
-                        <p className="text-muted-foreground text-sm flex items-center gap-1">
-                          <Clock className="w-3 h-3" />
-                          {formatDate(order.createdAt)}
-                        </p>
-                        <p className="text-xs text-muted-foreground">#{order.orderNumber}</p>
-                      </div>
-                      <Badge
-                        variant={getStatusVariant(order.status)}
-                        className={`${getStatusColor(order.status)} font-medium`}
-                      >
-                        {formatStatus(order.status)}
-                      </Badge>
+                  <div className="flex items-center gap-4 flex-1">
+                    <div className="p-2 bg-primary/10 rounded-lg">
+                      <ShoppingCart className="w-4 h-4 text-primary" />
                     </div>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center justify-between">
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center justify-between w-full">
+                            <div className="flex items-center justify-between w-full">
+                              <div>
+                                <h3 className="font-bold text-xl text-foreground">#{order.orderNumber}</h3>
+                                <div className="flex items-center gap-1.5 mt-1">
+                                  <Clock className="w-3.5 h-3.5 text-muted-foreground" />
+                                  <span className="text-xs text-muted-foreground">
+                                    {formatDate(order.createdAt)}
+                                  </span>
+                                </div>
+                              </div>
 
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
-                      <div className="flex items-center gap-2">
-                        <User className="w-4 h-4 text-muted-foreground" />
-                        <div>
-                          <p className="font-medium">{order.customerName}</p>
-                          <p className="text-muted-foreground flex items-center gap-1">
-                            <Mail className="w-3 h-3" />
-                            {order.customerEmail}
-                          </p>
+                              <div className="flex items-center gap-2">
+                                <User className="w-4 h-4 text-muted-foreground" />
+                                <div>
+                                  <p className="font-medium text-sm">{order.customerName}</p>
+                                  <p className="text-muted-foreground text-xs flex items-center gap-1">
+                                    <Mail className="w-3 h-3" />
+                                    {order.customerEmail}
+                                  </p>
+                                </div>
+                              </div>
+
+                              <div className="flex items-center gap-2">
+                                <Phone className="w-4 h-4 text-muted-foreground" />
+                                <div>
+                                  <p className="font-medium text-sm">{order.customerPhone}</p>
+                                  <p className="text-muted-foreground text-xs flex items-center gap-1">
+                                    <MapPin className="w-3 h-3" />
+                                    Address on file
+                                  </p>
+                                </div>
+                              </div>
+
+                              <div className="flex items-center gap-2">
+                                <Package className="w-4 h-4 text-muted-foreground" />
+                                <div>
+                                  <p className="font-medium text-sm">{formatCurrency(order.totalAmount)}</p>
+                                  <p className="text-muted-foreground text-xs">
+                                    {order.items?.length || 0} item(s)
+                                  </p>
+                                </div>
+                              </div>
+
+                              <div className="flex items-center gap-3">
+                                <Badge
+                                  variant={getStatusVariant(order.status)}
+                                  className={`${getStatusColor(order.status)} font-medium px-2 py-0.5`}
+                                >
+                                  {formatStatus(order.status)}
+                                </Badge>
+                              </div>
+                            </div>
+                          </div>
                         </div>
-                      </div>
 
-                      <div className="flex items-center gap-2">
-                        <Phone className="w-4 h-4 text-muted-foreground" />
-                        <div>
-                          <p className="font-medium">{order.customerPhone}</p>
-                          <p className="text-muted-foreground flex items-center gap-1">
-                            <MapPin className="w-3 h-3" />
-                            Address on file
-                          </p>
-                        </div>
-                      </div>
+                        <div className="flex flex-col gap-2 ml-6">
+                          {/* Payment-related actions */}
+                          {order.status === 'payment_pending' && (
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => handleSendPaymentQR(order.id)}
+                              className="h-9 px-3 bg-blue-50 border-blue-200 text-blue-700 hover:bg-blue-100 w-28"
+                            >
+                              <MessageCircle className="w-4 h-4 mr-1.5" />
+                              Send QR
+                            </Button>
+                          )}
 
-                      <div className="flex items-center gap-2">
-                        <Package className="w-4 h-4 text-muted-foreground" />
-                        <div>
-                          <p className="font-medium">{formatCurrency(order.totalAmount)}</p>
-                          <p className="text-muted-foreground">
-                            {order.items?.length || 0} item(s)
-                          </p>
+                          {/* Standard actions */}
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => handleEditOrder(order)}
+                            disabled={updating}
+                            className="h-9 px-3 hover:bg-primary/10 w-28"
+                          >
+                            <Edit className="w-4 h-4 mr-1.5" />
+                            Edit
+                          </Button>
                         </div>
                       </div>
                     </div>
-
-                    {order.notes && (
-                      <div className="mt-4 p-3 bg-muted rounded-md">
-                        <p className="text-sm">{order.notes}</p>
-                      </div>
-                    )}
-                  </div>
-
-                  <div className="flex flex-col gap-2 ml-4">
-                    {/* Payment-related actions */}
-                    {order.status === 'payment_pending' && (
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => handleSendPaymentQR(order.id)}
-                        className="bg-blue-50 border-blue-200 text-blue-700 hover:bg-blue-100"
-                      >
-                        <MessageCircle className="w-4 h-4 mr-1" />
-                        Send QR Code
-                      </Button>
-                    )}
-
-                    {/* Standard actions */}
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => handleEditOrder(order)}
-                      disabled={updating}
-                    >
-                      <Edit className="w-4 h-4 mr-1" />
-                      Edit
-                    </Button>
                   </div>
                 </div>
               </CardContent>
@@ -571,8 +580,7 @@ const OrderEditModal: React.FC<OrderEditModalProps> = ({
     customerEmail: order.customerEmail,
     customerPhone: order.customerPhone,
     customerAddress: order.customerAddress,
-    status: order.status,
-    notes: order.notes || ''
+    status: order.status
   });
 
   const handleSubmit = () => {
@@ -583,13 +591,13 @@ const OrderEditModal: React.FC<OrderEditModalProps> = ({
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-      <div className="bg-background rounded-lg shadow-lg w-full max-w-2xl max-h-[90vh] overflow-y-auto">
+      <div className="bg-background rounded-lg shadow-lg w-full max-w-md max-h-[90vh] overflow-y-auto">
         <div className="p-6">
           <div className="flex items-center justify-between mb-6">
             <div>
-              <h2 className="text-2xl font-bold">Edit Order</h2>
+              <h2 className="text-xl font-bold">Edit Order</h2>
               <p className="text-sm text-muted-foreground mt-1">
-                Update order status and notes. Customer details are read-only.
+                Update order status. Customer details are read-only.
               </p>
             </div>
             <Button variant="outline" size="sm" onClick={onClose}>
@@ -656,15 +664,7 @@ const OrderEditModal: React.FC<OrderEditModalProps> = ({
               />
             </div>
 
-            <div>
-              <label className="block text-sm font-medium mb-2">Notes</label>
-              <textarea
-                value={formData.notes}
-                onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
-                placeholder="Order notes"
-                className="w-full px-3 py-2 border border-border rounded-md bg-background min-h-[80px]"
-              />
-            </div>
+
           </div>
 
           <div className="flex gap-3 mt-6">

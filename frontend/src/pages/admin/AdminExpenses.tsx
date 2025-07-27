@@ -353,52 +353,52 @@ const AdminExpenses: React.FC = () => {
                       <Receipt className="w-4 h-4 text-primary" />
                     </div>
                     <div className="flex-1 min-w-0">
-                      <div className="flex items-center justify-between">
-                        <div className="flex-1 min-w-0">
-                          <h3 className="font-semibold text-base text-foreground truncate mb-1">{expense.title}</h3>
-                          <div className="flex items-center gap-4">
-                            <div className="flex items-center gap-1.5">
+                      <div className="flex items-center justify-between w-full">
+                        <div className="flex items-center justify-between w-full">
+                          <div>
+                            <div className="flex items-center gap-3">
+                              <h3 className="font-bold text-xl text-foreground">{expense.title}</h3>
+                              <Badge variant="secondary" className="text-xs font-medium px-2 py-0.5">
+                                {expense.category.name}
+                              </Badge>
+                            </div>
+                            <div className="flex items-center gap-1.5 mt-1">
                               <Calendar className="w-3.5 h-3.5 text-muted-foreground" />
-                              <span className="text-sm text-muted-foreground">
+                              <span className="text-xs text-muted-foreground">
                                 {formatDate(expense.expenseDate)}
                               </span>
                             </div>
-                            <Badge variant="secondary" className="text-xs font-medium px-2 py-0.5">
-                              {expense.category.name}
-                            </Badge>
                           </div>
-                        </div>
-                        <div className="flex items-center gap-3 ml-4">
+
                           <div className="text-right">
-                            <p className="text-lg font-bold text-primary">
-                              {formatCurrency(expense.amount)}
-                            </p>
-                          </div>
-                          <div className="flex gap-2">
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              onClick={() => handleEditExpense(expense)}
-                              disabled={updating}
-                              className="h-9 px-3 hover:bg-primary/10"
-                            >
-                              <Edit className="w-4 h-4 mr-1.5" />
-                              Edit
-                            </Button>
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              onClick={() => handleDeleteExpense(expense)}
-                              disabled={deleting}
-                              className="h-9 px-3 text-red-600 hover:text-red-700 hover:bg-red-50"
-                            >
-                              <Trash2 className="w-4 h-4 mr-1.5" />
-                              Delete
-                            </Button>
+                            <p className="font-bold text-xl text-primary">{formatCurrency(expense.amount)}</p>
                           </div>
                         </div>
                       </div>
                     </div>
+                  </div>
+
+                  <div className="flex gap-2 ml-6">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => handleEditExpense(expense)}
+                      disabled={updating}
+                      className="h-9 px-3 hover:bg-primary/10 w-28"
+                    >
+                      <Edit className="w-4 h-4 mr-1.5" />
+                      Edit
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => handleDeleteExpense(expense)}
+                      disabled={deleting}
+                      className="h-9 px-3 text-red-600 hover:text-red-700 hover:bg-red-50 w-28"
+                    >
+                      <Trash2 className="w-4 h-4 mr-1.5" />
+                      Delete
+                    </Button>
                   </div>
                 </div>
               </CardContent>
