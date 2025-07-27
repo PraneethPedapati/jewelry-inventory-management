@@ -37,12 +37,12 @@ export const getDashboardStats = asyncHandler(async (req: Request, res: Response
     .from(orders);
 
   const currentMonthOrders = ordersData.filter(order => {
-    const orderDate = new Date(order.createdAt);
+    const orderDate = new Date(order.createdAt || new Date());
     return orderDate >= currentMonthStart;
   });
 
   const previousMonthOrders = ordersData.filter(order => {
-    const orderDate = new Date(order.createdAt);
+    const orderDate = new Date(order.createdAt || new Date());
     return orderDate >= previousMonthStart && orderDate <= previousMonthEnd;
   });
 
@@ -81,10 +81,11 @@ export const getDashboardStats = asyncHandler(async (req: Request, res: Response
         .where(eq(orderItems.orderId, order.id))
         .limit(1);
 
-      const productName = items[0]?.productSnapshot?.name || 'Unknown Product';
+      const productSnapshot = items[0]?.productSnapshot as any;
+      const productName = productSnapshot?.product?.name || 'Unknown Product';
 
       // Calculate time ago
-      const timeDiff = Date.now() - new Date(order.createdAt).getTime();
+      const timeDiff = Date.now() - new Date(order.createdAt || new Date()).getTime();
       const minutes = Math.floor(timeDiff / (1000 * 60));
       const hours = Math.floor(minutes / 60);
       const days = Math.floor(hours / 24);
@@ -106,7 +107,7 @@ export const getDashboardStats = asyncHandler(async (req: Request, res: Response
         item: productName,
         amount: `₹${parseFloat(order.totalAmount).toLocaleString('en-IN')}`,
         status: order.status,
-        date: order.createdAt.toISOString().split('T')[0],
+        date: (order.createdAt || new Date()).toISOString().split('T')[0],
         time: timeAgo
       };
     })

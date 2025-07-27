@@ -6,7 +6,8 @@ import {
   getProductById,
   createProduct,
   updateProduct,
-  deleteProduct
+  deleteProduct,
+  getProductStats
 } from '../controllers/admin/product.controller.js';
 import {
   getOrders,
@@ -34,6 +35,7 @@ import {
   getExpenseStats
 } from '../controllers/admin/expense.controller.js';
 import { getAnalytics, refreshAnalytics, getAnalyticsStatus } from '../controllers/admin/analytics.controller.js';
+import { getDashboardWidgets, refreshDashboardWidgets, debugAverageProductValue } from '../controllers/admin/dashboard-widget.controller.js';
 import { authenticateAdmin, authRateLimit } from '../middleware/auth.middleware.js';
 
 const router = Router();
@@ -48,6 +50,7 @@ router.get('/dashboard', authenticateAdmin, getDashboardStats);
 
 // Product routes
 router.get('/products', getProducts);
+router.get('/products/stats', authenticateAdmin, getProductStats);
 router.get('/products/:id', getProductById);
 router.post('/products', authenticateAdmin, createProduct);
 router.put('/products/:id', authenticateAdmin, updateProduct);
@@ -86,5 +89,10 @@ router.delete('/expenses/:id', authenticateAdmin, deleteExpense);
 router.get('/analytics', authenticateAdmin, getAnalytics);
 router.post('/analytics/refresh', authenticateAdmin, refreshAnalytics);
 router.get('/analytics/status', authenticateAdmin, getAnalyticsStatus);
+
+// Dashboard Widget routes
+router.get('/dashboard/widgets', authenticateAdmin, getDashboardWidgets);
+router.post('/dashboard/widgets/refresh', authenticateAdmin, refreshDashboardWidgets);
+router.get('/dashboard/debug/aov', authenticateAdmin, debugAverageProductValue);
 
 export default router; 

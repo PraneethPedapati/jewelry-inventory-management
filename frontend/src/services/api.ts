@@ -267,6 +267,21 @@ export interface AnalyticsRefreshResponse {
   };
 }
 
+// Dashboard Widgets Types
+export interface DashboardWidgets {
+  overallRevenue: { revenue: number; formatted: string };
+  monthlyRevenue: { revenue: number; formatted: string };
+  monthlyOrders: number;
+  netProfit: { profit: number; margin: number; formatted: string; marginFormatted: string };
+  pendingOrders: number;
+  staleData: number;
+  averageOrderValue: { aov: number; formatted: string };
+  revenueGrowth: { percentage: number; trend: 'up' | 'down' | 'neutral'; formatted: string };
+  expenseBreakdown: Array<{ category: string; amount: number; percentage: number }>;
+  topSellingProducts: Array<{ productCode: string; productName: string; salesCount: number; revenue: number }>;
+  averageProductValue: { aov: number; formatted: string };
+}
+
 // Health Service
 export const healthService = {
   check: async (): Promise<boolean> => {
@@ -504,6 +519,16 @@ export const expenseService = {
 export const dashboardService = {
   getStats: async (): Promise<DashboardStats> => {
     const response = await apiClient.get<ApiResponse<DashboardStats>>('/api/admin/dashboard');
+    return response.data.data;
+  },
+
+  getWidgets: async (): Promise<DashboardWidgets> => {
+    const response = await apiClient.get<ApiResponse<DashboardWidgets>>('/api/admin/dashboard/widgets');
+    return response.data.data;
+  },
+
+  refreshWidgets: async (): Promise<DashboardWidgets> => {
+    const response = await apiClient.post<ApiResponse<DashboardWidgets>>('/api/admin/dashboard/widgets/refresh');
     return response.data.data;
   }
 };

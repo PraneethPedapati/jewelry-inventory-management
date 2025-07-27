@@ -7,7 +7,7 @@ import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import { toast } from 'sonner';
 import ConfirmationDialog from '@/components/ui/confirmation-dialog';
-import { productService, type Product, type CreateProductRequest } from '@/services/api';
+import { productService, dashboardService, type Product, type CreateProductRequest } from '@/services/api';
 import { env } from '@/config/env';
 import { useDocumentTitle } from '@/hooks/useDocumentTitle';
 
@@ -51,14 +51,18 @@ const AdminProducts: React.FC = () => {
   // Load total statistics (not affected by filters)
   const loadTotalStats = async () => {
     try {
-      const activeData = await productService.getProducts({ isActive: true, limit: 1000 });
-      const inactiveData = await productService.getProducts({ isActive: false, limit: 1000 });
-      setTotalActiveProducts(activeData.pagination.total);
-      setTotalInactiveProducts(inactiveData.pagination.total);
-      if (activeData.products.length > 0) {
-        const totalPrice = activeData.products.reduce((sum, p) => sum + parseFloat(p.price), 0);
-        setAvgProductPrice(totalPrice / activeData.products.length);
-      } else {
+      // Use dedicated stats endpoint for accurate counts
+      const stats = await productService.getProductStats();
+      setTotalActiveProducts(stats.active);
+      setTotalInactiveProducts(stats.total - stats.active);
+
+      // Get average product value from dashboard cache
+      try {
+        const dashboardData = await dashboardService.getWidgets();
+        setAvgProductPrice(dashboardData.averageProductValue.aov);
+      } catch (error) {
+        console.error('Failed to load cached average product value:', error);
+        // Fallback to local calculation if needed
         setAvgProductPrice(0);
       }
     } catch (error) {
@@ -212,7 +216,7 @@ const AdminProducts: React.FC = () => {
   const handleCreateSubmit = async (productData: Omit<Product, 'id' | 'sku' | 'createdAt' | 'updatedAt' | 'productType'> & { productType: string; price: string; discountedPrice?: string; }) => {
     try {
       setCreating(true);
-      const createData: any = {
+      const createData: CreateProductRequest = {
         name: productData.name,
         productType: productData.productType as 'chain' | 'bracelet-anklet',
         description: productData.description,
@@ -221,10 +225,22 @@ const AdminProducts: React.FC = () => {
       if (productData.discountedPrice) {
         createData.discountedPrice = parseFloat(productData.discountedPrice);
       }
+
+      // Convert selectedImage to File if it exists
+      let imageFiles: File[] = [];
       if (selectedImage) {
-        createData.images = [selectedImage];
+        try {
+          // Convert base64 to File object
+          const response = await fetch(selectedImage);
+          const blob = await response.blob();
+          const file = new File([blob], 'product-image.jpg', { type: 'image/jpeg' });
+          imageFiles = [file];
+        } catch (imageError) {
+          console.warn('Failed to convert image, creating product without image:', imageError);
+        }
       }
-      await productService.createProduct(createData, []); // Pass empty array for files if none
+
+      await productService.createProduct(createData, imageFiles);
       toast.success('Product created successfully!');
       setShowCreateModal(false);
       setSelectedImage(null);

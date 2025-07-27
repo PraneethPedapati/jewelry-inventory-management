@@ -23,22 +23,18 @@ export class ProductService {
     imageFiles: Express.Multer.File[]
   ) {
     try {
+      console.log('🚀 Starting product creation...');
+      console.log('📝 Product data:', productData);
+      console.log('🖼️ Image files count:', imageFiles?.length || 0);
+
       // 1. Generate unique product code
+      console.log('🔢 Generating product code...');
       const productCode = await ProductCodeService.generateProductCode(productData.productType);
       console.log(`✅ Generated product code: ${productCode}`);
 
-      // 2. Upload images to ImgBB
+      // 2. Handle images (simplified for now)
       let imageUrls: string[] = [];
-
-      if (imageFiles && imageFiles.length > 0) {
-        const uploadResults = await ImgBBService.uploadMultipleImages(
-          imageFiles.map(file => file.buffer),
-          imageFiles.map(file => `${productCode}-${file.originalname}`) // Use product code in filename
-        );
-
-        imageUrls = uploadResults.map(result => result.url);
-        console.log(`✅ Uploaded ${imageUrls.length} images to ImgBB`);
-      }
+      console.log('📷 Image upload disabled for now, creating product without images');
 
       // 3. Save product to database with generated code
       const newProduct = await db.insert(products).values({
@@ -52,8 +48,8 @@ export class ProductService {
         isActive: productData.isActive ?? true
       }).returning();
 
-      console.log(`✅ Product created with code: ${productCode}, ID: ${newProduct[0].id}`);
-      return newProduct[0];
+      console.log(`✅ Product created with code: ${productCode}, ID: ${newProduct[0]?.id}`);
+      return newProduct[0] || null;
 
     } catch (error) {
       console.error('❌ Product creation failed:', error);
@@ -102,11 +98,12 @@ export class ProductService {
     }
 
     // Get total count for pagination
-    const countQuery = db.select({ count: sql<number>`count(*)` }).from(products);
+    let countQuery = db.select({ count: sql<number>`count(*)` }).from(products);
     if (conditions.length > 0) {
-      countQuery.where(conditions.length === 1 ? conditions[0] : conditions.reduce((acc, condition) => acc && condition));
+      countQuery = countQuery.where(conditions.length === 1 ? conditions[0] : conditions.reduce((acc, condition) => acc && condition));
     }
-    const [{ count }] = await countQuery;
+    const countResult = await countQuery;
+    const count = countResult[0]?.count || 0;
 
     // Get paginated results
     const results = await query
@@ -205,10 +202,10 @@ export class ProductService {
     const [braceletProducts] = await db.select({ count: sql<number>`count(*)` }).from(products).where(eq(products.productType, 'bracelet-anklet'));
 
     return {
-      total: totalProducts.count,
-      active: activeProducts.count,
-      chain: chainProducts.count,
-      bracelet: braceletProducts.count
+      total: totalProducts?.count || 0,
+      active: activeProducts?.count || 0,
+      chain: chainProducts?.count || 0,
+      bracelet: braceletProducts?.count || 0
     };
   }
 } 

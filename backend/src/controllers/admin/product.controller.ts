@@ -172,11 +172,9 @@ export const createProduct = [
       // Get uploaded files
       const files = req.files as Express.Multer.File[];
 
+      // Make image upload optional for development
       if (!files || files.length === 0) {
-        return res.status(400).json({
-          success: false,
-          error: 'At least one product image is required'
-        });
+        console.warn('⚠️ No images uploaded, creating product without images');
       }
 
       // Create product (code will be auto-generated)

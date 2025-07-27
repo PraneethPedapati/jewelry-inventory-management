@@ -50,11 +50,12 @@ const AdminLayout: React.FC<AdminLayoutProps> = ({ onLogout }) => {
       href: '/admin/expenses',
       icon: Receipt,
     },
-    {
-      title: 'Analytics',
-      href: '/admin/analytics',
-      icon: BarChart3,
-    },
+    // Analytics page hidden - dashboard widgets provide the same functionality
+    // {
+    //   title: 'Analytics',
+    //   href: '/admin/analytics',
+    //   icon: BarChart3,
+    // },
     // Settings module hidden for now
     // {
     //   title: 'Settings',
