@@ -371,18 +371,14 @@ export class DashboardWidgetService {
   }
 
   /**
-   * Get expense breakdown by category
+   * Get expense breakdown by category (all-time data)
    */
   static async getExpenseBreakdown(): Promise<Array<{ category: string; amount: number; percentage: number }>> {
     // Check cache first
     const cached = await this.getCachedWidget('expense_breakdown');
     if (cached) return cached.data;
 
-    // Calculate fresh data
-    const currentDate = new Date();
-    const currentMonth = currentDate.getMonth();
-    const currentYear = currentDate.getFullYear();
-
+    // Calculate fresh data - show all-time breakdown instead of just current month
     const result = await db
       .select({
         category: expenseCategories.name,
@@ -391,13 +387,7 @@ export class DashboardWidgetService {
       })
       .from(expenses)
       .leftJoin(expenseCategories, eq(expenses.categoryId, expenseCategories.id))
-      .where(
-        and(
-          eq(expenseCategories.isActive, true),
-          sql`EXTRACT(MONTH FROM ${expenses.expenseDate}) = ${currentMonth + 1}`,
-          sql`EXTRACT(YEAR FROM ${expenses.expenseDate}) = ${currentYear}`
-        )
-      )
+      .where(eq(expenseCategories.isActive, true))
       .groupBy(expenseCategories.id, expenseCategories.name)
       .orderBy(desc(sql`SUM(CAST(${expenses.amount} AS DECIMAL))`));
 
@@ -409,10 +399,13 @@ export class DashboardWidgetService {
       percentage: totalAmount > 0 ? Math.round(((parseFloat(String(item.amount || 0))) / totalAmount) * 100) : 0
     }));
 
-    // Cache the result
-    await this.cacheWidget('expense_breakdown', { data: breakdown });
+    // Return only top 5 categories
+    const top5Breakdown = breakdown.slice(0, 5);
 
-    return breakdown;
+    // Cache the result
+    await this.cacheWidget('expense_breakdown', { data: top5Breakdown });
+
+    return top5Breakdown;
   }
 
   /**

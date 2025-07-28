@@ -215,9 +215,14 @@ export const createExpense = asyncHandler(async (req: Request, res: Response) =>
     });
   }
 
-  // For demo purposes, we'll use a default admin ID
-  // In a real implementation, you'd get this from the authenticated user
-  const adminId = 'default-admin-id';
+  // Get admin ID from authenticated user
+  if (!req.admin) {
+    return res.status(401).json({
+      success: false,
+      error: 'Authentication required'
+    });
+  }
+  const adminId = req.admin.id;
 
   const newExpense = await db
     .insert(expenses)

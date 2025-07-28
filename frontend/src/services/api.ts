@@ -1,5 +1,6 @@
 import axios from 'axios';
 import { toast } from 'sonner';
+import { CacheService } from './cache.service';
 
 // API Configuration
 const API_BASE_URL = (import.meta as any).env?.VITE_API_URL || 'http://localhost:3000';
@@ -790,7 +791,19 @@ export const dashboardService = {
 
   getWidgets: async (): Promise<DashboardWidgets> => {
     try {
+      // Check cache first
+      const cached = CacheService.get<DashboardWidgets>('DASHBOARD_WIDGETS');
+      if (cached) {
+        return cached;
+      }
+
+      // Fetch from API if not cached
+      console.log('📊 Fetching fresh dashboard widgets data');
       const response = await apiClient.get<ApiResponse<DashboardWidgets>>('/api/admin/dashboard/widgets');
+
+      // Cache the response
+      CacheService.set('DASHBOARD_WIDGETS', response.data.data);
+
       return response.data.data;
     } catch (error) {
       handleApiError(error, 'Failed to load dashboard widgets. Please try again.');
@@ -800,22 +813,61 @@ export const dashboardService = {
 
   refreshWidgets: async (): Promise<DashboardWidgets> => {
     try {
+      // Clear cache first
+      CacheService.clear('DASHBOARD_WIDGETS');
+      console.log('🔄 Clearing dashboard widgets cache');
+
+      console.log('📡 Making API call to refresh widgets...');
+      console.log('📡 URL:', '/api/admin/dashboard/widgets/refresh');
+      console.log('📡 Method:', 'POST');
+
       const response = await apiClient.post<ApiResponse<DashboardWidgets>>('/api/admin/dashboard/widgets/refresh');
+      console.log('✅ Received response status:', response.status);
+      console.log('✅ Received response data:', response.data);
+
+      // Cache the fresh response
+      CacheService.set('DASHBOARD_WIDGETS', response.data.data);
+      console.log('💾 Cached fresh widget data');
+
       return response.data.data;
     } catch (error) {
+      console.error('❌ Error refreshing widgets:', error);
+      console.error('❌ Error details:', {
+        message: error.message,
+        status: error.response?.status,
+        data: error.response?.data
+      });
       handleApiError(error, 'Failed to refresh dashboard widgets. Please try again.');
       throw error;
     }
-  }
+  },
+
+  getCacheStatus: () => {
+    return CacheService.getCacheStatus('DASHBOARD_WIDGETS');
+  },
+
+
 };
 
 // Analytics API Services
 export const analyticsService = {
   getAnalytics: async (period?: string): Promise<AnalyticsData> => {
     try {
+      // Check cache first
+      const cached = CacheService.get<AnalyticsData>('ANALYTICS_DATA');
+      if (cached) {
+        return cached;
+      }
+
+      // Fetch from API if not cached
+      console.log('📈 Fetching fresh analytics data');
       const response = await apiClient.get<ApiResponse<AnalyticsData>>('/api/admin/analytics', {
         params: { period }
       });
+
+      // Cache the response
+      CacheService.set('ANALYTICS_DATA', response.data.data);
+
       return response.data.data;
     } catch (error) {
       handleApiError(error, 'Failed to load analytics data. Please try again.');
@@ -825,7 +877,15 @@ export const analyticsService = {
 
   refreshAnalytics: async (): Promise<AnalyticsRefreshResponse> => {
     try {
+      // Clear cache first
+      CacheService.clear('ANALYTICS_DATA');
+      console.log('🔄 Clearing analytics cache');
+
       const response = await apiClient.post<AnalyticsRefreshResponse>('/api/admin/analytics/refresh');
+
+      // Cache the fresh response
+      CacheService.set('ANALYTICS_DATA', response.data);
+
       return response.data;
     } catch (error) {
       handleApiError(error, 'Failed to refresh analytics data. Please try again.');
@@ -835,7 +895,18 @@ export const analyticsService = {
 
   getAnalyticsStatus: async (): Promise<AnalyticsStatus> => {
     try {
+      // Check cache first
+      const cached = CacheService.get<AnalyticsStatus>('ANALYTICS_STATUS');
+      if (cached) {
+        return cached;
+      }
+
+      // Fetch from API if not cached
       const response = await apiClient.get<ApiResponse<AnalyticsStatus>>('/api/admin/analytics/status');
+
+      // Cache the response
+      CacheService.set('ANALYTICS_STATUS', response.data.data);
+
       return response.data.data;
     } catch (error) {
       handleApiError(error, 'Failed to load analytics status. Please try again.');

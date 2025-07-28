@@ -19,7 +19,7 @@ export const ExpenseBreakdownWidget: React.FC<ExpenseBreakdownWidgetProps> = ({
       <Card className="bg-brand-bg border-brand-border">
         <CardHeader>
           <CardTitle className="text-brand-primary">Expense Breakdown</CardTitle>
-          <CardDescription className="text-brand-medium">Distribution of expenses by category</CardDescription>
+          <CardDescription className="text-brand-medium">Top 5 expense categories by amount</CardDescription>
         </CardHeader>
         <CardContent>
           <div className="space-y-4">
@@ -39,7 +39,7 @@ export const ExpenseBreakdownWidget: React.FC<ExpenseBreakdownWidgetProps> = ({
     <Card className="bg-brand-bg border-brand-border">
       <CardHeader>
         <CardTitle className="text-brand-primary">Expense Breakdown</CardTitle>
-        <CardDescription className="text-brand-medium">Distribution of expenses by category</CardDescription>
+        <CardDescription className="text-brand-medium">Top 5 expense categories by amount</CardDescription>
       </CardHeader>
       <CardContent>
         <div className="space-y-4">
