@@ -19,11 +19,11 @@ export const ExpenseBreakdownWidget: React.FC<ExpenseBreakdownWidgetProps> = ({
       <Card className="bg-brand-bg border-brand-border">
         <CardHeader>
           <CardTitle className="text-brand-primary">Expense Breakdown</CardTitle>
-          <CardDescription className="text-brand-medium">Top 5 expense categories by amount</CardDescription>
+          <CardDescription className="text-brand-medium">Top 7 expense categories by amount</CardDescription>
         </CardHeader>
         <CardContent>
           <div className="space-y-4">
-            {[1, 2, 3].map((i) => (
+            {[1, 2, 3, 4, 5, 6, 7].map((i) => (
               <div key={i} className="animate-pulse">
                 <div className="h-4 bg-gray-200 rounded mb-2"></div>
                 <div className="h-2 bg-gray-200 rounded"></div>
@@ -39,7 +39,7 @@ export const ExpenseBreakdownWidget: React.FC<ExpenseBreakdownWidgetProps> = ({
     <Card className="bg-brand-bg border-brand-border">
       <CardHeader>
         <CardTitle className="text-brand-primary">Expense Breakdown</CardTitle>
-        <CardDescription className="text-brand-medium">Top 5 expense categories by amount</CardDescription>
+        <CardDescription className="text-brand-medium">Top 7 expense categories by amount</CardDescription>
       </CardHeader>
       <CardContent>
         <div className="space-y-4">

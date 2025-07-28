@@ -23,6 +23,15 @@ const AdminExpenses: React.FC = () => {
   // API state
   const [expenses, setExpenses] = useState<Expense[]>([]);
   const [expenseCategories, setExpenseCategories] = useState<ExpenseCategory[]>([]);
+  const [expenseStats, setExpenseStats] = useState<{
+    totalExpenses: number;
+    totalCount: number;
+    categoryBreakdown: Array<{
+      categoryId: string;
+      categoryName: string;
+      totalAmount: number;
+    }>;
+  } | null>(null);
   const [loading, setLoading] = useState(true);
   const [creating, setCreating] = useState(false);
   const [updating, setUpdating] = useState(false);
@@ -74,14 +83,26 @@ const AdminExpenses: React.FC = () => {
     }
   };
 
+  // Load expense statistics
+  const loadExpenseStats = async () => {
+    try {
+      const stats = await expenseService.getExpenseStats();
+      setExpenseStats(stats);
+    } catch (error) {
+      console.error('Failed to load expense statistics:', error);
+      toast.error('Failed to load expense statistics.');
+    }
+  };
+
   // Load expenses on component mount and when filters change
   useEffect(() => {
     loadExpenses();
   }, [searchTerm, filterCategory, currentPage]);
 
-  // Load categories on component mount
+  // Load categories and statistics on component mount
   useEffect(() => {
     loadExpenseCategories();
+    loadExpenseStats();
   }, []);
 
   // Reset to first page when filters change
@@ -104,7 +125,7 @@ const AdminExpenses: React.FC = () => {
       await expenseService.createExpense(createData);
       toast.success('Expense created successfully!');
       setShowCreateModal(false);
-      await loadExpenses(); // Refresh the list
+      await Promise.all([loadExpenses(), loadExpenseStats()]); // Refresh the list and stats
     } catch (error) {
       console.error('Failed to create expense:', error);
       toast.error('Failed to create expense. Please try again.');
@@ -134,7 +155,7 @@ const AdminExpenses: React.FC = () => {
       toast.success('Expense updated successfully!');
       setShowEditModal(false);
       setSelectedExpense(null);
-      await loadExpenses(); // Refresh the list
+      await Promise.all([loadExpenses(), loadExpenseStats()]); // Refresh the list and stats
     } catch (error) {
       console.error('Failed to update expense:', error);
       toast.error('Failed to update expense. Please try again.');
@@ -157,7 +178,7 @@ const AdminExpenses: React.FC = () => {
       toast.success(`Expense "${expenseToDelete.title}" deleted successfully!`);
       setShowDeleteDialog(false);
       setExpenseToDelete(null);
-      await loadExpenses(); // Refresh the list
+      await Promise.all([loadExpenses(), loadExpenseStats()]); // Refresh the list and stats
     } catch (error) {
       console.error('Failed to delete expense:', error);
       toast.error('Failed to delete expense. Please try again.');
@@ -184,12 +205,13 @@ const AdminExpenses: React.FC = () => {
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
-  // Calculate statistics
-  const totalAmount = expenses.reduce((sum, expense) => sum + parseFloat(expense.amount), 0);
-  const avgExpense = expenses.length > 0 ? totalAmount / expenses.length : 0;
+  // Calculate statistics from backend data
+  const totalAmount = expenseStats?.totalExpenses || 0;
+  const totalTransactions = expenseStats?.totalCount || 0;
+  const avgExpense = totalTransactions > 0 ? totalAmount / totalTransactions : 0;
 
   // Calculate unique categories that actually have expenses
-  const categoriesWithExpenses = new Set(expenses.map(expense => expense.category.id)).size;
+  const categoriesWithExpenses = expenseStats?.categoryBreakdown?.length || 0;
 
   if (loading && expenses.length === 0) {
     return (
@@ -238,7 +260,7 @@ const AdminExpenses: React.FC = () => {
             <h3 className="text-sm font-semibold text-brand-shade mb-1">Total Expenses</h3>
             <p className="text-xs text-brand-medium flex items-center">
               <TrendingUp className="w-3 h-3 mr-1" />
-              {expenses.length} transactions
+              {totalTransactions} transactions
             </p>
           </div>
         </Card>
@@ -268,15 +290,15 @@ const AdminExpenses: React.FC = () => {
               <Calendar className="h-5 w-5 text-white" />
             </div>
             <div className="text-right">
-              <div className="text-2xl font-bold text-brand-primary">{expenses.length}</div>
-              <div className="text-xs text-brand-medium font-medium">This Period</div>
+              <div className="text-2xl font-bold text-brand-primary">{totalTransactions}</div>
+              <div className="text-xs text-brand-medium font-medium">Total</div>
             </div>
           </div>
           <div>
             <h3 className="text-sm font-semibold text-brand-shade mb-1">Total Transactions</h3>
             <p className="text-xs text-brand-medium flex items-center">
               <TrendingUp className="w-3 h-3 mr-1" />
-              Current period
+              All time
             </p>
           </div>
         </Card>

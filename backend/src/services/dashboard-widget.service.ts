@@ -399,13 +399,13 @@ export class DashboardWidgetService {
       percentage: totalAmount > 0 ? Math.round(((parseFloat(String(item.amount || 0))) / totalAmount) * 100) : 0
     }));
 
-    // Return only top 5 categories
-    const top5Breakdown = breakdown.slice(0, 5);
+    // Return only top 7 categories
+    const top7Breakdown = breakdown.slice(0, 7);
 
     // Cache the result
-    await this.cacheWidget('expense_breakdown', { data: top5Breakdown });
+    await this.cacheWidget('expense_breakdown', { data: top7Breakdown });
 
-    return top5Breakdown;
+    return top7Breakdown;
   }
 
   /**

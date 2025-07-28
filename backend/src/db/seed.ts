@@ -92,24 +92,33 @@ const seedDatabase = async (): Promise<void> => {
         isActive: true,
         isDefault: true,
         colors: {
-          primary: '#6c3158',
-          secondary: '#854b70',
-          accent: '#a0668a',
-          background: '#FFFFFF',
-          foreground: '#6c3158',
-          card: '#fbf7fa',
-          cardForeground: '#6c3158',
-          border: '#e4d9e0',
-          input: '#FFFFFF',
-          ring: '#6c3158',
-          muted: '#f0bcd9',
-          mutedForeground: '#a0668a',
-          destructive: '#EF4444',
-          destructiveForeground: '#FFFFFF',
-          success: '#10B981',
-          successForeground: '#FFFFFF',
-          warning: '#F59E0B',
-          warningForeground: '#FFFFFF'
+          // Accent Colors (Primary Color for UI Elements)
+          primary: '#6c3158',      // Buttons, icons, active states
+          secondary: '#854b70',    // Secondary buttons
+          accent: '#a0668a',       // Highlights, focus states
+          ring: '#6c3158',         // Focus rings, active borders
+
+          // Background Colors (Neutral Greys)
+          background: '#FFFFFF',    // Main page background (pure white)
+          card: '#f9fafb',         // Card backgrounds (light grey)
+          muted: '#f3f4f6',        // Hover states, subtle backgrounds
+
+          // Text Colors (Black/Grey for Readability)
+          foreground: '#1F2937',   // Main text (dark grey)
+          cardForeground: '#1F2937', // Card text (dark grey)
+          mutedForeground: '#6B7280', // Secondary text (grey)
+
+          // Form Elements
+          border: '#e4d9e0',       // Borders (neutral grey)
+          input: '#FFFFFF',         // Input backgrounds (white)
+
+          // Status Colors
+          destructive: '#EF4444',   // Error states (red)
+          destructiveForeground: '#FFFFFF', // Error text (white)
+          success: '#10B981',       // Success states (green)
+          successForeground: '#FFFFFF', // Success text (white)
+          warning: '#F59E0B',       // Warning states (amber)
+          warningForeground: '#FFFFFF' // Warning text (white)
         },
         description: 'Sophisticated monochromatic theme for jewelry store - elegant deep magenta with tonal variations'
       }
