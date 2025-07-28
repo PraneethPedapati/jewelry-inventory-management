@@ -447,31 +447,27 @@ const ProductCatalog: React.FC = () => {
           </Button>
 
           <div className="flex items-center gap-1">
-            {[...Array(totalPages)].map((_, index) => {
-              const page = index + 1;
-              const showPage = page === 1 ||
-                page === totalPages ||
-                Math.abs(page - currentPage) <= 1;
-
-              if (!showPage) {
-                if (page === 2 && currentPage > 4) {
-                  return <span key={page} className="px-2 text-muted-foreground">...</span>;
-                }
-                if (page === totalPages - 1 && currentPage < totalPages - 3) {
-                  return <span key={page} className="px-2 text-muted-foreground">...</span>;
-                }
-                return null;
+            {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
+              let pageNumber;
+              if (totalPages <= 5) {
+                pageNumber = i + 1;
+              } else if (currentPage <= 3) {
+                pageNumber = i + 1;
+              } else if (currentPage >= totalPages - 2) {
+                pageNumber = totalPages - 4 + i;
+              } else {
+                pageNumber = currentPage - 2 + i;
               }
 
               return (
                 <Button
-                  key={page}
-                  variant={currentPage === page ? "default" : "outline"}
+                  key={pageNumber}
+                  variant={currentPage === pageNumber ? "default" : "outline"}
                   size="sm"
-                  onClick={() => handlePageChange(page)}
+                  onClick={() => handlePageChange(pageNumber)}
                   className="h-10 w-10 p-0"
                 >
-                  {page}
+                  {pageNumber}
                 </Button>
               );
             })}

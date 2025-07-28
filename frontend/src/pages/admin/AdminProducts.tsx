@@ -85,20 +85,13 @@ const AdminProducts: React.FC = () => {
       };
       if (searchTerm) params.search = searchTerm;
       if (filterCategory !== 'All') params.productType = filterCategory;
-      // Don't filter by isActive - show all products and let UI handle status display
-      // if (filterStatus !== 'All') params.isActive = filterStatus === 'In Stock';
+      if (filterStatus !== 'All') params.isActive = filterStatus === 'In Stock';
+
       const data = await productService.getProducts(params);
 
-      // Apply client-side filtering for stock status
-      let filteredProducts = data.products;
-      if (filterStatus !== 'All') {
-        const isInStock = filterStatus === 'In Stock';
-        filteredProducts = data.products.filter(product => product.isActive === isInStock);
-      }
-
-      setProducts(filteredProducts);
-      setTotalPages(Math.ceil(filteredProducts.length / itemsPerPage));
-      setTotalProducts(filteredProducts.length);
+      setProducts(data.products);
+      setTotalPages(data.pagination.totalPages);
+      setTotalProducts(data.pagination.total);
     } catch (error) {
       console.error('Failed to load products:', error);
       toast.error('Failed to load products. Please try again.');
