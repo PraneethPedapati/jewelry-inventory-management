@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
-import { themeService, type ColorTheme as ApiColorTheme } from '../services/api';
+import { themeService } from '../services/api';
 
 export interface ColorTheme {
   id: string;

@@ -8,15 +8,13 @@ interface MonthlyOrdersWidgetProps {
 }
 
 export const MonthlyOrdersWidget: React.FC<MonthlyOrdersWidgetProps> = ({
-  value,
-  loading = false
+  value
 }) => {
   return (
     <WidgetCard
       title="Monthly Orders"
       value={value}
       subtitle="This Month"
-      loading={loading}
       icon={ShoppingCart}
     />
   );

@@ -129,7 +129,7 @@ export const getAnalytics = asyncHandler(async (req: Request, res: Response) => 
   };
 
   // Check if data is stale
-  const isStale = AnalyticsService.isStale(refreshMetadata?.lastRefreshAt);
+  const isStale = AnalyticsService.isStale(refreshMetadata?.lastRefreshAt || null);
 
   res.json({
     success: true,
@@ -239,23 +239,21 @@ export const refreshAnalytics = asyncHandler(async (req: Request, res: Response)
       totalRevenue: Math.round(totalRevenue),
       totalExpenses: Math.round(totalExpenses),
       netProfit: Math.round(netProfit),
+      profitMargin: Math.round(profitMargin * 100) / 100,
       revenueChange: Math.round(revenueChange * 100) / 100,
       expenseChange: Math.round(expenseChange * 100) / 100,
-      profitMargin: Math.round(profitMargin * 100) / 100,
       mostProfitableMonth,
       averageMonthlyRevenue: Math.round(averageMonthlyRevenue),
       expenseEfficiency: Math.round(expenseEfficiency * 100) / 100
-    }
+    },
+    cooldownStatus: AnalyticsService.getCooldownStatus()
   };
 
-  res.json({
+  return res.status(200).json({
     success: true,
-    data: analyticsData,
     message: 'Analytics refreshed successfully',
-    isStale: false,
-    lastRefreshed: new Date().toISOString(),
-    computationTimeMs: netRevenue.computationTimeMs,
-    cooldownStatus: AnalyticsService.getCooldownStatus()
+    data: analyticsData,
+    computationTime: result.data?.computationTime || 0
   });
 });
 
@@ -266,7 +264,7 @@ export const refreshAnalytics = asyncHandler(async (req: Request, res: Response)
 export const getAnalyticsStatus = asyncHandler(async (req: Request, res: Response) => {
   const refreshMetadata = await AnalyticsService.getRefreshMetadata();
   const cooldownStatus = AnalyticsService.getCooldownStatus();
-  const isStale = AnalyticsService.isStale(refreshMetadata?.lastRefreshAt);
+  const isStale = AnalyticsService.isStale(refreshMetadata?.lastRefreshAt || null);
 
   res.json({
     success: true,

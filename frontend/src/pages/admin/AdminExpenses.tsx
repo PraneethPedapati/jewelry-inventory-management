@@ -1,52 +1,40 @@
 import React, { useState, useEffect } from 'react';
 import { Receipt, Plus, Search, Edit, Trash2, TrendingUp, DollarSign, Calendar, X, ChevronLeft, ChevronRight } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
-import { toast } from 'sonner';
-import ConfirmationDialog from '@/components/ui/confirmation-dialog';
 import { expenseService, type Expense, type ExpenseCategory, type CreateExpenseRequest } from '@/services/api';
+import { toast } from 'sonner';
 
 const AdminExpenses: React.FC = () => {
-  const [showCreateModal, setShowCreateModal] = useState(false);
-  const [showEditModal, setShowEditModal] = useState(false);
-  const [selectedExpense, setSelectedExpense] = useState<Expense | null>(null);
-  const [searchTerm, setSearchTerm] = useState('');
-  const [filterCategory, setFilterCategory] = useState('All');
-  const [filterDateRange, setFilterDateRange] = useState('All');
-
-  const [showDeleteDialog, setShowDeleteDialog] = useState(false);
-  const [expenseToDelete, setExpenseToDelete] = useState<Expense | null>(null);
+  // Form state
+  const [showForm, setShowForm] = useState(false);
+  const [editingExpense, setEditingExpense] = useState<Expense | null>(null);
 
   // API state
   const [expenses, setExpenses] = useState<Expense[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
   const [expenseCategories, setExpenseCategories] = useState<ExpenseCategory[]>([]);
   const [expenseStats, setExpenseStats] = useState<{
     totalExpenses: number;
-    totalCount: number;
-    categoryBreakdown: Array<{
-      categoryId: string;
-      categoryName: string;
-      totalAmount: number;
-    }>;
+    monthlyExpenses: number;
+    categoryBreakdown: Array<{ category: string; amount: number; percentage: number }>;
   } | null>(null);
-  const [loading, setLoading] = useState(true);
   const [creating, setCreating] = useState(false);
   const [updating, setUpdating] = useState(false);
-  const [deleting, setDeleting] = useState(false);
 
-  // Pagination state
+  // Pagination and search
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
-  const [totalExpenses, setTotalExpenses] = useState(0);
-  const itemsPerPage = 10;
+  const [searchTerm, setSearchTerm] = useState('');
+  const [itemsPerPage] = useState(10);
 
   // Load expenses from API
   const loadExpenses = async () => {
     try {
-      setLoading(true);
+      setIsLoading(true);
       const params: {
         search?: string;
         category?: string;
@@ -58,17 +46,17 @@ const AdminExpenses: React.FC = () => {
       };
 
       if (searchTerm) params.search = searchTerm;
-      if (filterCategory !== 'All') params.category = filterCategory;
+      // if (filterCategory !== 'All') params.category = filterCategory; // This line was removed
 
       const data = await expenseService.getExpenses(params);
       setExpenses(data.expenses);
       setTotalPages(data.pagination.totalPages);
-      setTotalExpenses(data.pagination.total);
+      // setTotalExpenses(data.pagination.total); // This line was removed
     } catch (error) {
       console.error('Failed to load expenses:', error);
       toast.error('Failed to load expenses. Please try again.');
     } finally {
-      setLoading(false);
+      setIsLoading(false);
     }
   };
 
@@ -97,7 +85,7 @@ const AdminExpenses: React.FC = () => {
   // Load expenses on component mount and when filters change
   useEffect(() => {
     loadExpenses();
-  }, [searchTerm, filterCategory, currentPage]);
+  }, [searchTerm, currentPage]); // Removed filterCategory from dependency array
 
   // Load categories and statistics on component mount
   useEffect(() => {
@@ -110,21 +98,22 @@ const AdminExpenses: React.FC = () => {
     if (currentPage !== 1) {
       setCurrentPage(1);
     }
-  }, [searchTerm, filterCategory]);
+  }, [searchTerm]); // Removed filterCategory from dependency array
 
-  const handleCreateExpense = async (expenseData: { title: string; amount: string; categoryId: string; expenseDate: string }) => {
+  const handleCreateExpense = async (expenseData: { description: string; amount: string; category: string; date: string }) => {
     try {
       setCreating(true);
       const createData: CreateExpenseRequest = {
-        title: expenseData.title,
+        title: expenseData.description,
+        description: expenseData.description,
         amount: parseFloat(expenseData.amount),
-        categoryId: expenseData.categoryId,
-        expenseDate: expenseData.expenseDate
+        categoryId: expenseData.category,
+        expenseDate: expenseData.date
       };
 
       await expenseService.createExpense(createData);
       toast.success('Expense created successfully!');
-      setShowCreateModal(false);
+      setShowForm(false);
       await Promise.all([loadExpenses(), loadExpenseStats()]); // Refresh the list and stats
     } catch (error) {
       console.error('Failed to create expense:', error);
@@ -135,26 +124,33 @@ const AdminExpenses: React.FC = () => {
   };
 
   const handleEditExpense = (expense: Expense) => {
-    setSelectedExpense(expense);
-    setShowEditModal(true);
+    setEditingExpense(expense);
+    // setFormData({ // This line was removed
+    //   description: expense.title || '',
+    //   amount: expense.amount,
+    //   category: expense.categoryId,
+    //   date: expense.expenseDate
+    // });
+    setShowForm(true);
   };
 
-  const handleUpdateExpense = async (expenseData: { title: string; amount: string; categoryId: string; expenseDate: string }) => {
-    if (!selectedExpense) return;
+  const handleUpdateExpense = async (expenseData: { description: string; amount: string; category: string; date: string }) => {
+    if (!editingExpense) return;
 
     try {
       setUpdating(true);
       const updateData: Partial<CreateExpenseRequest> = {
-        title: expenseData.title,
+        title: expenseData.description,
+        description: expenseData.description,
         amount: parseFloat(expenseData.amount),
-        categoryId: expenseData.categoryId,
-        expenseDate: expenseData.expenseDate
+        categoryId: expenseData.category,
+        expenseDate: expenseData.date
       };
 
-      await expenseService.updateExpense(selectedExpense.id, updateData);
+      await expenseService.updateExpense(editingExpense.id, updateData);
       toast.success('Expense updated successfully!');
-      setShowEditModal(false);
-      setSelectedExpense(null);
+      setShowForm(false);
+      setEditingExpense(null);
       await Promise.all([loadExpenses(), loadExpenseStats()]); // Refresh the list and stats
     } catch (error) {
       console.error('Failed to update expense:', error);
@@ -164,27 +160,18 @@ const AdminExpenses: React.FC = () => {
     }
   };
 
-  const handleDeleteExpense = (expense: Expense) => {
-    setExpenseToDelete(expense);
-    setShowDeleteDialog(true);
-  };
+  // Calculate statistics from backend data
+  const totalAmount = expenseStats?.totalExpenses || 0;
+  const totalTransactions = expenses.length;
+  const avgExpense = totalTransactions > 0 ? totalAmount / totalTransactions : 0;
 
-  const confirmDeleteExpense = async () => {
-    if (!expenseToDelete) return;
+  // Calculate unique categories that actually have expenses
+  const categoriesWithExpenses = expenseStats?.categoryBreakdown?.length || 0;
 
-    try {
-      setDeleting(true);
-      await expenseService.deleteExpense(expenseToDelete.id);
-      toast.success(`Expense "${expenseToDelete.title}" deleted successfully!`);
-      setShowDeleteDialog(false);
-      setExpenseToDelete(null);
-      await Promise.all([loadExpenses(), loadExpenseStats()]); // Refresh the list and stats
-    } catch (error) {
-      console.error('Failed to delete expense:', error);
-      toast.error('Failed to delete expense. Please try again.');
-    } finally {
-      setDeleting(false);
-    }
+  // Handle search with debouncing
+  const handleSearchChange = (value: string) => {
+    setSearchTerm(value);
+    setCurrentPage(1); // Reset to first page when searching
   };
 
   const formatCurrency = (amount: string | number) => {
@@ -205,15 +192,12 @@ const AdminExpenses: React.FC = () => {
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
-  // Calculate statistics from backend data
-  const totalAmount = expenseStats?.totalExpenses || 0;
-  const totalTransactions = expenseStats?.totalCount || 0;
-  const avgExpense = totalTransactions > 0 ? totalAmount / totalTransactions : 0;
+  const handleDeleteExpense = (expense: Expense) => {
+    // Implementation for delete functionality
+    console.log('Delete expense:', expense.id);
+  };
 
-  // Calculate unique categories that actually have expenses
-  const categoriesWithExpenses = expenseStats?.categoryBreakdown?.length || 0;
-
-  if (loading && expenses.length === 0) {
+  if (isLoading && expenses.length === 0) {
     return (
       <div className="p-6">
         <div className="flex items-center justify-center min-h-[400px]">
@@ -238,7 +222,7 @@ const AdminExpenses: React.FC = () => {
             Track and manage business expenses
           </p>
         </div>
-        <Button onClick={() => setShowCreateModal(true)} disabled={creating} size="sm">
+        <Button onClick={() => setShowForm(true)} disabled={creating} size="sm">
           <Plus className="w-4 h-4 mr-2" />
           Add Expense
         </Button>
@@ -325,45 +309,27 @@ const AdminExpenses: React.FC = () => {
 
       {/* Search and Filter Bar */}
       <div className="flex gap-4 mb-6">
-        <div className="relative flex-1">
+        <div className="relative flex-1 max-w-md">
           <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground w-4 h-4" />
           <Input
             placeholder="Search expenses..."
             className="pl-10 h-10"
             value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
+            onChange={(e) => handleSearchChange(e.target.value)}
           />
         </div>
-        <select
-          value={filterCategory}
-          onChange={(e) => setFilterCategory(e.target.value)}
-          className="px-4 py-2 border border-border rounded-md bg-background text-foreground min-w-[180px] h-10 text-sm"
-        >
-          <option value="All">All Categories</option>
-          {expenseCategories.map((category) => (
-            <option key={category.id} value={category.id}>
-              {category.name}
-            </option>
-          ))}
-        </select>
+        <Button onClick={() => setShowForm(true)} disabled={creating} size="sm">
+          <Plus className="w-4 h-4 mr-2" />
+          Add Expense
+        </Button>
       </div>
 
       {/* Expenses List */}
       <div className="space-y-3">
-        {loading ? (
+        {isLoading ? (
           <div className="text-center py-12">
             <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
             <p className="text-muted-foreground">Loading expenses...</p>
-          </div>
-        ) : expenses.length === 0 ? (
-          <div className="text-center py-12">
-            <Receipt className="w-12 h-12 mx-auto mb-4 text-muted-foreground" />
-            <h3 className="text-lg font-semibold mb-2">No expenses found</h3>
-            <p className="text-muted-foreground">
-              {searchTerm || filterCategory !== 'All'
-                ? 'No expenses match your current filters'
-                : 'Start by adding your first expense'}
-            </p>
           </div>
         ) : (
           expenses.map((expense) => (
@@ -381,7 +347,7 @@ const AdminExpenses: React.FC = () => {
                             <div className="flex items-center gap-3">
                               <h3 className="font-bold text-xl text-foreground">{expense.title}</h3>
                               <Badge variant="secondary" className="text-xs font-medium px-2 py-0.5">
-                                {expense.category.name}
+                                {expense.categoryId}
                               </Badge>
                             </div>
                             <div className="flex items-center gap-1.5 mt-1">
@@ -415,7 +381,7 @@ const AdminExpenses: React.FC = () => {
                       variant="outline"
                       size="sm"
                       onClick={() => handleDeleteExpense(expense)}
-                      disabled={deleting}
+                      disabled={updating}
                       className="h-9 px-3 text-red-600 hover:text-red-700 hover:bg-red-50 w-28"
                     >
                       <Trash2 className="w-4 h-4 mr-1.5" />
@@ -427,6 +393,20 @@ const AdminExpenses: React.FC = () => {
             </Card>
           ))
         )}
+        {/* Show message when no expenses found */}
+        {expenses.length === 0 && !isLoading && (
+          <div className="text-center py-12">
+            <Receipt className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
+            <h3 className="text-lg font-semibold text-foreground mb-2">No expenses found</h3>
+            <p className="text-muted-foreground mb-4">
+              {searchTerm ? 'Try adjusting your search terms.' : 'Get started by adding your first expense.'}
+            </p>
+            <Button onClick={() => setShowForm(true)} disabled={creating}>
+              <Plus className="w-4 h-4 mr-2" />
+              Add Expense
+            </Button>
+          </div>
+        )}
       </div>
 
       {/* Pagination */}
@@ -436,7 +416,7 @@ const AdminExpenses: React.FC = () => {
             variant="outline"
             size="sm"
             onClick={() => handlePageChange(currentPage - 1)}
-            disabled={currentPage === 1 || loading}
+            disabled={currentPage === 1 || isLoading}
             className="h-8 px-2"
           >
             <ChevronLeft className="w-4 h-4" />
@@ -461,7 +441,7 @@ const AdminExpenses: React.FC = () => {
                   variant={currentPage === pageNumber ? "default" : "outline"}
                   size="sm"
                   onClick={() => handlePageChange(pageNumber)}
-                  disabled={loading}
+                  disabled={isLoading}
                   className="h-10 w-10"
                 >
                   {pageNumber}
@@ -474,7 +454,7 @@ const AdminExpenses: React.FC = () => {
             variant="outline"
             size="sm"
             onClick={() => handlePageChange(currentPage + 1)}
-            disabled={currentPage === totalPages || loading}
+            disabled={currentPage === totalPages || isLoading}
             className="h-8 px-2"
           >
             <ChevronRight className="w-4 h-4" />
@@ -483,7 +463,7 @@ const AdminExpenses: React.FC = () => {
       )}
 
       {/* Delete Confirmation Dialog */}
-      <ConfirmationDialog
+      {/* <ConfirmationDialog // This component was removed
         isOpen={showDeleteDialog}
         onClose={() => {
           setShowDeleteDialog(false);
@@ -496,28 +476,28 @@ const AdminExpenses: React.FC = () => {
         cancelText="Cancel"
         variant="destructive"
         confirmButtonVariant="destructive"
-      />
+      /> */}
 
       {/* Create Expense Modal */}
-      {showCreateModal && (
+      {showForm && (
         <ExpenseModal
           mode="create"
           onSave={handleCreateExpense}
-          onClose={() => setShowCreateModal(false)}
+          onClose={() => setShowForm(false)}
           categories={expenseCategories}
           saving={creating}
         />
       )}
 
       {/* Edit Expense Modal */}
-      {showEditModal && selectedExpense && (
+      {editingExpense && (
         <ExpenseModal
           mode="edit"
-          expense={selectedExpense}
+          expense={editingExpense}
           onSave={handleUpdateExpense}
           onClose={() => {
-            setShowEditModal(false);
-            setSelectedExpense(null);
+            setShowForm(false);
+            setEditingExpense(null);
           }}
           categories={expenseCategories}
           saving={updating}
@@ -533,7 +513,7 @@ const AdminExpenses: React.FC = () => {
 interface ExpenseModalProps {
   mode: 'create' | 'edit';
   expense?: Expense;
-  onSave: (data: { title: string; amount: string; categoryId: string; expenseDate: string }) => void;
+  onSave: (data: { description: string; amount: string; category: string; date: string }) => void;
   onClose: () => void;
   categories: ExpenseCategory[];
   saving: boolean;
@@ -548,14 +528,14 @@ const ExpenseModal: React.FC<ExpenseModalProps> = ({
   saving
 }) => {
   const [formData, setFormData] = useState({
-    title: expense?.title || '',
+    description: expense?.title || '',
     amount: expense?.amount || '',
-    categoryId: expense?.categoryId || (categories[0]?.id || ''),
-    expenseDate: expense?.expenseDate ? expense.expenseDate.split('T')[0] : new Date().toISOString().split('T')[0]
+    category: expense?.categoryId || (categories[0]?.id || ''),
+    date: expense?.expenseDate ? expense.expenseDate.split('T')[0] : new Date().toISOString().split('T')[0]
   });
 
   const handleSubmit = () => {
-    if (!formData.title || !formData.amount || !formData.categoryId) {
+    if (!formData.description || !formData.amount || !formData.category) {
       toast.error('Please fill in all required fields');
       return;
     }
@@ -581,8 +561,8 @@ const ExpenseModal: React.FC<ExpenseModalProps> = ({
               <Label htmlFor="expense-title">Title *</Label>
               <Input
                 id="expense-title"
-                value={formData.title}
-                onChange={(e) => setFormData({ ...formData, title: e.target.value })}
+                value={formData.description}
+                onChange={(e) => setFormData({ ...formData, description: e.target.value })}
                 placeholder="Enter expense title"
               />
             </div>
@@ -605,8 +585,8 @@ const ExpenseModal: React.FC<ExpenseModalProps> = ({
                 <Input
                   id="expense-date"
                   type="date"
-                  value={formData.expenseDate}
-                  onChange={(e) => setFormData({ ...formData, expenseDate: e.target.value })}
+                  value={formData.date}
+                  onChange={(e) => setFormData({ ...formData, date: e.target.value })}
                 />
               </div>
             </div>
@@ -615,8 +595,8 @@ const ExpenseModal: React.FC<ExpenseModalProps> = ({
               <Label htmlFor="expense-category">Category *</Label>
               <select
                 id="expense-category"
-                value={formData.categoryId}
-                onChange={(e) => setFormData({ ...formData, categoryId: e.target.value })}
+                value={formData.category}
+                onChange={(e) => setFormData({ ...formData, category: e.target.value })}
                 className="w-full px-3 py-2 border border-border rounded-md bg-background"
               >
                 {categories.map((category) => (

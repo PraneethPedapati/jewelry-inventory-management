@@ -470,20 +470,19 @@ const seedDatabase = async (): Promise<void> => {
     const orderStatuses = ['payment_pending', 'confirmed', 'processing', 'shipped', 'delivered', 'cancelled'] as const;
     const statusWeights = [3, 2, 2, 3, 15, 1]; // More delivered orders for realistic data
 
-    const sampleOrders = Array.from({ length: 30 }, (_, i) => {
-      const statusIndex = Math.floor(Math.random() * orderStatuses.length);
-      const status = orderStatuses[statusIndex];
-      const totalAmount = (Math.random() * 100 + 20).toFixed(2); // 20-120 range
+    const sampleOrders = customerNames.map((name, i) => {
+      const status = orderStatuses[i % orderStatuses.length];
+      const totalAmount = (Math.random() * 5000 + 500).toFixed(2);
 
       return {
-        orderNumber: `ORD-${String(i + 1).padStart(8, '0')}`,
+        orderNumber: `INV${String(i + 1).padStart(6, '0')}`,
         orderCode: `ORD${String(i + 1).padStart(3, '0')}`,
-        customerName: customerNames[i],
-        customerEmail: customerEmails[i],
-        customerPhone: customerPhones[i],
-        customerAddress: addresses[i % addresses.length],
+        customerName: name || 'Unknown Customer',
+        customerEmail: customerEmails[i] || 'customer@example.com',
+        customerPhone: customerPhones[i] || '+1234567890',
+        customerAddress: addresses[i % addresses.length] || 'No address provided',
         totalAmount,
-        status,
+        status: status as string,
         whatsappMessageSent: status !== 'payment_pending',
         paymentReceived: status !== 'payment_pending' && status !== 'cancelled',
         notes: `Order ${i + 1} - ${status === 'delivered' ? 'Customer satisfied' : 'Processing normally'}`
@@ -494,7 +493,13 @@ const seedDatabase = async (): Promise<void> => {
 
     // 6. Create order status history for each order
     console.log('📋 Creating order status history...');
-    const statusHistoryData = [];
+    const statusHistoryData: Array<{
+      orderId: string;
+      oldStatus: string | null;
+      newStatus: string;
+      changedBy: string;
+      notes: string;
+    }> = [];
 
     for (const order of insertedOrders) {
       if (!order) continue;
@@ -503,7 +508,7 @@ const seedDatabase = async (): Promise<void> => {
       statusHistoryData.push({
         orderId: order.id,
         oldStatus: null,
-        newStatus: order.status,
+        newStatus: order.status || 'payment_pending',
         changedBy: adminUser.id,
         notes: 'Order created'
       });
@@ -562,7 +567,7 @@ const seedDatabase = async (): Promise<void> => {
 
       // Randomly select 1-3 products per order
       const numProducts = Math.floor(Math.random() * 3) + 1;
-      const selectedProducts = [];
+      const selectedProducts: typeof insertedProducts = [];
 
       for (let j = 0; j < numProducts; j++) {
         const randomProduct = insertedProducts[Math.floor(Math.random() * insertedProducts.length)];

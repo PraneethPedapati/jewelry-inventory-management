@@ -1,19 +1,15 @@
 import React, { useState } from 'react';
 import { Link, useNavigate, useLocation, Outlet } from 'react-router-dom';
 import {
-  LayoutDashboard,
+  Home,
   Package,
   ShoppingCart,
-  BarChart3,
-  Settings,
+  DollarSign,
   LogOut,
-  ChevronLeft,
-  ChevronRight,
-  User,
-  Receipt
+  Menu,
+  X
 } from 'lucide-react';
 import Logo from '@/components/ui/Logo';
-import { env } from '@/config/env';
 
 interface AdminLayoutProps {
   onLogout: () => void;
@@ -33,7 +29,7 @@ const AdminLayout: React.FC<AdminLayoutProps> = ({ onLogout }) => {
     {
       title: 'Dashboard',
       href: '/admin/dashboard',
-      icon: LayoutDashboard,
+      icon: Home,
     },
     {
       title: 'Products',
@@ -48,7 +44,7 @@ const AdminLayout: React.FC<AdminLayoutProps> = ({ onLogout }) => {
     {
       title: 'Expenses',
       href: '/admin/expenses',
-      icon: Receipt,
+      icon: DollarSign,
     },
     // Analytics page hidden - dashboard widgets provide the same functionality
     // {
@@ -136,7 +132,7 @@ const AdminLayout: React.FC<AdminLayoutProps> = ({ onLogout }) => {
             <div className="p-3 border-t border-border">
               <div className={`flex items-center px-3 py-3 text-muted-foreground ${!isSidebarExpanded ? 'justify-center' : 'space-x-3'}`}>
                 <div className="w-8 h-8 bg-primary/10 rounded-full flex items-center justify-center flex-shrink-0">
-                  <User className="w-4 h-4 text-primary" />
+                  {/* <User className="w-4 h-4 text-primary" /> */}
                 </div>
                 <div
                   className={`transition-all duration-300 ${isSidebarExpanded ? 'opacity-100 w-auto' : 'opacity-0 w-0 overflow-hidden'
@@ -167,9 +163,9 @@ const AdminLayout: React.FC<AdminLayoutProps> = ({ onLogout }) => {
             <div className="p-2 flex justify-center">
               <div className="text-muted-foreground">
                 {isSidebarExpanded ? (
-                  <ChevronLeft className="w-4 h-4" />
+                  <X className="w-4 h-4" />
                 ) : (
-                  <ChevronRight className="w-4 h-4" />
+                  <Menu className="w-4 h-4" />
                 )}
               </div>
             </div>

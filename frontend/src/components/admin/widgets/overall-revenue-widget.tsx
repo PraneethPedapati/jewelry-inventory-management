@@ -8,8 +8,7 @@ interface OverallRevenueWidgetProps {
 }
 
 export const OverallRevenueWidget: React.FC<OverallRevenueWidgetProps> = ({
-  value,
-  loading = false
+  value
 }) => {
   // Ensure proper formatting to 2 decimal places
   const formattedValue = value.formatted || `₹${value.revenue.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
@@ -18,8 +17,7 @@ export const OverallRevenueWidget: React.FC<OverallRevenueWidgetProps> = ({
     <WidgetCard
       title="Overall Revenue"
       value={formattedValue}
-      subtitle="All-time Total"
-      loading={loading}
+      subtitle="All-time Revenue"
       icon={DollarSign}
     />
   );

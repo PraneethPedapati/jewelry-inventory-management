@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useCart } from '../context/CartContext';
+import { useCart } from '../hooks/useCart';
 import { FiMinus, FiPlus, FiTrash2, FiUser, FiPhone, FiMapPin, FiCreditCard } from 'react-icons/fi';
 
 // Add Google reCAPTCHA script if not already loaded
@@ -92,28 +92,6 @@ const Cart: React.FC = () => {
     setCustomerDetails(prev => ({ ...prev, [field]: value }));
     if (errors[field]) {
       setErrors(prev => ({ ...prev, [field]: '' }));
-    }
-  };
-
-  const getRecaptchaToken = async (): Promise<string> => {
-    try {
-      await loadRecaptcha();
-
-      const siteKey = import.meta.env.VITE_RECAPTCHA_SITE_KEY;
-
-      return new Promise((resolve, reject) => {
-        window.grecaptcha.ready(() => {
-          window.grecaptcha.execute(siteKey, { action: 'place_order' })
-            .then((token) => {
-              resolve(token);
-            })
-            .catch((error) => {
-              reject(error);
-            });
-        });
-      });
-    } catch (error) {
-      throw new Error('CAPTCHA verification failed');
     }
   };
 

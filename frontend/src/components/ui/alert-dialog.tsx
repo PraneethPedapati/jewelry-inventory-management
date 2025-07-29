@@ -174,11 +174,12 @@ export const AlertDialogAction: React.FC<AlertDialogActionProps> = ({
   onClick,
   ...props
 }) => {
-  const { onOpenChange } = useAlertDialog();
-
-  const handleClick = (e: React.MouseEvent<HTMLDivElement>) => {
-    onClick?.(e);
-    onOpenChange(false);
+  const handleClick = (e: React.MouseEvent<HTMLDivElement | HTMLButtonElement>) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (onClick) {
+      onClick(e as React.MouseEvent<HTMLDivElement>);
+    }
   };
 
   if (asChild) {
@@ -193,7 +194,7 @@ export const AlertDialogAction: React.FC<AlertDialogActionProps> = ({
     <button
       className={`inline-flex h-10 items-center justify-center rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 ${className}`}
       onClick={handleClick}
-      {...props}
+      type="button"
     >
       {children}
     </button>
@@ -212,11 +213,12 @@ export const AlertDialogCancel: React.FC<AlertDialogCancelProps> = ({
   onClick,
   ...props
 }) => {
-  const { onOpenChange } = useAlertDialog();
-
-  const handleClick = (e: React.MouseEvent<HTMLDivElement>) => {
-    onClick?.(e);
-    onOpenChange(false);
+  const handleClick = (e: React.MouseEvent<HTMLDivElement | HTMLButtonElement>) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (onClick) {
+      onClick(e as React.MouseEvent<HTMLDivElement>);
+    }
   };
 
   if (asChild) {
@@ -231,7 +233,7 @@ export const AlertDialogCancel: React.FC<AlertDialogCancelProps> = ({
     <button
       className={`inline-flex h-10 items-center justify-center rounded-md border border-input bg-background px-4 py-2 text-sm font-medium transition-colors hover:bg-accent hover:text-accent-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 mt-2 sm:mt-0 ${className}`}
       onClick={handleClick}
-      {...props}
+      type="button"
     >
       {children}
     </button>

@@ -104,7 +104,7 @@ export const setActiveTheme = asyncHandler(async (req: Request, res: Response) =
     res.json({
       success: true,
       data: updatedTheme[0],
-      message: `Theme "${updatedTheme[0].displayName}" activated successfully`
+      message: `Theme "${updatedTheme[0]?.displayName || 'Unknown'}" activated successfully`
     });
   } catch (error) {
     console.error('Error setting active theme:', error);

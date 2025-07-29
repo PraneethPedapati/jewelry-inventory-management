@@ -8,8 +8,7 @@ interface MonthlyRevenueWidgetProps {
 }
 
 export const MonthlyRevenueWidget: React.FC<MonthlyRevenueWidgetProps> = ({
-  value,
-  loading = false
+  value
 }) => {
   // Ensure proper formatting to 2 decimal places
   const formattedValue = value.formatted || `₹${value.revenue.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
@@ -19,7 +18,6 @@ export const MonthlyRevenueWidget: React.FC<MonthlyRevenueWidgetProps> = ({
       title="Monthly Revenue"
       value={formattedValue}
       subtitle="This Month"
-      loading={loading}
       icon={DollarSign}
     />
   );

@@ -21,10 +21,10 @@ export class OrderCodeService {
 
       let nextNumber = 1;
 
-      if (latestOrder.length > 0 && latestOrder[0].orderCode) {
+      if (latestOrder.length > 0 && latestOrder[0]?.orderCode) {
         // Extract the number from the latest order code (e.g., "ORD123" -> 123)
         const match = latestOrder[0].orderCode.match(/^ORD(\d+)$/);
-        if (match) {
+        if (match && match[1]) {
           nextNumber = parseInt(match[1], 10) + 1;
         }
       }

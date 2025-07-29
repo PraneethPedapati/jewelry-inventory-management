@@ -2,7 +2,7 @@ import React from 'react';
 import { Outlet, Link, useLocation } from 'react-router-dom';
 import { ShoppingBag, ShoppingCart, User } from 'lucide-react';
 import Logo from '@/components/ui/Logo';
-import { useCart } from '@/context/CartContext';
+import { useCart } from '@/hooks/useCart';
 
 const CustomerLayout: React.FC = () => {
   const location = useLocation();

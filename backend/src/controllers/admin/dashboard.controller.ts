@@ -131,7 +131,7 @@ export const getDashboardStats = asyncHandler(async (req: Request, res: Response
   };
 
   // Check if analytics data is stale
-  const isStale = AnalyticsService.isStale(refreshMetadata?.lastRefreshAt);
+  const isStale = AnalyticsService.isStale(refreshMetadata?.lastRefreshAt || null);
 
   res.json({
     success: true,

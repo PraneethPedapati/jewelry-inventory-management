@@ -1,24 +1,21 @@
 import React from 'react';
-import { Clock } from 'lucide-react';
+import { AlertTriangle } from 'lucide-react';
 import { WidgetCard } from '@/components/ui/widget-card';
 
 interface StaleDataWidgetProps {
   value: number;
-  loading?: boolean;
 }
 
 export const StaleDataWidget: React.FC<StaleDataWidgetProps> = ({
-  value,
-  loading = false
+  value
 }) => {
   return (
     <WidgetCard
-      title="Stale Orders"
+      title="Stale Data"
       value={value}
-      subtitle=">6hrs old"
-      loading={loading}
+      subtitle="Needs Attention"
       urgent={value > 0}
-      icon={Clock}
+      icon={AlertTriangle}
     />
   );
 }; 

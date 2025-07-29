@@ -1,8 +1,8 @@
-import React, { useState, useMemo, useEffect, useCallback, useRef } from 'react';
-import { ShoppingCart, Filter, Search, ChevronLeft, ChevronRight, Plus, Minus, X } from 'lucide-react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
+import { ShoppingCart, Filter, Search, ChevronLeft, ChevronRight, Plus, Minus } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
-import { useCart } from '@/context/CartContext';
+import { useCart } from '@/hooks/useCart';
 
 interface Product {
   id: string;
@@ -18,22 +18,25 @@ interface Product {
 }
 
 const ProductCatalog: React.FC = () => {
-  const { addToCart: addToCartContext, isInCart } = useCart();
+  const { addToCart: addToCartContext } = useCart();
   const [searchTerm, setSearchTerm] = useState('');
-  const [selectedCategory, setSelectedCategory] = useState('All');
+  const [selectedCategory, setSelectedCategory] = useState<string>('all');
   const [currentPage, setCurrentPage] = useState(1);
   const [showFilters, setShowFilters] = useState(false);
-  const [quantity, setQuantity] = useState(1);
   const [cartStates, setCartStates] = useState<Record<string, { quantity: number }>>({});
-
-  // New state for API data
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [totalPages, setTotalPages] = useState(1);
-
   const itemsPerPage = 8;
   const isRequestingRef = useRef(false);
+
+  // Product categories
+  const productCategories = [
+    { value: 'all', label: 'All Products' },
+    { value: 'chain', label: 'Chains' },
+    { value: 'bracelet-anklet', label: 'Bracelets & Anklets' }
+  ];
 
   // Check if API URL is configured
   const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:3000';
@@ -113,7 +116,7 @@ const ProductCatalog: React.FC = () => {
     if (products.length > 0) {
       const initialCartStates: Record<string, { quantity: number }> = {};
 
-      products.forEach(product => {
+      products.forEach(() => {
         // Check if product is in cart and get its state
         // This is a simplified approach - in a real app you'd sync with cart context
         // For now, we'll rely on the cartStates being set when items are added
@@ -122,12 +125,6 @@ const ProductCatalog: React.FC = () => {
       setCartStates(prev => ({ ...prev, ...initialCartStates }));
     }
   }, [products]);
-
-  const categories = [
-    { value: 'All', label: 'All Products' },
-    { value: 'chain', label: 'Chains' },
-    { value: 'bracelet-anklet', label: 'Bracelets & Anklets' }
-  ];
 
   // Handle search with debouncing
   const handleSearchChange = (value: string) => {
@@ -255,7 +252,7 @@ const ProductCatalog: React.FC = () => {
         {/* Category Filter */}
         <div className={`${showFilters ? 'block' : 'hidden'} md:block`}>
           <div className="flex flex-wrap gap-2 md:flex-nowrap md:overflow-x-auto md:space-x-2 md:pb-2 md:scrollbar-hide">
-            {categories.map((category) => (
+            {productCategories.map((category) => (
               <Button
                 key={category.value}
                 variant={selectedCategory === category.value ? "default" : "outline"}

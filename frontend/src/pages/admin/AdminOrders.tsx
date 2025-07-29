@@ -355,7 +355,6 @@ const AdminOrders: React.FC = () => {
         />
         <StaleDataWidget
           value={widgetsData?.staleData || 0}
-          loading={widgetsLoading}
         />
         <OverallAOVWidget
           value={widgetsData?.averageOrderValue || { aov: 0, formatted: '₹0.00' }}

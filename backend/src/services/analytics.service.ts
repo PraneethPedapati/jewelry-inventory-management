@@ -1,19 +1,8 @@
 import { db } from '../db/connection.js';
-import {
-  analyticsCache,
-  analyticsMetadata,
-  analyticsHistory,
-  orders,
-  orderItems,
-  expenses,
-  expenseCategories,
-  products,
-  type AnalyticsCache,
-  type NewAnalyticsCache,
-  type NewAnalyticsMetadata,
-  type NewAnalyticsHistory
-} from '../db/schema.js';
-import { eq, desc, and, gte, lte, count, sql } from 'drizzle-orm';
+import { analyticsCache, analyticsMetadata, analyticsHistory, orders, expenses, expenseCategories, orderItems, products } from '../db/schema.js';
+import { eq, desc, and, gte, sql, count } from 'drizzle-orm';
+import { config } from '../config/app.js';
+import type { AnalyticsMetadata } from '../db/schema.js';
 
 // In-memory cache for analytics data
 class AnalyticsCacheService {
@@ -104,8 +93,8 @@ export class AnalyticsService {
       })
       .from(expenses);
 
-    const totalRevenue = parseFloat(revenueResult[0]?.totalRevenue || '0');
-    const totalExpenses = parseFloat(expensesResult[0]?.totalExpenses || '0');
+    const totalRevenue = parseFloat(String(revenueResult[0]?.totalRevenue || '0'));
+    const totalExpenses = parseFloat(String(expensesResult[0]?.totalExpenses || '0'));
     const netRevenue = totalRevenue - totalExpenses;
     const profitMarginPercentage = totalRevenue > 0 ? ((netRevenue / totalRevenue) * 100) : 0;
 
@@ -157,21 +146,25 @@ export class AnalyticsService {
 
     // Process orders
     ordersData.forEach(order => {
-      const month = new Date(order.createdAt).toISOString().substring(0, 7); // YYYY-MM format
-      if (!monthlyData[month]) {
-        monthlyData[month] = { revenue: 0, expenses: 0, orderCount: 0 };
+      if (order.createdAt) {
+        const month = new Date(order.createdAt).toISOString().substring(0, 7); // YYYY-MM format
+        if (!monthlyData[month]) {
+          monthlyData[month] = { revenue: 0, expenses: 0, orderCount: 0 };
+        }
+        monthlyData[month].revenue += parseFloat(order.totalAmount);
+        monthlyData[month].orderCount += 1;
       }
-      monthlyData[month].revenue += parseFloat(order.totalAmount);
-      monthlyData[month].orderCount += 1;
     });
 
     // Process expenses
     expensesData.forEach(expense => {
-      const month = new Date(expense.expenseDate).toISOString().substring(0, 7);
-      if (!monthlyData[month]) {
-        monthlyData[month] = { revenue: 0, expenses: 0, orderCount: 0 };
+      if (expense.expenseDate) {
+        const month = new Date(expense.expenseDate).toISOString().substring(0, 7);
+        if (!monthlyData[month]) {
+          monthlyData[month] = { revenue: 0, expenses: 0, orderCount: 0 };
+        }
+        monthlyData[month].expenses += parseFloat(expense.amount);
       }
-      monthlyData[month].expenses += parseFloat(expense.amount);
     });
 
     // Convert to array and sort by month
@@ -369,7 +362,7 @@ export class AnalyticsService {
     await db.insert(analyticsHistory).values({
       metricType: 'daily_snapshot',
       calculatedData: analyticsData,
-      snapshotDate: new Date(today)
+      snapshotDate: new Date(today || new Date())
     });
   }
 
@@ -457,14 +450,16 @@ export class AnalyticsService {
       analyticsCacheService.setCached(metricType, calculatedData);
 
       // Update metadata record
-      await db
-        .update(analyticsMetadata)
-        .set({
-          lastRefreshAt: new Date(),
-          refreshDurationMs: calculatedData.computationTimeMs,
-          status: 'completed'
-        })
-        .where(eq(analyticsMetadata.id, processingRecord[0].id));
+      if (processingRecord[0]?.id) {
+        await db
+          .update(analyticsMetadata)
+          .set({
+            lastRefreshAt: new Date(),
+            refreshDurationMs: calculatedData.computationTimeMs,
+            status: 'completed'
+          })
+          .where(eq(analyticsMetadata.id, processingRecord[0].id));
+      }
 
       return {
         success: true,
@@ -544,14 +539,16 @@ export class AnalyticsService {
       analyticsCacheService.setCached('top_products', topProducts);
 
       // Update metadata record
-      await db
-        .update(analyticsMetadata)
-        .set({
-          lastRefreshAt: new Date(),
-          refreshDurationMs: totalComputationTime,
-          status: 'completed'
-        })
-        .where(eq(analyticsMetadata.id, processingRecord[0].id));
+      if (processingRecord[0]?.id) {
+        await db
+          .update(analyticsMetadata)
+          .set({
+            lastRefreshAt: new Date(),
+            refreshDurationMs: totalComputationTime,
+            status: 'completed'
+          })
+          .where(eq(analyticsMetadata.id, processingRecord[0].id));
+      }
 
       // Create historical snapshot
       await this.createHistoricalSnapshot({

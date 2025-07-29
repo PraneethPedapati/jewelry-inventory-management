@@ -10,7 +10,6 @@ import { Label } from '@/components/ui/label';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
 import { Palette, Eye, Save, Plus, Trash2, RefreshCw, Type, Settings2 } from 'lucide-react';
-import Logo from '@/components/ui/Logo';
 
 import type { ColorTheme } from '@/stores/theme.store';
 

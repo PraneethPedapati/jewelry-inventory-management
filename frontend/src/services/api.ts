@@ -832,10 +832,13 @@ export const dashboardService = {
       return response.data.data;
     } catch (error) {
       console.error('❌ Error refreshing widgets:', error);
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
+      const errorResponse = error && typeof error === 'object' && 'response' in error ? (error as any).response : undefined;
+      
       console.error('❌ Error details:', {
-        message: error.message,
-        status: error.response?.status,
-        data: error.response?.data
+        message: errorMessage,
+        status: errorResponse?.status,
+        data: errorResponse?.data
       });
       handleApiError(error, 'Failed to refresh dashboard widgets. Please try again.');
       throw error;
@@ -870,8 +873,15 @@ export const analyticsService = {
 
       return response.data.data;
     } catch (error) {
-      handleApiError(error, 'Failed to load analytics data. Please try again.');
-      throw error;
+      console.error('Error fetching analytics data:', error);
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
+      const errorResponse = error && typeof error === 'object' && 'response' in error ? (error as any).response : undefined;
+      
+      throw {
+        message: errorMessage,
+        status: errorResponse?.status,
+        data: errorResponse?.data
+      };
     }
   },
 

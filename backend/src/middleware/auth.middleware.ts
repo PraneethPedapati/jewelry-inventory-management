@@ -66,14 +66,19 @@ export const authenticateAdmin = async (
     }
 
     // Add admin info to request
-    req.admin = admin;
+    req.admin = {
+      id: admin.id,
+      email: admin.email,
+      role: admin.role || 'admin', // Provide default role if null
+      name: admin.name,
+    };
 
     // Add tracing attributes if enabled
     if (config.ENABLE_TRACING) {
       addSpanAttributes({
         'user.id': admin.id,
         'user.email': admin.email,
-        'user.role': admin.role,
+        'user.role': admin.role || 'admin',
       });
     }
 
@@ -210,7 +215,7 @@ export const createIpRateLimit = (windowMs: number, max: number, blockDurationMs
     windowMs,
     max,
     handler: (req, res, next) => {
-      const clientIP = req.ip;
+      const clientIP = req.ip || req.connection.remoteAddress || 'unknown';
       const now = Date.now();
 
       // Block IP temporarily
@@ -226,7 +231,7 @@ export const createIpRateLimit = (windowMs: number, max: number, blockDurationMs
       next(new RateLimitError(Math.ceil(blockDurationMs / 1000)));
     },
     skip: (req) => {
-      const clientIP = req.ip;
+      const clientIP = req.ip || req.connection.remoteAddress || 'unknown';
       const blockUntil = blockedIPs.get(clientIP);
 
       if (blockUntil && Date.now() < blockUntil) {

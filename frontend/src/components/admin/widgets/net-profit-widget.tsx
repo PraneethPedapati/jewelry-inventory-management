@@ -8,8 +8,7 @@ interface NetProfitWidgetProps {
 }
 
 export const NetProfitWidget: React.FC<NetProfitWidgetProps> = ({
-  value,
-  loading = false
+  value
 }) => {
   // Ensure proper formatting to 2 decimal places
   const formattedValue = value.formatted || `₹${value.profit.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
@@ -19,7 +18,6 @@ export const NetProfitWidget: React.FC<NetProfitWidgetProps> = ({
       title="Net Profit"
       value={formattedValue}
       subtitle="All-time Profit"
-      loading={loading}
       icon={TrendingUp}
     />
   );

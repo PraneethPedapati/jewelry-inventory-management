@@ -110,7 +110,7 @@ export class ImgBBService {
   static extractImageIdFromUrl(imageUrl: string): string | null {
     // ImgBB URLs typically follow: https://i.ibb.co/XXXXX/filename.jpg
     const urlMatch = imageUrl.match(/https:\/\/i\.ibb\.co\/([a-zA-Z0-9]+)\//);
-    return urlMatch ? urlMatch[1] : null;
+    return urlMatch ? urlMatch[1] || null : null;
   }
 
   /**

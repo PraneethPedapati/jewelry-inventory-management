@@ -146,8 +146,10 @@ export const errorHandler = (
   res.status(statusCode).json(response);
 };
 
-// Async wrapper to catch async errors
-export const asyncHandler = (fn: Function) => {
+/**
+ * Wrapper for async route handlers to catch errors
+ */
+export const asyncHandler = (fn: (req: Request, res: Response, next: NextFunction) => Promise<any>) => {
   return (req: Request, res: Response, next: NextFunction) => {
     Promise.resolve(fn(req, res, next)).catch(next);
   };

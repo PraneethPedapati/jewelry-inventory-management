@@ -86,7 +86,7 @@ const AdminDashboard: React.FC = () => {
 
     // Debug cache in development
     if (process.env.NODE_ENV === 'development') {
-      CacheService.debug();
+      console.log('Cache status:', CacheService.getCacheStatus('DASHBOARD_WIDGETS'));
     }
   }, []);
 

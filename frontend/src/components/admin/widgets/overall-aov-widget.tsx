@@ -8,18 +8,16 @@ interface OverallAOVWidgetProps {
 }
 
 export const OverallAOVWidget: React.FC<OverallAOVWidgetProps> = ({
-  value,
-  loading = false
+  value
 }) => {
   // Ensure proper formatting to 2 decimal places
   const formattedValue = value.formatted || `₹${value.aov.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 
   return (
     <WidgetCard
-      title="Average Order Value"
+      title="Overall AOV"
       value={formattedValue}
       subtitle="All-time Average"
-      loading={loading}
       icon={BarChart3}
     />
   );

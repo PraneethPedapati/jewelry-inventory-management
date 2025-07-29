@@ -8,15 +8,13 @@ interface PendingOrdersWidgetProps {
 }
 
 export const PendingOrdersWidget: React.FC<PendingOrdersWidgetProps> = ({
-  value,
-  loading = false
+  value
 }) => {
   return (
     <WidgetCard
       title="Pending Orders"
       value={value}
-      subtitle="≤6 hours old"
-      loading={loading}
+      subtitle="Awaiting Processing"
       icon={Clock}
     />
   );

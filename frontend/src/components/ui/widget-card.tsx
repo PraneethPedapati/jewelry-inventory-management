@@ -10,7 +10,6 @@ export interface BaseWidgetProps {
   title: string;
   value: string | number;
   subtitle?: string;
-  loading?: boolean;
   urgent?: boolean;
   trend?: 'up' | 'down' | 'neutral';
   icon?: React.ComponentType<any>;
@@ -27,7 +26,6 @@ export const WidgetCard: React.FC<BaseWidgetProps> = ({
   title,
   value,
   subtitle,
-  loading = false,
   urgent = false,
   trend,
   icon: Icon,

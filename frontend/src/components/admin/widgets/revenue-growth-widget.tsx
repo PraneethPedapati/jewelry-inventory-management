@@ -8,8 +8,7 @@ interface RevenueGrowthWidgetProps {
 }
 
 export const RevenueGrowthWidget: React.FC<RevenueGrowthWidgetProps> = ({
-  value,
-  loading = false
+  value
 }) => {
   const getTrendIcon = () => {
     if (value.trend === 'up') return TrendingUp;
@@ -22,7 +21,6 @@ export const RevenueGrowthWidget: React.FC<RevenueGrowthWidgetProps> = ({
       title="Revenue Growth"
       value={value.formatted}
       subtitle="vs Last Month"
-      loading={loading}
       icon={getTrendIcon()}
     />
   );

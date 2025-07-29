@@ -141,7 +141,10 @@ export const createAdmin = asyncHandler(async (req: Request, res: Response) => {
       });
     }
 
-    const newAdmin = await AuthService.createAdmin(body);
+    const newAdmin = await AuthService.createAdmin({
+      ...body,
+      role: body.role || 'admin'
+    });
 
     res.status(201).json({
       success: true,
@@ -170,7 +173,12 @@ export const updateAdmin = asyncHandler(async (req: Request, res: Response) => {
       params: req.params
     });
 
-    const updatedAdmin = await AuthService.updateAdmin(params.id, body);
+    const updateData: any = {};
+    if (body.name !== undefined) updateData.name = body.name;
+    if (body.email !== undefined) updateData.email = body.email;
+    if (body.role !== undefined) updateData.role = body.role;
+
+    const updatedAdmin = await AuthService.updateAdmin(params.id, updateData);
 
     res.json({
       success: true,
