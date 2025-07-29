@@ -6,6 +6,7 @@ import { dashboardService, type DashboardWidgets } from '@/services/api';
 import { env } from '@/config/env';
 import { useDocumentTitle } from '@/hooks/useDocumentTitle';
 import { CacheService } from '@/services/cache.service';
+import { useNavigate } from 'react-router-dom';
 import {
   OverallRevenueWidget,
   MonthlyRevenueWidget,
@@ -20,9 +21,24 @@ const AdminDashboard: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [cacheStatus, setCacheStatus] = useState<any>(null);
+  const navigate = useNavigate();
 
   // Set document title
   useDocumentTitle('Dashboard');
+
+  // Check authentication on component mount
+  useEffect(() => {
+    const adminToken = localStorage.getItem('admin_token');
+    if (!adminToken) {
+      console.log('❌ No admin token found, redirecting to login');
+      toast.error('Please log in to access the dashboard');
+      navigate('/admin/login');
+      return;
+    }
+
+    console.log('✅ Admin token found, proceeding to load dashboard');
+    loadWidgetsData();
+  }, [navigate]);
 
   // Load dashboard widgets data from API
   const loadWidgetsData = async () => {
@@ -43,6 +59,20 @@ const AdminDashboard: React.FC = () => {
       console.log('✅ Widgets loaded successfully');
     } catch (error) {
       console.error('❌ Failed to load dashboard widgets:', error);
+
+      // Check if it's an authentication error
+      if (error && typeof error === 'object' && 'response' in error) {
+        const errorResponse = (error as any).response;
+        if (errorResponse?.status === 401) {
+          console.log('❌ Authentication failed, redirecting to login');
+          localStorage.removeItem('admin_token');
+          localStorage.removeItem('admin_info');
+          toast.error('Your session has expired. Please log in again.');
+          navigate('/admin/login');
+          return;
+        }
+      }
+
       toast.error('Failed to load dashboard data. Please try again.');
       setWidgetsData(null);
     } finally {
@@ -78,17 +108,6 @@ const AdminDashboard: React.FC = () => {
       console.log('🏁 Refresh operation completed');
     }
   };
-
-  // Load widgets data on component mount
-  useEffect(() => {
-    console.log('📊 Loading dashboard widgets...');
-    loadWidgetsData();
-
-    // Debug cache in development
-    if (process.env.NODE_ENV === 'development') {
-      console.log('Cache status:', CacheService.getCacheStatus('DASHBOARD_WIDGETS'));
-    }
-  }, []);
 
   if (loading) {
     return (

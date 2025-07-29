@@ -2,7 +2,8 @@ import { useEffect, useState } from 'react';
 import { Routes, Route, Navigate } from 'react-router-dom';
 import { Toaster } from 'sonner';
 import { useThemeStore } from '@/stores/theme.store';
-import { healthService } from '@/services/api';
+import { healthService, authService } from '@/services/api';
+import { CartProvider } from '@/context/CartContext';
 import AdminLogin from '@/pages/admin/AdminLogin';
 import AdminLayout from '@/components/admin/AdminLayout';
 import AdminDashboard from '@/pages/admin/AdminDashboard';
@@ -14,6 +15,7 @@ import AdminSettings from '@/pages/admin/AdminSettings';
 import CustomerLayout from '@/pages/customer/CustomerLayout';
 import ProductCatalog from '@/pages/customer/ProductCatalog';
 import Cart from '@/pages/customer/Cart';
+import OrderSuccess from '@/pages/customer/OrderSuccess';
 
 function App() {
   const { activeTheme, loadThemes, applyTheme } = useThemeStore();
@@ -35,9 +37,23 @@ function App() {
           applyTheme(activeTheme);
         }
 
-        // Check if admin is logged in (basic localStorage check for demo)
+        // Check if admin is logged in by validating the token
         const adminToken = localStorage.getItem('admin_token');
-        setIsAuthenticated(!!adminToken);
+        if (adminToken) {
+          try {
+            // Validate the token by calling the profile endpoint
+            await authService.getProfile();
+            setIsAuthenticated(true);
+            console.log('✅ Admin authentication validated');
+          } catch (error) {
+            console.log('❌ Admin token is invalid, clearing authentication');
+            localStorage.removeItem('admin_token');
+            localStorage.removeItem('admin_info');
+            setIsAuthenticated(false);
+          }
+        } else {
+          setIsAuthenticated(false);
+        }
 
       } catch (error) {
         console.error('Failed to initialize app:', error);
@@ -47,10 +63,11 @@ function App() {
     };
 
     initializeApp();
-  }, [loadThemes, applyTheme, activeTheme]);
+  }, []); // Empty dependency array - only run once on mount
 
   const handleLogout = () => {
     localStorage.removeItem('admin_token');
+    localStorage.removeItem('admin_info');
     setIsAuthenticated(false);
   };
 
@@ -72,9 +89,14 @@ function App() {
         <Route path="/" element={<Navigate to="/shop/products" />} />
 
         {/* Customer-facing pages */}
-        <Route path="/shop" element={<CustomerLayout />}>
+        <Route path="/shop" element={
+          <CartProvider>
+            <CustomerLayout />
+          </CartProvider>
+        }>
           <Route path="products" element={<ProductCatalog />} />
           <Route path="cart" element={<Cart />} />
+          <Route path="order-success" element={<OrderSuccess />} />
           <Route index element={<Navigate to="/shop/products" />} />
         </Route>
 

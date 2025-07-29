@@ -46,7 +46,9 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const addToCart = useCallback((product: Product, specification: ProductSpecification | null, quantity: number, price: number) => {
     setCart(prevCart => {
       const existingItemIndex = prevCart.findIndex(
-        item => item.product.id === product.id && item.specification?.id === specification?.id
+        item => item.product.id === product.id &&
+          ((item.specification?.id === specification?.id) ||
+            (item.specification === null && specification === null))
       );
 
       if (existingItemIndex > -1) {
@@ -68,7 +70,9 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const removeFromCart = useCallback((productId: string, specificationId: string) => {
     setCart(prevCart =>
       prevCart.filter(
-        item => !(item.product.id === productId && item.specification?.id === specificationId)
+        item => !(item.product.id === productId &&
+          ((item.specification?.id === specificationId) ||
+            (item.specification === null && specificationId === '')))
       )
     );
   }, []);
@@ -82,7 +86,9 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
     setCart(prevCart =>
       prevCart.map(item =>
-        item.product.id === productId && item.specification?.id === specificationId
+        item.product.id === productId &&
+          ((item.specification?.id === specificationId) ||
+            (item.specification === null && specificationId === ''))
           ? { ...item, quantity: newQuantity }
           : item
       )
@@ -94,9 +100,9 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
     return cart.reduce((total, item) => total + (item.price * item.quantity), 0);
   }, [cart]);
 
-  // Calculate total items
+  // Calculate total unique products (not total quantity)
   const getTotalItems = useCallback(() => {
-    return cart.reduce((total, item) => total + item.quantity, 0);
+    return cart.length;
   }, [cart]);
 
   // Clear entire cart
@@ -107,7 +113,9 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
   // Check if item is in cart
   const isInCart = useCallback((productId: string, specificationId: string) => {
     return cart.some(
-      item => item.product.id === productId && item.specification?.id === specificationId
+      item => item.product.id === productId &&
+        ((item.specification?.id === specificationId) ||
+          (item.specification === null && specificationId === ''))
     );
   }, [cart]);
 

@@ -1,36 +1,29 @@
 import React, { useState } from 'react';
-import { Link } from 'react-router-dom';
-import { Trash2, Plus, Minus, ShoppingBag, User, Phone, MapPin, CreditCard } from 'lucide-react';
+import { Link, useNavigate } from 'react-router-dom';
+import { Trash2, Plus, Minus, ShoppingBag, User, Phone, Mail, MapPin, CreditCard } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-
-interface CartItem {
-  id: number;
-  productId: number;
-  name: string;
-  price: number;
-  quantity: number;
-  size?: string;
-  image: string;
-  category: string;
-}
+import { useCart } from '@/hooks/useCart';
+import { publicOrderService } from '@/services/api';
 
 interface UserDetails {
   name: string;
   phone: string;
+  email: string;
   address: string;
   pincode: string;
 }
 
 const Cart: React.FC = () => {
-  // Start with empty cart - no hardcoded data
-  const [cartItems, setCartItems] = useState<CartItem[]>([]);
+  const { cart, updateQuantity, removeFromCart, clearCart } = useCart();
+  const navigate = useNavigate();
 
   const [userDetails, setUserDetails] = useState<UserDetails>({
     name: '',
     phone: '',
+    email: '',
     address: '',
     pincode: ''
   });
@@ -41,21 +34,16 @@ const Cart: React.FC = () => {
     return `₹${price.toLocaleString('en-IN')}`;
   };
 
-  const updateQuantity = (itemId: number, newQuantity: number) => {
-    if (newQuantity < 1) return;
-    setCartItems(prev =>
-      prev.map(item =>
-        item.id === itemId ? { ...item, quantity: newQuantity } : item
-      )
-    );
+  const handleUpdateQuantity = (productId: string, specificationId: string, newQuantity: number) => {
+    updateQuantity(productId, specificationId, newQuantity);
   };
 
-  const removeItem = (itemId: number) => {
-    setCartItems(prev => prev.filter(item => item.id !== itemId));
+  const handleRemoveItem = (productId: string, specificationId: string) => {
+    removeFromCart(productId, specificationId);
   };
 
   const calculateSubtotal = () => {
-    return cartItems.reduce((total, item) => total + (item.price * item.quantity), 0);
+    return cart.reduce((total, item) => total + (item.price * item.quantity), 0);
   };
 
   const calculateTotal = () => {
@@ -70,9 +58,10 @@ const Cart: React.FC = () => {
   const isFormValid = () => {
     return userDetails.name.trim() !== '' &&
       userDetails.phone.trim() !== '' &&
+      userDetails.email.trim() !== '' &&
       userDetails.address.trim() !== '' &&
       userDetails.pincode.trim() !== '' &&
-      cartItems.length > 0;
+      cart.length > 0;
   };
 
   const handlePlaceOrder = async () => {
@@ -80,33 +69,43 @@ const Cart: React.FC = () => {
 
     setIsPlacingOrder(true);
     try {
-      // TODO: Implement API call to place order
-      // const orderData = {
-      //   customerName: userDetails.name,
-      //   customerPhone: userDetails.phone,
-      //   customerAddress: userDetails.address,
-      //   customerPincode: userDetails.pincode,
-      //   items: cartItems,
-      //   totalAmount: calculateTotal()
-      // };
+      // Prepare order data
+      const orderData = {
+        customerName: userDetails.name,
+        customerPhone: userDetails.phone,
+        customerEmail: userDetails.email,
+        customerAddress: userDetails.address,
+        customerPincode: userDetails.pincode,
+        items: cart.map(item => ({
+          productId: item.product.id,
+          quantity: item.quantity
+        })),
+        recaptchaToken: 'dummy-token' // For development - you might want to implement reCAPTCHA
+      };
 
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 2000));
-
-      alert('Order placed successfully! You will receive confirmation details soon.');
+      // Create order via API
+      const orderResult = await publicOrderService.createOrder(orderData);
 
       // Clear cart and form after successful order
-      setCartItems([]);
-      setUserDetails({ name: '', phone: '', address: '', pincode: '' });
+      clearCart();
+      setUserDetails({ name: '', phone: '', email: '', address: '', pincode: '' });
+
+      // Navigate to success page with order details
+      navigate('/shop/order-success', {
+        state: {
+          orderDetails: orderResult
+        }
+      });
 
     } catch (error) {
+      console.error('Order placement failed:', error);
       alert('Failed to place order. Please try again.');
     } finally {
       setIsPlacingOrder(false);
     }
   };
 
-  if (cartItems.length === 0) {
+  if (cart.length === 0) {
     return (
       <div className="container mx-auto px-4 py-8">
         <div className="text-center py-12">
@@ -122,78 +121,85 @@ const Cart: React.FC = () => {
   }
 
   return (
-    <div className="container mx-auto px-4 py-6 pb-24 md:pb-8">
+    <div className="container mx-auto px-4 sm:px-6 py-6 pb-24 md:pb-8">
       <div className="mb-6">
         <h1 className="text-2xl md:text-3xl font-bold text-foreground mb-2">Shopping Cart</h1>
         <p className="text-muted-foreground">Review your items and complete your order</p>
       </div>
 
-      <div className="grid lg:grid-cols-3 gap-8">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 lg:gap-8">
         {/* Cart Items */}
         <div className="lg:col-span-2">
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <ShoppingBag className="w-5 h-5" />
-                Cart Items ({cartItems.length})
+                Cart Items ({cart.length})
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
-              {cartItems.map((item) => (
-                <div key={item.id} className="flex items-center gap-4 p-4 border rounded-lg">
-                  <div className="w-16 h-16 flex-shrink-0">
-                    <img
-                      src={item.image}
-                      alt={item.name}
-                      className="w-full h-full object-cover rounded-md"
-                    />
-                  </div>
+              {cart.map((item) => (
+                <div key={`${item.product.id}-${item.specification?.id || 'no-spec'}`} className="border rounded-lg p-4">
+                  {/* Mobile: Stacked layout, Desktop: Horizontal layout */}
+                  <div className="flex flex-col md:flex-row md:items-center gap-4">
+                    {/* Product Image and Name Row */}
+                    <div className="flex items-center gap-3 flex-1">
+                      {/* Product Image */}
+                      <div className="w-20 h-20 md:w-16 md:h-16 flex-shrink-0">
+                        <img
+                          src={item.product.images[0] || '/placeholder-image.jpg'}
+                          alt={item.product.name}
+                          className="w-full h-full object-cover rounded-md"
+                        />
+                      </div>
 
-                  <div className="flex-1 min-w-0">
-                    <h3 className="font-medium text-foreground line-clamp-2">{item.name}</h3>
-                    <div className="flex items-center gap-2 text-sm text-muted-foreground mt-1">
-                      <span className="capitalize">{item.category === 'chain' ? 'Chain' : 'Bracelet/Anklet'}</span>
-                      {item.size && (
-                        <>
-                          <span>•</span>
-                          <span>Size: {item.size}</span>
-                        </>
-                      )}
+                      {/* Product Name and Details */}
+                      <div className="flex-1 min-w-0">
+                        <h3 className="font-medium text-foreground line-clamp-2 text-base md:text-sm">{item.product.name}</h3>
+                        <div className="flex flex-wrap items-center gap-2 text-sm text-muted-foreground mt-1">
+                          <span className="capitalize">{item.product.category === 'chain' ? 'Chain' : 'Bracelet/Anklet'}</span>
+                          {item.specification && (
+                            <>
+                              <span>•</span>
+                              <span>{item.specification.displayName}: {item.specification.value}</span>
+                            </>
+                          )}
+                        </div>
+
+                        {/* Price and Controls Row */}
+                        <div className="flex items-center justify-between mt-2">
+                          <p className="text-lg font-bold text-primary">{formatPrice(item.price)}</p>
+
+                          {/* Quantity Controls and Remove Button */}
+                          <div className="flex items-center gap-3">
+                            {/* Quantity Controls */}
+                            <div className="flex items-center gap-2">
+                              <div
+                                onClick={() => handleUpdateQuantity(item.product.id, item.specification?.id || '', item.quantity - 1)}
+                                className="w-8 h-8 rounded-full bg-white border border-brand-border flex items-center justify-center cursor-pointer hover:bg-brand-primary hover:text-white hover:border-brand-primary transition-all duration-200 shadow-sm"
+                              >
+                                <Minus className="w-3 h-3" />
+                              </div>
+                              <span className="text-sm font-semibold text-brand-shade w-8 text-center">{item.quantity}</span>
+                              <div
+                                onClick={() => handleUpdateQuantity(item.product.id, item.specification?.id || '', item.quantity + 1)}
+                                className="w-8 h-8 rounded-full bg-brand-primary border border-brand-primary flex items-center justify-center cursor-pointer hover:bg-brand-shade transition-all duration-200 shadow-sm text-white"
+                              >
+                                <Plus className="w-3 h-3" />
+                              </div>
+                            </div>
+
+                            {/* Remove Button */}
+                            <div
+                              onClick={() => handleRemoveItem(item.product.id, item.specification?.id || '')}
+                              className="w-8 h-8 rounded-full bg-red-500 border border-red-500 flex items-center justify-center cursor-pointer hover:bg-red-600 transition-all duration-200 shadow-sm text-white"
+                            >
+                              <Trash2 className="w-4 h-4" />
+                            </div>
+                          </div>
+                        </div>
+                      </div>
                     </div>
-                    <p className="text-lg font-bold text-primary mt-2">{formatPrice(item.price)}</p>
-                  </div>
-
-                  <div className="flex items-center gap-3">
-                    {/* Quantity Controls */}
-                    <div className="flex items-center gap-2">
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => updateQuantity(item.id, item.quantity - 1)}
-                        className="h-8 w-8 p-0"
-                      >
-                        <Minus className="w-4 h-4" />
-                      </Button>
-                      <span className="text-lg font-medium w-8 text-center">{item.quantity}</span>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => updateQuantity(item.id, item.quantity + 1)}
-                        className="h-8 w-8 p-0"
-                      >
-                        <Plus className="w-4 h-4" />
-                      </Button>
-                    </div>
-
-                    {/* Remove Button */}
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => removeItem(item.id)}
-                      className="h-8 w-8 p-0 text-destructive hover:text-destructive"
-                    >
-                      <Trash2 className="w-4 h-4" />
-                    </Button>
                   </div>
                 </div>
               ))}
@@ -238,6 +244,21 @@ const Cart: React.FC = () => {
               </div>
 
               <div>
+                <Label htmlFor="email">Email Address *</Label>
+                <div className="relative mt-1">
+                  <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground w-4 h-4" />
+                  <Input
+                    id="email"
+                    type="email"
+                    placeholder="Enter your email address"
+                    value={userDetails.email}
+                    onChange={(e) => handleUserDetailsChange('email', e.target.value)}
+                    className="pl-10"
+                  />
+                </div>
+              </div>
+
+              <div>
                 <Label htmlFor="address">Address *</Label>
                 <div className="relative mt-1">
                   <MapPin className="absolute left-3 top-3 text-muted-foreground w-4 h-4" />
@@ -274,7 +295,7 @@ const Cart: React.FC = () => {
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="flex justify-between text-sm">
-                <span>Subtotal ({cartItems.length} items)</span>
+                <span>Subtotal ({cart.length} items)</span>
                 <span>{formatPrice(calculateSubtotal())}</span>
               </div>
 

@@ -18,12 +18,11 @@ interface Product {
 }
 
 const ProductCatalog: React.FC = () => {
-  const { addToCart: addToCartContext } = useCart();
+  const { addToCart: addToCartContext, updateQuantity, removeFromCart, cart } = useCart();
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
   const [currentPage, setCurrentPage] = useState(1);
   const [showFilters, setShowFilters] = useState(false);
-  const [cartStates, setCartStates] = useState<Record<string, { quantity: number }>>({});
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -75,7 +74,7 @@ const ProductCatalog: React.FC = () => {
       });
 
       if (searchTerm) params.append('search', searchTerm);
-      if (selectedCategory !== 'All') params.append('productType', selectedCategory);
+      if (selectedCategory !== 'all') params.append('productType', selectedCategory);
 
       console.log('Fetching products from:', `${apiUrl}/api/products?${params}`);
 
@@ -111,20 +110,11 @@ const ProductCatalog: React.FC = () => {
     fetchProducts();
   }, [currentPage, searchTerm, selectedCategory]);
 
-  // Initialize cart states when products load
-  useEffect(() => {
-    if (products.length > 0) {
-      const initialCartStates: Record<string, { quantity: number }> = {};
-
-      products.forEach(() => {
-        // Check if product is in cart and get its state
-        // This is a simplified approach - in a real app you'd sync with cart context
-        // For now, we'll rely on the cartStates being set when items are added
-      });
-
-      setCartStates(prev => ({ ...prev, ...initialCartStates }));
-    }
-  }, [products]);
+  // Helper function to get cart quantity for a product
+  const getCartQuantity = (productId: string): number => {
+    const cartItem = cart.find(item => item.product.id === productId);
+    return cartItem ? cartItem.quantity : 0;
+  };
 
   // Handle search with debouncing
   const handleSearchChange = (value: string) => {
@@ -173,45 +163,17 @@ const ProductCatalog: React.FC = () => {
 
     // Add to cart using the context
     addToCartContext(cartProduct, null, qty, finalPrice);
-
-    // Update cart state for inline controls
-    setCartStates(prev => ({
-      ...prev,
-      [product.id]: { quantity: qty }
-    }));
   };
 
   const handleInlineQuantityChange = (product: Product, newQuantity: number) => {
-    const cartState = cartStates[product.id];
-    if (cartState) {
-      if (newQuantity <= 0) {
-        // Remove from cart
-        setCartStates(prev => {
-          const newState = { ...prev };
-          delete newState[product.id];
-          return newState;
-        });
-        return;
-      }
-
-      // Update quantity
-      setCartStates(prev => ({
-        ...prev,
-        [product.id]: { ...cartState, quantity: newQuantity }
-      }));
-
-      // Update cart context
-      const cartProduct = {
-        id: product.id,
-        name: product.name,
-        images: product.images,
-        category: product.productType,
-        description: product.description
-      };
-
-      const finalPrice = parseFloat(product.discountedPrice || product.price);
-      addToCartContext(cartProduct, null, newQuantity, finalPrice);
+    if (newQuantity <= 0) {
+      // Remove from cart context
+      removeFromCart(product.id, '');
+      return;
     }
+
+    // Update cart context using updateQuantity
+    updateQuantity(product.id, '', newQuantity);
   };
 
   return (
@@ -393,21 +355,21 @@ const ProductCatalog: React.FC = () => {
 
                 {/* Add to Cart Button or Quantity Controls - Fixed at Bottom */}
                 <div className="product-card-actions">
-                  {cartStates[product.id] ? (
+                  {getCartQuantity(product.id) > 0 ? (
                     <div className="flex items-center justify-between bg-brand-lightest border border-brand-border rounded-lg px-2 h-10">
                       <div
-                        onClick={() => handleInlineQuantityChange(product, cartStates[product.id].quantity - 1)}
+                        onClick={() => handleInlineQuantityChange(product, getCartQuantity(product.id) - 1)}
                         className="w-8 h-8 rounded-full bg-white border border-brand-border flex items-center justify-center cursor-pointer hover:bg-brand-primary hover:text-white hover:border-brand-primary transition-all duration-200 shadow-sm"
                       >
                         <Minus className="w-3 h-3" />
                       </div>
                       <div className="text-center">
                         <span className="text-sm font-semibold text-brand-shade">
-                          {cartStates[product.id].quantity}
+                          {getCartQuantity(product.id)}
                         </span>
                       </div>
                       <div
-                        onClick={() => handleInlineQuantityChange(product, cartStates[product.id].quantity + 1)}
+                        onClick={() => handleInlineQuantityChange(product, getCartQuantity(product.id) + 1)}
                         className="w-8 h-8 rounded-full bg-brand-primary border border-brand-primary flex items-center justify-center cursor-pointer hover:bg-brand-shade transition-all duration-200 shadow-sm text-white"
                       >
                         <Plus className="w-3 h-3" />

@@ -587,6 +587,36 @@ export const productService = {
   }
 };
 
+// Public Order API Services (for customers)
+export const publicOrderService = {
+  createOrder: async (orderData: {
+    customerName: string;
+    customerPhone: string;
+    customerEmail: string;
+    customerAddress: string;
+    customerPincode: string;
+    items: {
+      productId: string;
+      quantity: number;
+    }[];
+    recaptchaToken?: string;
+  }) => {
+    try {
+      const response = await apiClient.post<ApiResponse<{
+        orderNumber: string;
+        orderCode: string;
+        totalAmount: number;
+        estimatedDelivery: string;
+        status: string;
+      }>>('/api/orders', orderData);
+      return response.data.data;
+    } catch (error) {
+      handleApiError(error, 'Failed to place order. Please try again.');
+      throw error;
+    }
+  }
+};
+
 // Order API Services
 export const orderService = {
   getOrders: async (params?: {
@@ -834,7 +864,7 @@ export const dashboardService = {
       console.error('❌ Error refreshing widgets:', error);
       const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
       const errorResponse = error && typeof error === 'object' && 'response' in error ? (error as any).response : undefined;
-      
+
       console.error('❌ Error details:', {
         message: errorMessage,
         status: errorResponse?.status,
@@ -876,7 +906,7 @@ export const analyticsService = {
       console.error('Error fetching analytics data:', error);
       const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
       const errorResponse = error && typeof error === 'object' && 'response' in error ? (error as any).response : undefined;
-      
+
       throw {
         message: errorMessage,
         status: errorResponse?.status,
