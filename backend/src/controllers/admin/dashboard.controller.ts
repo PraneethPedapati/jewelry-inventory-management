@@ -1,7 +1,7 @@
 import { Request, Response } from 'express';
-import { eq, desc, count } from 'drizzle-orm';
+import { eq, desc } from 'drizzle-orm';
 import { db } from '../../db/connection.js';
-import { products, orders, orderItems } from '../../db/schema.js';
+import { orders, orderItems } from '../../db/schema.js';
 import { asyncHandler } from '../../middleware/error-handler.middleware.js';
 import { AnalyticsService } from '../../services/analytics.service.js';
 
@@ -81,7 +81,7 @@ export const getDashboardStats = asyncHandler(async (req: Request, res: Response
         .where(eq(orderItems.orderId, order.id))
         .limit(1);
 
-      const productSnapshot = items[0]?.productSnapshot as any;
+      const productSnapshot = items[0]?.productSnapshot as Record<string, any>;
       const productName = productSnapshot?.product?.name || 'Unknown Product';
 
       // Calculate time ago

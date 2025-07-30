@@ -95,7 +95,7 @@ class Application {
   }
 
   private initializeErrorHandling(): void {
-    this.app.use((error: Error, req: express.Request, res: express.Response, next: express.NextFunction) => {
+    this.app.use((error: Error, req: express.Request, res: express.Response, _next: express.NextFunction) => {
       console.error('Error occurred:', error);
       res.status(500).json({
         success: false,

@@ -5,7 +5,6 @@ import { toast } from 'sonner';
 import { dashboardService, type DashboardWidgets } from '@/services/api';
 import { env } from '@/config/env';
 import { useDocumentTitle } from '@/hooks/useDocumentTitle';
-import { CacheService } from '@/services/cache.service';
 import { useNavigate } from 'react-router-dom';
 import {
   OverallRevenueWidget,

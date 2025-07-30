@@ -1,7 +1,4 @@
 import { Request, Response } from 'express';
-import { db } from '../../db/connection.js';
-import { orders, orderItems, expenses, expenseCategories, products } from '../../db/schema.js';
-import { eq, desc, and, gte, lte, count } from 'drizzle-orm';
 import { asyncHandler } from '../../middleware/error-handler.middleware.js';
 import { AnalyticsService } from '../../services/analytics.service.js';
 
@@ -10,7 +7,7 @@ import { AnalyticsService } from '../../services/analytics.service.js';
  * GET /api/admin/analytics
  */
 export const getAnalytics = asyncHandler(async (req: Request, res: Response) => {
-  const { period = 'This Month' } = req.query;
+  const { period: _period = 'This Month' } = req.query;
 
   // Get cached analytics data
   const cachedAnalytics = await AnalyticsService.getCachedAnalytics();
