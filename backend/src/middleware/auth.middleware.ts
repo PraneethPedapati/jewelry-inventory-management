@@ -1,12 +1,12 @@
 import { Request, Response, NextFunction } from 'express';
 import { jwtVerify } from 'jose';
 import rateLimit from 'express-rate-limit';
-import { db } from '../db/connection.js';
-import { admins } from '../db/schema.js';
+import { db } from '../db/connection';
+import { admins } from '../db/schema';
 import { eq } from 'drizzle-orm';
-import { config } from '../config/app.js';
-import { UnauthorizedError, ForbiddenError, RateLimitError } from '../utils/errors.js';
-import { addSpanAttributes } from '../utils/tracing.js';
+import { config } from '../config/app';
+import { UnauthorizedError, ForbiddenError, RateLimitError } from '../utils/errors';
+import { addSpanAttributes } from '../utils/tracing';
 
 // Extend Request interface for TypeScript
 declare global {

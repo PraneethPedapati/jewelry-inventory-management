@@ -1,7 +1,7 @@
-import { db } from '../db/connection.js';
-import { products } from '../db/schema.js';
-import { ImgBBService } from './imgbb.service.js';
-import { ProductCodeService } from './product-code.service.js';
+import { db } from '../db/connection';
+import { products } from '../db/schema';
+import { ImgBBService } from './imgbb.service';
+import { ProductCodeService } from './product-code.service';
 import { eq, or, like, desc, and } from 'drizzle-orm';
 import { sql } from 'drizzle-orm';
 

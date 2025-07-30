@@ -1,5 +1,5 @@
-import { db } from '../db/connection.js';
-import { products, productCodeSequences } from '../db/schema.js';
+import { db } from '../db/connection';
+import { products, productCodeSequences } from '../db/schema';
 import { eq } from 'drizzle-orm';
 
 type ProductType = 'chain' | 'bracelet-anklet';

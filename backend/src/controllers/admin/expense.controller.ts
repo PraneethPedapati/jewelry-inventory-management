@@ -1,9 +1,9 @@
 import { Request, Response } from 'express';
 import { z } from 'zod';
-import { db } from '../../db/connection.js';
-import { expenses, expenseCategories, admins } from '../../db/schema.js';
+import { db } from '../../db/connection';
+import { expenses, expenseCategories, admins } from '../../db/schema';
 import { eq, desc, and, like, or, gte, lte, count } from 'drizzle-orm';
-import { asyncHandler } from '../../middleware/error-handler.middleware.js';
+import { asyncHandler } from '../../middleware/error-handler.middleware';
 
 // Validation schemas
 const CreateExpenseSchema = z.object({

@@ -1,4 +1,4 @@
-import { db } from '../db/connection.js';
+import { db } from '../db/connection';
 import {
   orders,
   orderItems,
@@ -7,9 +7,9 @@ import {
   expenseCategories,
   analyticsCache,
   analyticsMetadata
-} from '../db/schema.js';
+} from '../db/schema';
 import { eq, desc, and, gte, lte, count, sql, notInArray, inArray } from 'drizzle-orm';
-import { AnalyticsService } from './analytics.service.js';
+import { AnalyticsService } from './analytics.service';
 
 export class DashboardWidgetService {
 

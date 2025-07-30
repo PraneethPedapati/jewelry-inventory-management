@@ -1,8 +1,8 @@
-import { db } from '../db/connection.js';
-import { analyticsCache, analyticsMetadata, analyticsHistory, orders, expenses, expenseCategories, orderItems, products } from '../db/schema.js';
+import { db } from '../db/connection';
+import { analyticsCache, analyticsMetadata, analyticsHistory, orders, expenses, expenseCategories, orderItems, products } from '../db/schema';
 import { eq, desc, and, gte, sql, count } from 'drizzle-orm';
-import { config } from '../config/app.js';
-import type { AnalyticsMetadata } from '../db/schema.js';
+import { config } from '../config/app';
+import type { AnalyticsMetadata } from '../db/schema';
 
 // In-memory cache for analytics data
 class AnalyticsCacheService {

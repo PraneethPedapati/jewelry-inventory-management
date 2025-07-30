@@ -1,4 +1,4 @@
-import { connectDatabase } from './connection.js';
+import { connectDatabase } from './connection';
 
 async function testConnection() {
   try {

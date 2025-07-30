@@ -3,11 +3,11 @@ import cors from 'cors';
 import helmet from 'helmet';
 import compression from 'compression';
 import dotenv from 'dotenv';
-import { getThemes, getActiveTheme, setActiveTheme } from './controllers/theme.controller.js';
-import adminRoutes from './routes/admin.routes.js';
-import publicRoutes from './routes/public.routes.js';
-import { connectDatabase } from './db/connection.js';
-import { validateConfig } from './config/app.js';
+import { getThemes, getActiveTheme, setActiveTheme } from './controllers/theme.controller';
+import adminRoutes from './routes/admin.routes';
+import publicRoutes from './routes/public.routes';
+import { connectDatabase } from './db/connection';
+import { validateConfig } from './config/app';
 
 // Load environment variables
 dotenv.config();

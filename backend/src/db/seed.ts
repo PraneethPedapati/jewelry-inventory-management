@@ -1,4 +1,4 @@
-import { db } from './connection.js';
+import { db } from './connection';
 import {
   admins,
   colorThemes,
@@ -9,7 +9,7 @@ import {
   orderItems,
   orderStatusHistory,
   expenses
-} from './schema.js';
+} from './schema';
 import { hash } from 'argon2';
 import { sql } from 'drizzle-orm';
 

@@ -1,5 +1,5 @@
-import { db } from '../db/connection.js';
-import { orders } from '../db/schema.js';
+import { db } from '../db/connection';
+import { orders } from '../db/schema';
 import { desc, eq } from 'drizzle-orm';
 
 /**

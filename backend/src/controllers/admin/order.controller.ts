@@ -1,12 +1,12 @@
 import { Request, Response } from 'express';
 import { z } from 'zod';
-import { db } from '../../db/connection.js';
-import { orders, orderItems, products } from '../../db/schema.js';
+import { db } from '../../db/connection';
+import { orders, orderItems, products } from '../../db/schema';
 import { eq, desc, and, like, or, gte, lte, lt, count } from 'drizzle-orm';
-import { asyncHandler } from '../../middleware/error-handler.middleware.js';
-import { WhatsAppService } from '../../services/whatsapp.service.js';
-import { OrderCodeService } from '../../services/order-code.service.js';
-import { config } from '../../config/app.js';
+import { asyncHandler } from '../../middleware/error-handler.middleware';
+import { WhatsAppService } from '../../services/whatsapp.service';
+import { OrderCodeService } from '../../services/order-code.service';
+import { config } from '../../config/app';
 
 // Validation schemas
 const CreateOrderSchema = z.object({

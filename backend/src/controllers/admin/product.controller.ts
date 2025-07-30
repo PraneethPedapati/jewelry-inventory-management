@@ -1,8 +1,8 @@
 import { Request, Response } from 'express';
 import { z } from 'zod';
 import multer from 'multer';
-import { ProductService } from '../../services/product.service.js';
-import { asyncHandler } from '../../middleware/error-handler.middleware.js';
+import { ProductService } from '../../services/product.service';
+import { asyncHandler } from '../../middleware/error-handler.middleware';
 
 // Multer configuration for image uploads
 const upload = multer({
