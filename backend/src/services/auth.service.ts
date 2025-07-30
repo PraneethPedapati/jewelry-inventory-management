@@ -1,16 +1,16 @@
 import { hash, verify } from 'argon2';
 import { SignJWT } from 'jose';
-import { db } from '../db/connection';
-import { admins } from '../db/schema';
+import { db } from '../db/connection.js';
+import { admins } from '../db/schema.js';
 import { eq } from 'drizzle-orm';
-import { config } from '../config/app';
+import { config } from '../config/app.js';
 import {
   InvalidCredentialsError,
   UnauthorizedError,
   NotFoundError
-} from '../utils/errors';
-import { traceBusinessLogic } from '../utils/tracing';
-import type { AdminLoginRequest, AdminLoginResponse, Admin } from '../types/api';
+} from '../utils/errors.js';
+import { traceBusinessLogic } from '../utils/tracing.js';
+import type { AdminLoginRequest, AdminLoginResponse, Admin } from '../types/api.js';
 
 export class AuthService {
   /**

@@ -1,6 +1,6 @@
 import { Request, Response } from 'express';
-import { asyncHandler } from '../../middleware/error-handler.middleware';
-import { DashboardWidgetService } from '../../services/dashboard-widget.service';
+import { asyncHandler } from '../../middleware/error-handler.middleware.js';
+import { DashboardWidgetService } from '../../services/dashboard-widget.service.js';
 
 /**
  * Get all dashboard widgets data

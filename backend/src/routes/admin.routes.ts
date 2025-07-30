@@ -1,6 +1,6 @@
 import { Router } from 'express';
-import { login, getProfile, changePassword } from '../controllers/admin/auth.controller';
-import { getDashboardStats } from '../controllers/admin/dashboard.controller';
+import { login, getProfile, changePassword } from '../controllers/admin/auth.controller.js';
+import { getDashboardStats } from '../controllers/admin/dashboard.controller.js';
 import {
   getProducts,
   getProductById,
@@ -8,7 +8,7 @@ import {
   updateProduct,
   deleteProduct,
   getProductStats
-} from '../controllers/admin/product.controller';
+} from '../controllers/admin/product.controller.js';
 import {
   getOrders,
   getOrderById,
@@ -24,7 +24,7 @@ import {
   findOrderByCode,
   generateStatusWhatsApp,
   deleteStaleOrders
-} from '../controllers/admin/order.controller';
+} from '../controllers/admin/order.controller.js';
 import {
   getExpenses,
   getExpenseById,
@@ -33,10 +33,10 @@ import {
   deleteExpense,
   getExpenseCategories,
   getExpenseStats
-} from '../controllers/admin/expense.controller';
-import { getAnalytics, refreshAnalytics, getAnalyticsStatus } from '../controllers/admin/analytics.controller';
-import { getDashboardWidgets, refreshDashboardWidgets, debugAverageProductValue } from '../controllers/admin/dashboard-widget.controller';
-import { authenticateAdmin, authRateLimit } from '../middleware/auth.middleware';
+} from '../controllers/admin/expense.controller.js';
+import { getAnalytics, refreshAnalytics, getAnalyticsStatus } from '../controllers/admin/analytics.controller.js';
+import { getDashboardWidgets, refreshDashboardWidgets, debugAverageProductValue } from '../controllers/admin/dashboard-widget.controller.js';
+import { authenticateAdmin, authRateLimit } from '../middleware/auth.middleware.js';
 
 const router = Router();
 

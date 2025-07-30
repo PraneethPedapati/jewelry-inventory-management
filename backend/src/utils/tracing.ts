@@ -4,7 +4,7 @@ import { Resource } from '@opentelemetry/resources';
 import { SemanticResourceAttributes } from '@opentelemetry/semantic-conventions';
 import { JaegerExporter } from '@opentelemetry/exporter-jaeger';
 import { trace, context, SpanStatusCode, Span } from '@opentelemetry/api';
-import { config } from '../config/app';
+import { config } from '../config/app.js';
 
 let sdk: NodeSDK | null = null;
 

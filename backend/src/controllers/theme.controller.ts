@@ -1,8 +1,8 @@
 import { Request, Response } from 'express';
-import { db } from '../db/connection';
-import { colorThemes } from '../db/schema';
+import { db } from '../db/connection.js';
+import { colorThemes } from '../db/schema.js';
 import { eq } from 'drizzle-orm';
-import { asyncHandler } from '../middleware/error-handler.middleware';
+import { asyncHandler } from '../middleware/error-handler.middleware.js';
 
 /**
  * Get all color themes

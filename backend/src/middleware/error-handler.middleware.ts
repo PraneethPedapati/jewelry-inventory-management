@@ -1,7 +1,7 @@
 import { Request, Response, NextFunction } from 'express';
-import { AppError, isOperationalError, formatErrorResponse } from '../utils/errors';
-import { config } from '../config/app';
-import { addSpanEvent } from '../utils/tracing';
+import { AppError, isOperationalError, formatErrorResponse } from '../utils/errors.js';
+import { config } from '../config/app.js';
+import { addSpanEvent } from '../utils/tracing.js';
 
 export const errorHandler = (
   error: Error,

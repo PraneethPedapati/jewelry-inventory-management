@@ -1,6 +1,6 @@
 import { Request, Response } from 'express';
-import { asyncHandler } from '../../middleware/error-handler.middleware';
-import { AnalyticsService } from '../../services/analytics.service';
+import { asyncHandler } from '../../middleware/error-handler.middleware.js';
+import { AnalyticsService } from '../../services/analytics.service.js';
 
 /**
  * Get analytics data for dashboard (cached)

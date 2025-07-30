@@ -1,12 +1,12 @@
-import { createOrder } from '../controllers/public/order.controller';
+import { createOrder } from '../controllers/public/order.controller.js';
 import { Router } from 'express';
-import { orderRateLimit, publicApiRateLimit } from '../middleware/rate-limit.middleware';
+import { orderRateLimit, publicApiRateLimit } from '../middleware/rate-limit.middleware.js';
 import {
   getProducts,
   getProductById,
   getProductTypes
-} from '../controllers/public/product.controller';
-import { getBrandConfig } from '../services/brand.service';
+} from '../controllers/public/product.controller.js';
+import { getBrandConfig } from '../services/brand.service.js';
 
 const router = Router();
 

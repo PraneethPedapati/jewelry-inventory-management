@@ -1,9 +1,9 @@
 import { Request, Response } from 'express';
 import { eq, desc } from 'drizzle-orm';
-import { db } from '../../db/connection';
-import { orders, orderItems } from '../../db/schema';
-import { asyncHandler } from '../../middleware/error-handler.middleware';
-import { AnalyticsService } from '../../services/analytics.service';
+import { db } from '../../db/connection.js';
+import { orders, orderItems } from '../../db/schema.js';
+import { asyncHandler } from '../../middleware/error-handler.middleware.js';
+import { AnalyticsService } from '../../services/analytics.service.js';
 
 /**
  * Get dashboard statistics

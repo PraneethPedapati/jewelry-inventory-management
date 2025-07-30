@@ -1,4 +1,4 @@
-import { config } from '../config/app';
+import { config } from '../config/app.js';
 
 interface ImgBBUploadResponse {
   data: {
