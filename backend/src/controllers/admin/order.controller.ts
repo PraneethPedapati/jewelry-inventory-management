@@ -451,9 +451,16 @@ export const exportOrders = asyncHandler(async (req: Request, res: Response) => 
     conditions.push(lte(orders.createdAt, new Date(dateTo)));
   }
 
+  // Get orders with their items
   const baseQuery = db
-    .select()
-    .from(orders);
+    .select({
+      order: orders,
+      orderItem: orderItems,
+      product: products
+    })
+    .from(orders)
+    .leftJoin(orderItems, eq(orders.id, orderItems.orderId))
+    .leftJoin(products, eq(orderItems.productId, products.id));
 
   const query = conditions.length > 0
     ? baseQuery.where(and(...conditions)).orderBy(desc(orders.createdAt))
@@ -461,27 +468,98 @@ export const exportOrders = asyncHandler(async (req: Request, res: Response) => 
 
   const ordersData = await query;
 
+  // Group orders with their items
+  const ordersMap = new Map();
+  ordersData.forEach(row => {
+    const orderId = row.order.id;
+    if (!ordersMap.has(orderId)) {
+      ordersMap.set(orderId, {
+        ...row.order,
+        items: []
+      });
+    }
+    if (row.orderItem) {
+      ordersMap.get(orderId).items.push({
+        ...row.orderItem,
+        product: row.product
+      });
+    }
+  });
+
+  const ordersWithItems = Array.from(ordersMap.values());
+
   if (format === 'csv') {
     const csvData = [
-      ['Order Number', 'Customer Name', 'Email', 'Phone', 'Amount', 'Status', 'Date'].join(','),
-      ...ordersData.map(order => [
+      ['Order Number', 'Customer Name', 'Email', 'Phone', 'Address', 'Amount', 'Status', 'Date', 'Items'].join(','),
+      ...ordersWithItems.map(order => [
         order.orderNumber,
         `"${order.customerName}"`,
         order.customerEmail,
         order.customerPhone,
+        `"${order.customerAddress}"`,
         order.totalAmount,
         order.status,
-        order.createdAt ? order.createdAt.toISOString().split('T')[0] : 'N/A'
+        order.createdAt ? order.createdAt.toISOString().split('T')[0] : 'N/A',
+        `"${order.items.map(item => `${item.product?.name || 'Unknown'} (${item.quantity})`).join('; ')}"`
       ].join(','))
     ].join('\n');
 
     res.setHeader('Content-Type', 'text/csv');
     res.setHeader('Content-Disposition', `attachment; filename="orders_${new Date().toISOString().split('T')[0]}.csv"`);
     res.send(csvData);
+  } else if (format === 'xlsx') {
+    // Import exceljs dynamically
+    const ExcelJS = await import('exceljs');
+    const workbook = new ExcelJS.Workbook();
+    const worksheet = workbook.addWorksheet('Orders');
+
+    // Define columns
+    worksheet.columns = [
+      { header: 'Order Number', key: 'orderNumber', width: 15 },
+      { header: 'Customer Name', key: 'customerName', width: 20 },
+      { header: 'Email', key: 'email', width: 25 },
+      { header: 'Phone', key: 'phone', width: 15 },
+      { header: 'Address', key: 'address', width: 30 },
+      { header: 'Amount (₹)', key: 'amount', width: 12 },
+      { header: 'Status', key: 'status', width: 12 },
+      { header: 'Date', key: 'date', width: 12 },
+      { header: 'Items', key: 'items', width: 40 }
+    ];
+
+    // Add data
+    ordersWithItems.forEach(order => {
+      worksheet.addRow({
+        orderNumber: order.orderNumber,
+        customerName: order.customerName,
+        email: order.customerEmail,
+        phone: order.customerPhone,
+        address: order.customerAddress,
+        amount: order.totalAmount,
+        status: order.status,
+        date: order.createdAt ? order.createdAt.toISOString().split('T')[0] : 'N/A',
+        items: order.items.map(item => `${item.product?.name || 'Unknown'} (${item.quantity})`).join('; ')
+      });
+    });
+
+    // Style the header row
+    worksheet.getRow(1).font = { bold: true };
+    worksheet.getRow(1).fill = {
+      type: 'pattern',
+      pattern: 'solid',
+      fgColor: { argb: 'FFE0E0E0' }
+    };
+
+    // Set response headers
+    res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+    res.setHeader('Content-Disposition', `attachment; filename="orders_${new Date().toISOString().split('T')[0]}.xlsx"`);
+
+    // Write to response
+    await workbook.xlsx.write(res);
+    res.end();
   } else {
     res.json({
       success: true,
-      data: ordersData,
+      data: ordersWithItems,
       message: 'Orders exported successfully'
     });
   }

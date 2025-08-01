@@ -33,6 +33,16 @@ export const productCodeSequences = pgTable('product_code_sequences', {
   currentSequence: integer('current_sequence').default(0)
 });
 
+// Product Categories
+export const productCategories = pgTable('product_categories', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  name: varchar('name', { length: 100 }).notNull().unique(),
+  description: text('description'),
+  isActive: boolean('is_active').default(true),
+  createdAt: timestamp('created_at', { withTimezone: true }).defaultNow(),
+  updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow(),
+});
+
 // Complete Jewelry Products with auto-generated product codes
 export const products = pgTable('products', {
   id: uuid('id').primaryKey().defaultRandom(),
@@ -40,6 +50,7 @@ export const products = pgTable('products', {
   name: varchar('name', { length: 200 }).notNull(),
   description: text('description').notNull(),
   productType: varchar('product_type', { length: 20 }).notNull(),
+  categoryId: uuid('category_id').references(() => productCategories.id),
   price: decimal('price', { precision: 10, scale: 2 }).notNull(),
   discountedPrice: decimal('discounted_price', { precision: 10, scale: 2 }),
   images: jsonb('images').default(sql`'[]'::jsonb`),
@@ -223,6 +234,9 @@ export type NewAdmin = typeof admins.$inferInsert;
 
 export type ColorTheme = typeof colorThemes.$inferSelect;
 export type NewColorTheme = typeof colorThemes.$inferInsert;
+
+export type ProductCategory = typeof productCategories.$inferSelect;
+export type NewProductCategory = typeof productCategories.$inferInsert;
 
 export type Product = typeof products.$inferSelect;
 export type NewProduct = typeof products.$inferInsert;

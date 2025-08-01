@@ -21,6 +21,7 @@ const ProductCatalog: React.FC = () => {
   const { addToCart: addToCartContext, updateQuantity, removeFromCart, cart } = useCart();
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
+  const [sortBy, setSortBy] = useState<string>('newest');
   const [currentPage, setCurrentPage] = useState(1);
   const [showFilters, setShowFilters] = useState(false);
   const [products, setProducts] = useState<Product[]>([]);
@@ -30,11 +31,26 @@ const ProductCatalog: React.FC = () => {
   const itemsPerPage = 8;
   const isRequestingRef = useRef(false);
 
+  // Size popup state
+  const [showSizePopup, setShowSizePopup] = useState(false);
+  const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
+  const [selectedSize, setSelectedSize] = useState<'S' | 'M' | 'L' | null>(null);
+
   // Product categories
   const productCategories = [
     { value: 'all', label: 'All Products' },
     { value: 'chain', label: 'Chains' },
     { value: 'bracelet-anklet', label: 'Bracelets & Anklets' }
+  ];
+
+  // Sort options
+  const sortOptions = [
+    { value: 'newest', label: 'Newest First' },
+    { value: 'oldest', label: 'Oldest First' },
+    { value: 'price-low', label: 'Price: Low to High' },
+    { value: 'price-high', label: 'Price: High to Low' },
+    { value: 'name-asc', label: 'Name: A to Z' },
+    { value: 'name-desc', label: 'Name: Z to A' }
   ];
 
   // Check if API URL is configured
@@ -75,6 +91,7 @@ const ProductCatalog: React.FC = () => {
 
       if (searchTerm) params.append('search', searchTerm);
       if (selectedCategory !== 'all') params.append('productType', selectedCategory);
+      if (sortBy) params.append('sortBy', sortBy);
 
       console.log('Fetching products from:', `${apiUrl}/api/products?${params}`);
 
@@ -108,7 +125,7 @@ const ProductCatalog: React.FC = () => {
   // Load products when component mounts or filters change
   useEffect(() => {
     fetchProducts();
-  }, [currentPage, searchTerm, selectedCategory]);
+  }, [currentPage, searchTerm, selectedCategory, sortBy]);
 
   // Helper function to get cart quantity for a product
   const getCartQuantity = (productId: string): number => {
@@ -138,17 +155,30 @@ const ProductCatalog: React.FC = () => {
     setShowFilters(false);
   };
 
+  const handleSortChange = (sort: string) => {
+    setSortBy(sort);
+    setCurrentPage(1); // Reset to first page when changing sort
+  };
+
   const handlePageChange = (page: number) => {
     setCurrentPage(page);
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
   const handleAddToCart = async (product: Product) => {
-    // Add directly to cart with default quantity
-    addToCart(product, 1);
+    // Check if product is bracelet/anklet type
+    if (product.productType === 'bracelet-anklet') {
+      // Show size popup for bracelet products
+      setSelectedProduct(product);
+      setSelectedSize(null);
+      setShowSizePopup(true);
+    } else {
+      // Add directly to cart for non-bracelet products
+      addToCart(product, 1);
+    }
   };
 
-  const addToCart = (product: Product, qty: number) => {
+  const addToCart = (product: Product, qty: number, size?: string) => {
     // Convert ProductCatalog Product to CartContext Product format
     const cartProduct = {
       id: product.id,
@@ -161,8 +191,27 @@ const ProductCatalog: React.FC = () => {
     // Calculate final price
     const finalPrice = parseFloat(product.discountedPrice || product.price);
 
-    // Add to cart using the context
-    addToCartContext(cartProduct, null, qty, finalPrice);
+    // Add to cart using the context with size information
+    addToCartContext(cartProduct, null, qty, finalPrice, size);
+  };
+
+  const handleSizeSelection = (size: 'S' | 'M' | 'L') => {
+    setSelectedSize(size);
+  };
+
+  const handleConfirmSize = () => {
+    if (selectedProduct && selectedSize) {
+      addToCart(selectedProduct, 1, selectedSize);
+      setShowSizePopup(false);
+      setSelectedProduct(null);
+      setSelectedSize(null);
+    }
+  };
+
+  const handleCancelSize = () => {
+    setShowSizePopup(false);
+    setSelectedProduct(null);
+    setSelectedSize(null);
   };
 
   const handleInlineQuantityChange = (product: Product, newQuantity: number) => {
@@ -228,6 +277,27 @@ const ProductCatalog: React.FC = () => {
                 {category.label}
               </Button>
             ))}
+          </div>
+
+          {/* Sort Options */}
+          <div className="mt-4">
+            <label className="block text-sm font-medium text-muted-foreground mb-2">Sort by:</label>
+            <div className="flex flex-wrap gap-2">
+              {sortOptions.map((option) => (
+                <Button
+                  key={option.value}
+                  variant={sortBy === option.value ? "default" : "outline"}
+                  size="sm"
+                  onClick={() => handleSortChange(option.value)}
+                  className={`flex-shrink-0 transition-colors ${sortBy === option.value
+                    ? 'bg-primary text-white'
+                    : 'bg-muted text-muted-foreground hover:bg-primary/10 hover:text-primary'
+                    }`}
+                >
+                  {option.label}
+                </Button>
+              ))}
+            </div>
           </div>
         </div>
 
@@ -444,6 +514,87 @@ const ProductCatalog: React.FC = () => {
         </div>
       )}
 
+      {/* Size Selection Popup */}
+      {showSizePopup && selectedProduct && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-lg shadow-lg w-full max-w-md">
+            <div className="p-6">
+              <div className="flex items-center justify-between mb-6">
+                <h2 className="text-xl font-bold">Select Size</h2>
+                <Button variant="outline" size="sm" onClick={handleCancelSize}>
+                  ×
+                </Button>
+              </div>
+
+              <div className="mb-6">
+                <div className="flex items-center gap-3 mb-4">
+                  <img
+                    src={selectedProduct.images[0] || '/placeholder-image.jpg'}
+                    alt={selectedProduct.name}
+                    className="w-16 h-16 object-cover rounded-lg"
+                  />
+                  <div>
+                    <h3 className="font-semibold text-lg">{selectedProduct.name}</h3>
+                    <p className="text-sm text-muted-foreground">{selectedProduct.productCode}</p>
+                  </div>
+                </div>
+
+                <div className="space-y-3">
+                  <h4 className="font-medium text-sm text-muted-foreground">Choose your size:</h4>
+
+                  <div className="grid grid-cols-3 gap-3">
+                    <button
+                      onClick={() => handleSizeSelection('S')}
+                      className={`p-4 border-2 rounded-lg text-center transition-all ${selectedSize === 'S'
+                          ? 'border-brand-primary bg-brand-primary text-white'
+                          : 'border-gray-300 hover:border-brand-primary'
+                        }`}
+                    >
+                      <div className="font-semibold text-lg">S</div>
+                      <div className="text-xs mt-1">5"-6"</div>
+                    </button>
+
+                    <button
+                      onClick={() => handleSizeSelection('M')}
+                      className={`p-4 border-2 rounded-lg text-center transition-all ${selectedSize === 'M'
+                          ? 'border-brand-primary bg-brand-primary text-white'
+                          : 'border-gray-300 hover:border-brand-primary'
+                        }`}
+                    >
+                      <div className="font-semibold text-lg">M</div>
+                      <div className="text-xs mt-1">6"-7"</div>
+                    </button>
+
+                    <button
+                      onClick={() => handleSizeSelection('L')}
+                      className={`p-4 border-2 rounded-lg text-center transition-all ${selectedSize === 'L'
+                          ? 'border-brand-primary bg-brand-primary text-white'
+                          : 'border-gray-300 hover:border-brand-primary'
+                        }`}
+                    >
+                      <div className="font-semibold text-lg">L</div>
+                      <div className="text-xs mt-1">7"-8"</div>
+                    </button>
+                  </div>
+                </div>
+              </div>
+
+              <div className="flex gap-3">
+                <Button
+                  onClick={handleConfirmSize}
+                  disabled={!selectedSize}
+                  className="flex-1"
+                >
+                  Add to Cart
+                </Button>
+                <Button variant="outline" onClick={handleCancelSize}>
+                  Cancel
+                </Button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
     </div>
   );

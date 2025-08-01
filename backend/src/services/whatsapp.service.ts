@@ -251,7 +251,8 @@ WhatsApp sent to customer ✅`;
   private static formatOrderMessage(order: Order): string {
     const items = order.items.map(item => {
       const spec = this.getSpecificationDisplay(item);
-      return `• ${item.productSnapshot.name}${spec ? ` (${spec})` : ''} × ${item.quantity} - $${item.totalPrice.toFixed(2)}`;
+      const productCode = item.productSnapshot.productCode || 'N/A';
+      return `• ${item.productSnapshot.name} (${productCode})${spec ? ` (${spec})` : ''} × ${item.quantity} - ₹${item.totalPrice.toFixed(2)}`;
     }).join('\n');
 
     const orderDate = new Date(order.createdAt).toLocaleDateString('en-US', {
@@ -262,6 +263,9 @@ WhatsApp sent to customer ✅`;
       hour: '2-digit',
       minute: '2-digit'
     });
+
+    // Get order validity from config (default 2 hours)
+    const orderValidityHours = config.ORDER_VALIDITY_HOURS || 2;
 
     return `💎 *New Jewelry Order*
 
@@ -277,9 +281,11 @@ WhatsApp sent to customer ✅`;
 *Jewelry Items Ordered:*
 ${items}
 
-*💰 Total Amount: $${order.totalAmount.toFixed(2)}*
+*💰 Total Amount: ₹${order.totalAmount.toFixed(2)}*
 
 Thank you for choosing our jewelry! We'll send you the payment QR code shortly. ✨
+
+⏰ *Order valid for ${orderValidityHours} hours*
 
 _This is an automated message from our jewelry inventory system._`;
   }
@@ -291,7 +297,8 @@ _This is an automated message from our jewelry inventory system._`;
   private static formatCustomerOrderMessage(order: Order): string {
     const items = order.items.map(item => {
       const spec = this.getSpecificationDisplay(item);
-      return `• ${item.productSnapshot.name}${spec ? ` (${spec})` : ''} × ${item.quantity}`;
+      const productCode = item.productSnapshot.productCode || 'N/A';
+      return `• ${item.productSnapshot.name} (${productCode})${spec ? ` (${spec})` : ''} × ${item.quantity}`;
     }).join('\n');
 
     return `🛍️ *New Order - ${order.orderCode}*
@@ -347,7 +354,7 @@ ${statusMessages[order.status as OrderStatus]}
 *Your Jewelry Order:*
 ${itemsList}
 
-*Total: $${order.totalAmount.toFixed(2)}*
+*Total: ₹${order.totalAmount.toFixed(2)}*
 *Status: ${order.status.charAt(0).toUpperCase() + order.status.slice(1)}*
 
 Need help or have questions? Just reply to this message! We're here to help. 💫

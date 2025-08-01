@@ -152,12 +152,51 @@ const AdminOrders: React.FC = () => {
     }
   };
 
-  const handleExportOrders = async () => {
+  const handleExportOrders = async (format: 'csv' | 'xlsx' = 'csv') => {
     try {
       setExporting(true);
-      // This would typically download a CSV/Excel file
-      // For now, we'll just show a success message
-      toast.success('Orders export feature will be implemented soon!');
+
+      // Build query parameters
+      const params = new URLSearchParams({
+        format: format
+      });
+
+      if (exportDateFrom) params.append('dateFrom', exportDateFrom);
+      if (exportDateTo) params.append('dateTo', exportDateTo);
+
+      const response = await fetch(`${env.VITE_API_URL}/api/admin/orders/export?${params}`, {
+        method: 'GET',
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('admin_token')}`
+        }
+      });
+
+      if (!response.ok) {
+        throw new Error('Export failed');
+      }
+
+      // Get filename from response headers or generate one
+      const contentDisposition = response.headers.get('content-disposition');
+      let filename = `orders_${new Date().toISOString().split('T')[0]}.${format}`;
+      if (contentDisposition) {
+        const filenameMatch = contentDisposition.match(/filename="(.+)"/);
+        if (filenameMatch) {
+          filename = filenameMatch[1];
+        }
+      }
+
+      // Create blob and download
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      window.URL.revokeObjectURL(url);
+      document.body.removeChild(a);
+
+      toast.success(`Orders exported successfully as ${format.toUpperCase()}`);
       setShowExportModal(false);
     } catch (error) {
       console.error('Failed to export orders:', error);
@@ -734,7 +773,7 @@ const OrderEditModal: React.FC<OrderEditModalProps> = ({
 interface ExportModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onExport: () => void;
+  onExport: (format: 'csv' | 'xlsx') => void;
   exporting: boolean;
   exportDateFrom: string;
   setExportDateFrom: (date: string) => void;
@@ -785,8 +824,19 @@ const ExportModal: React.FC<ExportModalProps> = ({
           </div>
 
           <div className="flex gap-3 mt-6">
-            <Button onClick={onExport} disabled={exporting} className="flex-1">
+            <Button
+              onClick={() => onExport('csv')}
+              disabled={exporting}
+              className="flex-1"
+            >
               {exporting ? 'Exporting...' : 'Export CSV'}
+            </Button>
+            <Button
+              onClick={() => onExport('xlsx')}
+              disabled={exporting}
+              className="flex-1"
+            >
+              {exporting ? 'Exporting...' : 'Export XLSX'}
             </Button>
             <Button variant="outline" onClick={onClose} disabled={exporting}>
               Cancel

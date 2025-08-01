@@ -39,6 +39,37 @@ const AdminDashboard: React.FC = () => {
     loadWidgetsData();
   }, [navigate]);
 
+  // Real-time updates for stale data widget
+  useEffect(() => {
+    if (!widgetsData) return;
+
+    const interval = setInterval(async () => {
+      try {
+        // Only refresh stale data count (real-time widget)
+        const response = await fetch(`${env.VITE_API_URL}/api/admin/dashboard/widgets`, {
+          headers: {
+            'Authorization': `Bearer ${localStorage.getItem('admin_token')}`
+          }
+        });
+
+        if (response.ok) {
+          const data = await response.json();
+          if (data.success && data.data) {
+            setWidgetsData(prev => prev ? {
+              ...prev,
+              staleData: data.data.staleData,
+              pendingOrders: data.data.pendingOrders
+            } : null);
+          }
+        }
+      } catch (error) {
+        console.error('Failed to refresh stale data:', error);
+      }
+    }, 30000); // Refresh every 30 seconds
+
+    return () => clearInterval(interval);
+  }, [widgetsData]);
+
   // Load dashboard widgets data from API
   const loadWidgetsData = async () => {
     try {

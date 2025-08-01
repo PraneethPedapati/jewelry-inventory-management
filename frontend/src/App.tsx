@@ -16,6 +16,7 @@ import CustomerLayout from '@/pages/customer/CustomerLayout';
 import ProductCatalog from '@/pages/customer/ProductCatalog';
 import Cart from '@/pages/customer/Cart';
 import OrderSuccess from '@/pages/customer/OrderSuccess';
+import AboutUs from '@/pages/customer/AboutUs';
 
 function App() {
   const { activeTheme, loadThemes, applyTheme } = useThemeStore();
@@ -97,6 +98,7 @@ function App() {
           <Route path="products" element={<ProductCatalog />} />
           <Route path="cart" element={<Cart />} />
           <Route path="order-success" element={<OrderSuccess />} />
+          <Route path="about" element={<AboutUs />} />
           <Route index element={<Navigate to="/shop/products" />} />
         </Route>
 
@@ -115,7 +117,7 @@ function App() {
           <Route path="orders" element={<AdminOrders />} />
           <Route path="expenses" element={<AdminExpenses />} />
           <Route path="analytics" element={<AdminAnalytics />} />
-          <Route index element={<Navigate to="/admin/dashboard" />} />
+          <Route index element={<Navigate to="/admin/orders" />} />
         </Route>
 
         {/* Catch all - redirect to products */}

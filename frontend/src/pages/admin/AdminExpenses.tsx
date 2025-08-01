@@ -176,7 +176,7 @@ const AdminExpenses: React.FC = () => {
 
   const formatCurrency = (amount: string | number) => {
     const num = typeof amount === 'string' ? parseFloat(amount) : amount;
-    return `₹${num.toLocaleString()}`;
+    return `₹${num.toLocaleString('en-IN')}`;
   };
 
   const formatDate = (dateString: string) => {
@@ -230,13 +230,13 @@ const AdminExpenses: React.FC = () => {
 
       {/* Enhanced Expense Stats */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-5 mb-8">
-        <Card className="bg-brand-bg border-brand-border p-5">
+        <Card className="bg-brand-bg border-brand-border p-6">
           <div className="flex items-center justify-between mb-4">
-            <div className="p-2 bg-brand-primary rounded-xl">
-              <Receipt className="h-5 w-5 text-white" />
+            <div className="p-3 bg-brand-primary rounded-2xl">
+              <Receipt className="h-6 w-6 text-white" />
             </div>
             <div className="text-right">
-              <div className="text-2xl font-bold text-brand-primary">₹{(totalAmount / 1000).toFixed(0)}K</div>
+              <div className="text-3xl font-bold text-brand-primary">₹{totalAmount.toLocaleString('en-IN')}</div>
               <div className="text-xs text-brand-medium font-medium">Total</div>
             </div>
           </div>
@@ -249,13 +249,13 @@ const AdminExpenses: React.FC = () => {
           </div>
         </Card>
 
-        <Card className="bg-brand-bg border-brand-border p-5">
+        <Card className="bg-brand-bg border-brand-border p-6">
           <div className="flex items-center justify-between mb-4">
-            <div className="p-2 bg-brand-primary rounded-xl">
-              <DollarSign className="h-5 w-5 text-white" />
+            <div className="p-3 bg-brand-primary rounded-2xl">
+              <DollarSign className="h-6 w-6 text-white" />
             </div>
             <div className="text-right">
-              <div className="text-2xl font-bold text-brand-primary">₹{(avgExpense / 1000).toFixed(0)}K</div>
+              <div className="text-3xl font-bold text-brand-primary">₹{avgExpense.toLocaleString('en-IN')}</div>
               <div className="text-xs text-brand-medium font-medium">Average</div>
             </div>
           </div>
@@ -268,13 +268,13 @@ const AdminExpenses: React.FC = () => {
           </div>
         </Card>
 
-        <Card className="bg-brand-bg border-brand-border p-5">
+        <Card className="bg-brand-bg border-brand-border p-6">
           <div className="flex items-center justify-between mb-4">
-            <div className="p-2 bg-brand-primary rounded-xl">
-              <Calendar className="h-5 w-5 text-white" />
+            <div className="p-3 bg-brand-primary rounded-2xl">
+              <Calendar className="h-6 w-6 text-white" />
             </div>
             <div className="text-right">
-              <div className="text-2xl font-bold text-brand-primary">{totalTransactions}</div>
+              <div className="text-3xl font-bold text-brand-primary">{totalTransactions}</div>
               <div className="text-xs text-brand-medium font-medium">Total</div>
             </div>
           </div>
@@ -287,13 +287,13 @@ const AdminExpenses: React.FC = () => {
           </div>
         </Card>
 
-        <Card className="bg-brand-bg border-brand-border p-5">
+        <Card className="bg-brand-bg border-brand-border p-6">
           <div className="flex items-center justify-between mb-4">
-            <div className="p-2 bg-brand-primary rounded-xl">
-              <TrendingUp className="h-5 w-5 text-white" />
+            <div className="p-3 bg-brand-primary rounded-2xl">
+              <TrendingUp className="h-6 w-6 text-white" />
             </div>
             <div className="text-right">
-              <div className="text-2xl font-bold text-brand-primary">{categoriesWithExpenses}</div>
+              <div className="text-3xl font-bold text-brand-primary">{categoriesWithExpenses}</div>
               <div className="text-xs text-brand-medium font-medium">Categories</div>
             </div>
           </div>
@@ -308,20 +308,16 @@ const AdminExpenses: React.FC = () => {
       </div>
 
       {/* Search and Filter Bar */}
-      <div className="flex gap-4 mb-6">
-        <div className="relative flex-1 max-w-md">
+      <div className="mb-6">
+        <div className="relative">
           <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground w-4 h-4" />
           <Input
             placeholder="Search expenses..."
-            className="pl-10 h-10"
+            className="pl-10 h-10 w-full"
             value={searchTerm}
             onChange={(e) => handleSearchChange(e.target.value)}
           />
         </div>
-        <Button onClick={() => setShowForm(true)} disabled={creating} size="sm">
-          <Plus className="w-4 h-4 mr-2" />
-          Add Expense
-        </Button>
       </div>
 
       {/* Expenses List */}
@@ -346,8 +342,8 @@ const AdminExpenses: React.FC = () => {
                           <div>
                             <div className="flex items-center gap-3">
                               <h3 className="font-bold text-xl text-foreground">{expense.title}</h3>
-                              <Badge variant="secondary" className="text-xs font-medium px-2 py-0.5">
-                                {expense.categoryId}
+                              <Badge variant="secondary" className="font-medium px-2 py-0.5">
+                                {expense.category?.name || expense.categoryId}
                               </Badge>
                             </div>
                             <div className="flex items-center gap-1.5 mt-1">

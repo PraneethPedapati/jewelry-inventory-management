@@ -8,7 +8,7 @@ import {
   analyticsCache,
   analyticsMetadata
 } from '../db/schema.js';
-import { eq, desc, and, gte, lte, count, sql, notInArray, inArray } from 'drizzle-orm';
+import { eq, desc, and, gte, lte, count, sql, notInArray, inArray, or } from 'drizzle-orm';
 import { AnalyticsService } from './analytics.service.js';
 
 export class DashboardWidgetService {
@@ -72,7 +72,7 @@ export class DashboardWidgetService {
   }
 
   /**
-   * Get pending orders count (orders ≤6hrs old, all statuses except cancelled)
+   * Get pending orders count (payment_pending orders + recent orders ≤6hrs old, all statuses except cancelled)
    */
   static async getPendingOrders(): Promise<number> {
     const sixHoursAgo = new Date(Date.now() - 6 * 60 * 60 * 1000);
@@ -83,7 +83,10 @@ export class DashboardWidgetService {
       .where(
         and(
           notInArray(orders.status, ['cancelled']),
-          gte(orders.createdAt, sixHoursAgo)
+          or(
+            eq(orders.status, 'payment_pending'),
+            gte(orders.createdAt, sixHoursAgo)
+          )
         )
       );
 
@@ -192,7 +195,7 @@ export class DashboardWidgetService {
       .from(orders)
       .where(
         and(
-          notInArray(orders.status, ['cancelled', 'payment_pending']),
+          notInArray(orders.status, ['cancelled']),
           sql`EXTRACT(MONTH FROM ${orders.createdAt}) = ${currentMonth + 1}`,
           sql`EXTRACT(YEAR FROM ${orders.createdAt}) = ${currentYear}`
         )

@@ -44,14 +44,15 @@ const UpdateProductSchema = z.object({
  * GET /api/admin/products
  */
 export const getProducts = asyncHandler(async (req: Request, res: Response) => {
-  const { page = 1, limit = 10, search, productType, isActive } = req.query;
+  const { page = 1, limit = 10, search, productType, isActive, sortBy } = req.query;
 
   const result = await ProductService.getProducts({
     page: Number(page),
     limit: Number(limit),
     search: search as string,
     productType: productType as string,
-    isActive: isActive === 'true' ? true : isActive === 'false' ? false : undefined
+    isActive: isActive === 'true' ? true : isActive === 'false' ? false : undefined,
+    sortBy: sortBy as string
   });
 
   res.json({

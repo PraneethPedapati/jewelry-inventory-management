@@ -19,6 +19,7 @@ export interface ProductSpecification {
 export interface CartItem {
   product: Product;
   specification: ProductSpecification | null;
+  size?: string; // Simple size string for bracelet products
   quantity: number;
   price: number;
 }
@@ -26,7 +27,7 @@ export interface CartItem {
 // Context interface
 interface CartContextType {
   cart: CartItem[];
-  addToCart: (product: Product, specification: ProductSpecification | null, quantity: number, price: number) => void;
+  addToCart: (product: Product, specification: ProductSpecification | null, quantity: number, price: number, size?: string) => void;
   updateQuantity: (productId: string, specificationId: string, newQuantity: number) => void;
   removeFromCart: (productId: string, specificationId: string) => void;
   getTotalPrice: () => number;
@@ -43,12 +44,13 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [cart, setCart] = useState<CartItem[]>([]);
 
   // Add item to cart
-  const addToCart = useCallback((product: Product, specification: ProductSpecification | null, quantity: number, price: number) => {
+  const addToCart = useCallback((product: Product, specification: ProductSpecification | null, quantity: number, price: number, size?: string) => {
     setCart(prevCart => {
       const existingItemIndex = prevCart.findIndex(
         item => item.product.id === product.id &&
           ((item.specification?.id === specification?.id) ||
-            (item.specification === null && specification === null))
+            (item.specification === null && specification === null)) &&
+          item.size === size
       );
 
       if (existingItemIndex > -1) {
@@ -61,7 +63,7 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
         return updatedCart;
       } else {
         // New item, add to cart
-        return [...prevCart, { product, specification, quantity, price }];
+        return [...prevCart, { product, specification, size, quantity, price }];
       }
     });
   }, []);

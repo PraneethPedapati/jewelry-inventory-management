@@ -1,25 +1,7 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useCart } from '../hooks/useCart';
 import { FiMinus, FiPlus, FiTrash2, FiUser, FiPhone, FiMapPin, FiCreditCard } from 'react-icons/fi';
-
-// Add Google reCAPTCHA script if not already loaded
-const loadRecaptcha = () => {
-  if (window.grecaptcha) return Promise.resolve();
-
-  const siteKey = import.meta.env.VITE_RECAPTCHA_SITE_KEY;
-  if (!siteKey || siteKey === 'your-recaptcha-site-key-here') {
-    console.error('reCAPTCHA site key not configured. Please set VITE_RECAPTCHA_SITE_KEY in your .env file');
-    return Promise.reject(new Error('reCAPTCHA not configured'));
-  }
-
-  return new Promise((resolve) => {
-    const script = document.createElement('script');
-    script.src = `https://www.google.com/recaptcha/api.js?render=${siteKey}`;
-    script.onload = resolve;
-    document.head.appendChild(script);
-  });
-};
 
 interface CustomerDetails {
   name: string;
@@ -56,10 +38,6 @@ const Cart: React.FC = () => {
   const [isPlacingOrder, setIsPlacingOrder] = useState(false);
   const [orderSuccess, setOrderSuccess] = useState<OrderResponse | null>(null);
   const [errors, setErrors] = useState<Partial<CustomerDetails>>({});
-
-  useEffect(() => {
-    loadRecaptcha();
-  }, []);
 
   const validateForm = (): boolean => {
     const newErrors: Partial<CustomerDetails> = {};
@@ -108,10 +86,6 @@ const Cart: React.FC = () => {
     setIsPlacingOrder(true);
 
     try {
-      // Get reCAPTCHA token
-      // const recaptchaToken = await getRecaptchaToken();
-      const recaptchaToken = "recaptcha-skipped"; // reCAPTCHA temporarily disabled for development/testing. Restore the line above to re-enable.
-
       // Prepare order data
       const orderData = {
         customerName: customerDetails.name.trim(),
@@ -131,8 +105,7 @@ const Cart: React.FC = () => {
           }
 
           return orderItem;
-        }),
-        recaptchaToken
+        })
       };
 
       const response = await fetch(`${import.meta.env.VITE_API_URL}/api/orders`, {

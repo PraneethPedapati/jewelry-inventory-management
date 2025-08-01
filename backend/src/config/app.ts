@@ -26,6 +26,9 @@ const ConfigSchema = z.object({
   // WhatsApp
   WHATSAPP_BUSINESS_PHONE: z.string(),
 
+  // Order Configuration
+  ORDER_VALIDITY_HOURS: z.string().transform(val => parseInt(val)).default('2'),
+
   // Payment Configuration
   BUSINESS_UPI_ID: z.string().default('yourstore@paytm'),
 

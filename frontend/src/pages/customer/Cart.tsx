@@ -47,8 +47,9 @@ const Cart: React.FC = () => {
   };
 
   const calculateTotal = () => {
-    // For now, just return subtotal. Later you can add shipping, taxes, etc.
-    return calculateSubtotal();
+    const subtotal = calculateSubtotal();
+    const shippingFee = 15; // ₹15 shipping fee
+    return subtotal + shippingFee;
   };
 
   const handleUserDetailsChange = (field: keyof UserDetails, value: string) => {
@@ -58,7 +59,6 @@ const Cart: React.FC = () => {
   const isFormValid = () => {
     return userDetails.name.trim() !== '' &&
       userDetails.phone.trim() !== '' &&
-      userDetails.email.trim() !== '' &&
       userDetails.address.trim() !== '' &&
       userDetails.pincode.trim() !== '' &&
       cart.length > 0;
@@ -79,8 +79,7 @@ const Cart: React.FC = () => {
         items: cart.map(item => ({
           productId: item.product.id,
           quantity: item.quantity
-        })),
-        recaptchaToken: 'dummy-token' // For development - you might want to implement reCAPTCHA
+        }))
       };
 
       // Create order via API
@@ -244,13 +243,13 @@ const Cart: React.FC = () => {
               </div>
 
               <div>
-                <Label htmlFor="email">Email Address *</Label>
+                <Label htmlFor="email">Email Address (Optional)</Label>
                 <div className="relative mt-1">
                   <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground w-4 h-4" />
                   <Input
                     id="email"
                     type="email"
-                    placeholder="Enter your email address"
+                    placeholder="Enter your email address (optional)"
                     value={userDetails.email}
                     onChange={(e) => handleUserDetailsChange('email', e.target.value)}
                     className="pl-10"
@@ -301,7 +300,7 @@ const Cart: React.FC = () => {
 
               <div className="flex justify-between text-sm">
                 <span>Shipping</span>
-                <span className="text-green-600">Free</span>
+                <span>₹15</span>
               </div>
 
               <div className="border-t pt-4">
@@ -321,7 +320,7 @@ const Cart: React.FC = () => {
               </Button>
 
               <div className="text-xs text-muted-foreground text-center mt-4">
-                <p>* All fields are required</p>
+                <p>* Required fields: Name, Phone, Address, Pincode</p>
                 <p>Payment will be collected upon delivery</p>
               </div>
             </CardContent>

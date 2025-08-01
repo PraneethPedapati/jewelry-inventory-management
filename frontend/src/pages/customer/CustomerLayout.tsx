@@ -1,6 +1,6 @@
 import React from 'react';
 import { Outlet, Link, useLocation } from 'react-router-dom';
-import { ShoppingBag, ShoppingCart, User } from 'lucide-react';
+import { ShoppingBag, ShoppingCart, User, Info, Phone, Mail, MapPin, Clock } from 'lucide-react';
 import Logo from '@/components/ui/Logo';
 import { useCart } from '@/hooks/useCart';
 
@@ -12,6 +12,7 @@ const CustomerLayout: React.FC = () => {
   const navigation = [
     { name: 'Products', href: '/shop/products', icon: ShoppingBag },
     { name: 'Cart', href: '/shop/cart', icon: ShoppingCart },
+    { name: 'About', href: '/shop/about', icon: Info },
   ];
 
   return (
@@ -68,6 +69,67 @@ const CustomerLayout: React.FC = () => {
       <main className="flex-1">
         <Outlet />
       </main>
+
+      {/* Footer with Contact Information */}
+      <footer className="bg-card border-t border-border py-8 mt-16">
+        <div className="container mx-auto px-6">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+            {/* Company Info */}
+            <div>
+              <h3 className="text-lg font-semibold text-foreground mb-4">Elegant Jewelry Store</h3>
+              <p className="text-muted-foreground text-sm leading-relaxed">
+                Crafting beautiful jewelry with passion and precision since 2010.
+                Your trusted partner for fine jewelry and exceptional service.
+              </p>
+            </div>
+
+            {/* Contact Information */}
+            <div>
+              <h3 className="text-lg font-semibold text-foreground mb-4">Contact Us</h3>
+              <div className="space-y-2 text-sm text-muted-foreground">
+                <div className="flex items-center gap-2">
+                  <Phone className="w-4 h-4" />
+                  <span>+91-9876543210</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <Mail className="w-4 h-4" />
+                  <span>info@elegantjewelry.com</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <MapPin className="w-4 h-4" />
+                  <span>123 Jewelry Street, Mumbai, Maharashtra 400001</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <Clock className="w-4 h-4" />
+                  <span>Mon-Sat: 10:00 AM - 8:00 PM</span>
+                </div>
+              </div>
+            </div>
+
+            {/* Quick Links */}
+            <div>
+              <h3 className="text-lg font-semibold text-foreground mb-4">Quick Links</h3>
+              <div className="space-y-2">
+                <Link to="/shop/products" className="block text-sm text-muted-foreground hover:text-foreground transition-colors">
+                  Browse Collection
+                </Link>
+                <Link to="/shop/about" className="block text-sm text-muted-foreground hover:text-foreground transition-colors">
+                  About Us
+                </Link>
+                <Link to="/shop/cart" className="block text-sm text-muted-foreground hover:text-foreground transition-colors">
+                  Shopping Cart
+                </Link>
+              </div>
+            </div>
+          </div>
+
+          <div className="border-t border-border mt-8 pt-8 text-center">
+            <p className="text-sm text-muted-foreground">
+              © 2024 Elegant Jewelry Store. All rights reserved.
+            </p>
+          </div>
+        </div>
+      </footer>
 
       {/* Mobile Navigation */}
       <nav className="md:hidden fixed bottom-0 left-0 right-0 bg-card border-t border-border">

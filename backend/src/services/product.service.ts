@@ -83,8 +83,9 @@ export class ProductService {
     search?: string;
     productType?: string;
     isActive?: boolean | undefined;
+    sortBy?: string;
   } = {}) {
-    const { page = 1, limit = 10, search, productType, isActive } = params;
+    const { page = 1, limit = 10, search, productType, isActive, sortBy } = params;
     const offset = (page - 1) * limit;
 
     let query = db.select().from(products);
@@ -95,9 +96,9 @@ export class ProductService {
     if (search) {
       conditions.push(
         or(
-          like(products.name, `%${search}%`),
-          like(products.description, `%${search}%`),
-          like(products.productCode, `%${search}%`)
+          sql`LOWER(${products.name}) LIKE LOWER(${'%' + search + '%'})`,
+          sql`LOWER(${products.description}) LIKE LOWER(${'%' + search + '%'})`,
+          sql`LOWER(${products.productCode}) LIKE LOWER(${'%' + search + '%'})`
         )
       );
     }
@@ -135,9 +136,32 @@ export class ProductService {
     const countResult = await countQuery;
     const count = countResult[0]?.count || 0;
 
+    // Apply sorting
+    let sortedQuery = query;
+    switch (sortBy) {
+      case 'oldest':
+        sortedQuery = query.orderBy(products.createdAt);
+        break;
+      case 'price-low':
+        sortedQuery = query.orderBy(products.price);
+        break;
+      case 'price-high':
+        sortedQuery = query.orderBy(desc(products.price));
+        break;
+      case 'name-asc':
+        sortedQuery = query.orderBy(products.name);
+        break;
+      case 'name-desc':
+        sortedQuery = query.orderBy(desc(products.name));
+        break;
+      case 'newest':
+      default:
+        sortedQuery = query.orderBy(desc(products.createdAt));
+        break;
+    }
+
     // Get paginated results
-    const results = await query
-      .orderBy(desc(products.createdAt))
+    const results = await sortedQuery
       .limit(limit)
       .offset(offset);
 
@@ -184,9 +208,9 @@ export class ProductService {
       .where(
         and(
           or(
-            like(products.productCode, `%${query}%`),
-            like(products.name, `%${query}%`),
-            like(products.description, `%${query}%`)
+            sql`LOWER(${products.productCode}) LIKE LOWER(${'%' + query + '%'})`,
+            sql`LOWER(${products.name}) LIKE LOWER(${'%' + query + '%'})`,
+            sql`LOWER(${products.description}) LIKE LOWER(${'%' + query + '%'})`
           ),
           eq(products.isActive, true)
         )
