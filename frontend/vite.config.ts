@@ -100,7 +100,7 @@ export default defineConfig({
           vendor: ['react', 'react-dom'],
           router: ['react-router-dom'],
           ui: ['@radix-ui/react-dialog', '@radix-ui/react-dropdown-menu', '@radix-ui/react-select'],
-          utils: ['zustand', '@tanstack/react-query', 'axios']
+          utils: ['zustand', 'axios']
         }
       }
     }

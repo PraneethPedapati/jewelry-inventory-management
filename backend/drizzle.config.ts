@@ -10,7 +10,7 @@ export default defineConfig({
   dbCredentials: {
     url: process.env.DATABASE_URL || 'postgresql://localhost:5432/jewelry_inventory',
   },
-  verbose: true,
+  verbose: false,
   strict: true,
   migrations: {
     prefix: 'timestamp',

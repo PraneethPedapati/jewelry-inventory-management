@@ -8,8 +8,8 @@ const connectionString = config.DATABASE_URL;
 
 // Log connection string (masked for security)
 if (connectionString) {
-  const maskedUrl = connectionString.replace(/:([^:@]+)@/, ':****@');
-  console.log('🔗 Database URL:', maskedUrl);
+  // const maskedUrl = connectionString.replace(/:([^:@]+)@/, ':****@');
+  // console.log('🔗 Database URL:', maskedUrl);
 } else {
   console.log('❌ DATABASE_URL is not set');
 }
@@ -29,7 +29,7 @@ const client = postgres(connectionString, {
 // Create Drizzle database instance
 export const db = drizzle(client, {
   schema,
-  logger: config.NODE_ENV === 'development'
+  logger: false
 });
 
 // Test database connection
@@ -38,18 +38,8 @@ export const connectDatabase = async (): Promise<void> => {
     console.log('🔄 Attempting to connect to database...');
 
     // Test the connection with a simple query
-    const result = await client`SELECT 1 as test`;
+    await client`SELECT 1 as test`;
     console.log('✅ Database connected successfully');
-    console.log('📊 Connection test result:', result);
-
-    // Test schema access
-    console.log('🔍 Testing schema access...');
-    const tables = await client`
-      SELECT table_name 
-      FROM information_schema.tables 
-      WHERE table_schema = 'public'
-    `;
-    console.log('📋 Available tables:', tables.map(t => t.table_name));
 
   } catch (error) {
     console.error('❌ Database connection failed:');
