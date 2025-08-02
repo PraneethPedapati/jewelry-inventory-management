@@ -1,6 +1,6 @@
 import React from 'react';
 import { Outlet, Link, useLocation } from 'react-router-dom';
-import { ShoppingBag, ShoppingCart, Info, Phone, Mail, MapPin, Clock } from 'lucide-react';
+import { ShoppingBag, ShoppingCart, Info, Phone, Mail } from 'lucide-react';
 import Logo from '@/components/ui/Logo';
 import { useCart } from '@/hooks/useCart';
 

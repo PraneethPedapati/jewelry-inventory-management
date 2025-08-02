@@ -14,7 +14,7 @@ export const StaleDataWidget: React.FC<StaleDataWidgetProps> = ({
       title={
         <div className="flex items-center gap-2">
           <span>Stale Data</span>
-          <Wifi className="w-3 h-3 text-green-500 animate-pulse" title="Real-time data" />
+          <Wifi className="w-3 h-3 text-green-500 animate-pulse" />
         </div>
       }
       value={value}

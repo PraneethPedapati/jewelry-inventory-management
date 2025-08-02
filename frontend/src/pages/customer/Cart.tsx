@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { Trash2, Plus, Minus, ShoppingBag, User, Phone, Mail, MapPin, CreditCard } from 'lucide-react';
+import { Trash2, Plus, Minus, ShoppingBag, User, Phone, MapPin, CreditCard } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -12,6 +12,7 @@ import { toast } from 'sonner';
 interface UserDetails {
   name: string;
   phone: string;
+  email: string;
   address: string;
   pincode: string;
 }
@@ -23,6 +24,7 @@ const Cart: React.FC = () => {
   const [userDetails, setUserDetails] = useState<UserDetails>({
     name: '',
     phone: '',
+    email: '',
     address: '',
     pincode: ''
   });

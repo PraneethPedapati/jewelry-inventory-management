@@ -16,7 +16,7 @@ export const PendingOrdersWidget: React.FC<PendingOrdersWidgetProps> = ({
       title={
         <div className="flex items-center gap-2">
           <span>Pending Orders</span>
-          <Wifi className="w-3 h-3 text-green-500 animate-pulse" title="Real-time data" />
+          <Wifi className="w-3 h-3 text-green-500 animate-pulse" />
         </div>
       }
       value={value}

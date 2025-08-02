@@ -7,7 +7,7 @@ const cn = (...classes: (string | boolean | undefined)[]) => {
 };
 
 export interface BaseWidgetProps {
-  title: string;
+  title: string | React.ReactNode;
   value: string | number;
   subtitle?: string;
   urgent?: boolean;
@@ -20,6 +20,7 @@ export interface BaseWidgetProps {
   textColor?: string;
   subtitleColor?: string;
   changeColor?: string;
+  loading?: boolean;
 }
 
 export const WidgetCard: React.FC<BaseWidgetProps> = ({
