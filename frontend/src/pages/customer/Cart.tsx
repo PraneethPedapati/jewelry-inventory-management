@@ -7,6 +7,7 @@ import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { useCart } from '@/hooks/useCart';
 import { publicOrderService } from '@/services/api';
+import { toast } from 'sonner';
 
 interface UserDetails {
   name: string;
@@ -94,9 +95,24 @@ const Cart: React.FC = () => {
         }
       });
 
-    } catch (error) {
+    } catch (error: any) {
       console.error('Order placement failed:', error);
-      alert('Failed to place order. Please try again.');
+
+      // Extract actual error message from backend response
+      let errorMessage = 'Failed to place order. Please try again.';
+
+      if (error.response?.data?.error) {
+        // Backend returned specific error message
+        errorMessage = error.response.data.error;
+      } else if (error.response?.data?.message) {
+        // Backend returned message field
+        errorMessage = error.response.data.message;
+      } else if (error.message) {
+        // Network or other error
+        errorMessage = error.message;
+      }
+
+      toast.error(errorMessage);
     } finally {
       setIsPlacingOrder(false);
     }
@@ -240,7 +256,7 @@ const Cart: React.FC = () => {
                 </div>
               </div>
 
-              
+
 
               <div>
                 <Label htmlFor="address">Address *</Label>

@@ -56,21 +56,21 @@ const Dropdown: React.FC<DropdownProps> = ({
         size="sm"
         onClick={() => !disabled && setIsOpen(!isOpen)}
         disabled={disabled}
-        className="w-full justify-between min-w-[160px]"
+        className="w-full justify-between min-w-[160px] border-brand-border text-brand-primary hover:bg-brand-ultra-light"
       >
         {displayValue}
         <ChevronDown className={`w-4 h-4 ml-2 transition-transform ${isOpen ? 'rotate-180' : ''}`} />
       </Button>
 
       {isOpen && (
-        <div className="absolute top-full right-0 mt-1 bg-white border border-gray-200 rounded-md shadow-lg z-10 min-w-[200px]">
+        <div className="absolute top-full right-0 mt-1 bg-white border border-brand-border rounded-md shadow-lg z-10 min-w-[200px]">
           {options.map((option) => (
             <button
               key={option.value}
               onClick={() => handleOptionClick(option.value)}
-              className={`w-full text-left px-4 py-2 text-sm hover:bg-gray-50 transition-colors ${value === option.value
-                  ? 'bg-primary text-white'
-                  : 'text-gray-700'
+              className={`w-full text-left px-4 py-2 text-sm transition-colors ${value === option.value
+                  ? 'bg-brand-primary text-white'
+                  : 'text-brand-primary hover:bg-brand-ultra-light'
                 }`}
             >
               {option.label}

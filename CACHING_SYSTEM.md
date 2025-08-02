@@ -79,6 +79,7 @@ The admin dashboard shows cache status including:
 - Unnecessary server load
 - Poor user experience
 
+
 ### After Caching
 - Instant data loading from cache
 - Reduced server load

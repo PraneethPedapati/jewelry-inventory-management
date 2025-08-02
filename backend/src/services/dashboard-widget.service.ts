@@ -8,7 +8,7 @@ import {
   analyticsCache,
   analyticsMetadata
 } from '../db/schema.js';
-import { eq, desc, and, gte, lte, count, sql, notInArray, inArray, or } from 'drizzle-orm';
+import { eq, desc, and, gte, lte, gt, count, sql, notInArray, inArray, or } from 'drizzle-orm';
 import { AnalyticsService } from './analytics.service.js';
 
 export class DashboardWidgetService {
@@ -28,10 +28,10 @@ export class DashboardWidgetService {
   }
 
   /**
-   * Get stale data count (payment_pending orders >6hrs old)
+   * Get stale data count (payment_pending orders >2hrs old)
    */
   static async getStaleDataCount(): Promise<number> {
-    const sixHoursAgo = new Date(Date.now() - 6 * 60 * 60 * 1000);
+    const twoHoursAgo = new Date(Date.now() - 2 * 60 * 60 * 1000);
 
     const result = await db
       .select({ count: count() })
@@ -39,7 +39,7 @@ export class DashboardWidgetService {
       .where(
         and(
           eq(orders.status, 'payment_pending'),
-          lte(orders.createdAt, sixHoursAgo)
+          lte(orders.createdAt, twoHoursAgo)
         )
       );
 
@@ -72,13 +72,20 @@ export class DashboardWidgetService {
   }
 
   /**
-   * Get pending orders count (payment_pending orders + recent orders ≤6hrs old, all statuses except cancelled)
+   * Get pending orders count (payment_pending orders <2hrs old)
    */
   static async getPendingOrders(): Promise<number> {
+    const twoHoursAgo = new Date(Date.now() - 2 * 60 * 60 * 1000);
+
     const result = await db
       .select({ count: count() })
       .from(orders)
-      .where(eq(orders.status, 'payment_pending'));
+      .where(
+        and(
+          eq(orders.status, 'payment_pending'),
+          gt(orders.createdAt, twoHoursAgo)
+        )
+      );
 
     return result[0]?.count || 0;
   }

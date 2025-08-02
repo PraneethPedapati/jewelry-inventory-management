@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { ShoppingCart, Search, Edit, Download, ChevronLeft, ChevronRight, Clock, User, MapPin, Phone, Mail, Package, MessageCircle, Trash2 } from 'lucide-react';
+import { ShoppingCart, Search, Edit, Download, ChevronLeft, ChevronRight, Clock, User, Package, MessageCircle, Trash2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -10,6 +10,7 @@ import { orderService, dashboardService, type Order, type DashboardWidgets } fro
 import { env } from '@/config/env';
 import { useDocumentTitle } from '@/hooks/useDocumentTitle';
 import Dropdown from '@/components/ui/dropdown';
+import DatePicker from '@/components/ui/date-picker';
 import {
   MonthlyOrdersWidget,
   PendingOrdersWidget,
@@ -37,9 +38,14 @@ const AdminOrders: React.FC = () => {
   const [updating, setUpdating] = useState(false);
   const [exporting, setExporting] = useState(false);
 
-  // Widgets state
+  // Widgets state - separate for real-time data
   const [widgetsData, setWidgetsData] = useState<DashboardWidgets | null>(null);
   const [widgetsLoading, setWidgetsLoading] = useState(true);
+
+  // Real-time state for pending orders and stale data
+  const [pendingOrdersCount, setPendingOrdersCount] = useState<number>(0);
+  const [staleDataCount, setStaleDataCount] = useState<number>(0);
+  const [realTimeLoading, setRealTimeLoading] = useState(true);
 
   // Pagination state
   const [totalPages, setTotalPages] = useState(1);
@@ -51,7 +57,6 @@ const AdminOrders: React.FC = () => {
   // Stale orders management
   const [showDeleteStaleModal, setShowDeleteStaleModal] = useState(false);
   const [deletingStale, setDeletingStale] = useState(false);
-
 
   // Load orders from API
   const loadOrders = async () => {
@@ -81,7 +86,39 @@ const AdminOrders: React.FC = () => {
     }
   };
 
-  // Load widgets data from API
+  // Load real-time pending orders and stale data
+  const loadRealTimeData = async () => {
+    try {
+      setRealTimeLoading(true);
+
+      console.log('📡 Fetching real-time data (bypassing cache)...');
+
+      // Fetch real-time data directly from the API (bypassing cache)
+      const response = await fetch(`${env.VITE_API_URL}/api/admin/dashboard/widgets`, {
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('admin_token')}`
+        }
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        if (data.success && data.data) {
+          setPendingOrdersCount(data.data.pendingOrders || 0);
+          setStaleDataCount(data.data.staleData || 0);
+          console.log('✅ Real-time data updated:', {
+            pendingOrders: data.data.pendingOrders,
+            staleData: data.data.staleData
+          });
+        }
+      }
+    } catch (error) {
+      console.error('Failed to load real-time data:', error);
+    } finally {
+      setRealTimeLoading(false);
+    }
+  };
+
+  // Load widgets data from API (cached data for other widgets)
   const loadWidgetsData = async () => {
     try {
       setWidgetsLoading(true);
@@ -104,6 +141,21 @@ const AdminOrders: React.FC = () => {
   // Load widgets data on component mount
   useEffect(() => {
     loadWidgetsData();
+  }, []);
+
+  // Load real-time data on component mount
+  useEffect(() => {
+    loadRealTimeData();
+  }, []);
+
+  // Real-time updates for pending orders and stale data (every 10 seconds)
+  useEffect(() => {
+    const interval = setInterval(() => {
+      console.log('🔄 Refreshing real-time data (pending orders & stale data)...');
+      loadRealTimeData();
+    }, 10000); // Refresh every 10 seconds
+
+    return () => clearInterval(interval);
   }, []);
 
   // Reset to first page when filters change
@@ -152,6 +204,7 @@ const AdminOrders: React.FC = () => {
       setShowEditModal(false);
       setSelectedOrder(null);
       await loadOrders(); // Refresh the list
+      await loadRealTimeData(); // Refresh real-time data
     } catch (error) {
       console.error('Failed to update order:', error);
       toast.error('Failed to update order. Please try again.');
@@ -260,6 +313,7 @@ const AdminOrders: React.FC = () => {
         toast.success(result.message);
         setShowDeleteStaleModal(false);
         loadOrders(); // Refresh the list
+        loadRealTimeData(); // Refresh real-time data
       } else {
         throw new Error(result.error || 'Failed to delete stale orders');
       }
@@ -397,11 +451,11 @@ const AdminOrders: React.FC = () => {
           loading={widgetsLoading}
         />
         <PendingOrdersWidget
-          value={widgetsData?.pendingOrders || 0}
-          loading={widgetsLoading}
+          value={pendingOrdersCount}
+          loading={realTimeLoading}
         />
         <StaleDataWidget
-          value={widgetsData?.staleData || 0}
+          value={staleDataCount}
         />
         <OverallAOVWidget
           value={widgetsData?.averageOrderValue || { aov: 0, formatted: '₹0.00' }}
@@ -815,18 +869,18 @@ const ExportModal: React.FC<ExportModalProps> = ({
           <div className="space-y-4">
             <div>
               <label className="block text-sm font-medium mb-2">From Date</label>
-              <Input
-                type="date"
+              <DatePicker
                 value={exportDateFrom}
-                onChange={(e) => setExportDateFrom(e.target.value)}
+                onChange={setExportDateFrom}
+                placeholder="Select from date"
               />
             </div>
             <div>
               <label className="block text-sm font-medium mb-2">To Date</label>
-              <Input
-                type="date"
+              <DatePicker
                 value={exportDateTo}
-                onChange={(e) => setExportDateTo(e.target.value)}
+                onChange={setExportDateTo}
+                placeholder="Select to date"
               />
             </div>
           </div>

@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useCart } from '../hooks/useCart';
 import { FiMinus, FiPlus, FiTrash2, FiUser, FiPhone, FiMapPin, FiCreditCard } from 'react-icons/fi';
+import { toast } from 'sonner';
 
 interface CustomerDetails {
   name: string;
@@ -79,7 +80,7 @@ const Cart: React.FC = () => {
     }
 
     if (cart.length === 0) {
-      alert('Your cart is empty!');
+      toast.error('Your cart is empty!');
       return;
     }
 
@@ -118,9 +119,24 @@ const Cart: React.FC = () => {
       } else {
         throw new Error(result.error || 'Failed to place order');
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error('Order placement error:', error);
-      alert(error instanceof Error ? error.message : 'Failed to place order. Please try again.');
+
+      // Extract actual error message from backend response
+      let errorMessage = 'Failed to place order. Please try again.';
+
+      if (error.response?.data?.error) {
+        // Backend returned specific error message
+        errorMessage = error.response.data.error;
+      } else if (error.response?.data?.message) {
+        // Backend returned message field
+        errorMessage = error.response.data.message;
+      } else if (error.message) {
+        // Network or other error
+        errorMessage = error.message;
+      }
+
+      toast.error(errorMessage);
     } finally {
       setIsPlacingOrder(false);
     }
@@ -207,7 +223,7 @@ const Cart: React.FC = () => {
         <div className="space-y-4 mb-8">
           {(cart || []).filter(item => item && item.product).map((item) => (
             <div key={`${item.product.id}-${item.size || 'no-size'}`} className="bg-white rounded-xl p-4 shadow-sm">
-              <div className="flex gap-3">
+              ,              <div className="flex gap-3">
                 <img
                   src={item.product.images[0] || '/placeholder-jewelry.jpg'}
                   alt={item.product.name}

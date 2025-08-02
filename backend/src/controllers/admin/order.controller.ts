@@ -8,6 +8,7 @@ import { WhatsAppService } from '../../services/whatsapp.service.js';
 import { OrderCodeService } from '../../services/order-code.service.js';
 import { config } from '../../config/app.js';
 
+
 // Validation schemas
 const CreateOrderSchema = z.object({
   body: z.object({
@@ -533,51 +534,59 @@ export const exportOrders = asyncHandler(async (req: Request, res: Response) => 
     res.send(csvData);
   } else if (format === 'xlsx') {
     // Import exceljs dynamically
-    const ExcelJS = await import('exceljs');
-    const workbook = new ExcelJS.Workbook();
-    const worksheet = workbook.addWorksheet('Orders');
+    try {
+      const ExcelJS = await import('exceljs');
+      const workbook = new ExcelJS.default.Workbook();
+      const worksheet = workbook.addWorksheet('Orders');
 
-    // Define columns
-    worksheet.columns = [
-      { header: 'Order Number', key: 'orderNumber', width: 15 },
-      { header: 'Customer Name', key: 'customerName', width: 20 },
-      { header: 'Phone', key: 'phone', width: 15 },
-      { header: 'Address', key: 'address', width: 30 },
-      { header: 'Amount (₹)', key: 'amount', width: 12 },
-      { header: 'Status', key: 'status', width: 12 },
-      { header: 'Date', key: 'date', width: 12 },
-      { header: 'Items', key: 'items', width: 40 }
-    ];
+      // Define columns
+      worksheet.columns = [
+        { header: 'Order Number', key: 'orderNumber', width: 15 },
+        { header: 'Customer Name', key: 'customerName', width: 20 },
+        { header: 'Phone', key: 'phone', width: 15 },
+        { header: 'Address', key: 'address', width: 30 },
+        { header: 'Amount (₹)', key: 'amount', width: 12 },
+        { header: 'Status', key: 'status', width: 12 },
+        { header: 'Date', key: 'date', width: 12 },
+        { header: 'Items', key: 'items', width: 40 }
+      ];
 
-    // Add data
-    ordersWithItems.forEach(order => {
-      worksheet.addRow({
-        orderNumber: order.orderNumber,
-        customerName: order.customerName,
-        phone: order.customerPhone,
-        address: order.customerAddress,
-        amount: order.totalAmount,
-        status: order.status,
-        date: order.createdAt ? order.createdAt.toISOString().split('T')[0] : 'N/A',
-        items: order.items.map((item: { product?: { name?: string | null } | null, quantity: number }) => `${item.product?.name || 'Unknown'} (${item.quantity})`).join('; ')
+      // Add data
+      ordersWithItems.forEach(order => {
+        worksheet.addRow({
+          orderNumber: order.orderNumber,
+          customerName: order.customerName,
+          phone: order.customerPhone,
+          address: order.customerAddress,
+          amount: order.totalAmount,
+          status: order.status,
+          date: order.createdAt ? order.createdAt.toISOString().split('T')[0] : 'N/A',
+          items: order.items.map((item: { product?: { name?: string | null } | null, quantity: number }) => `${item.product?.name || 'Unknown'} (${item.quantity})`).join('; ')
+        });
       });
-    });
 
-    // Style the header row
-    worksheet.getRow(1).font = { bold: true };
-    worksheet.getRow(1).fill = {
-      type: 'pattern',
-      pattern: 'solid',
-      fgColor: { argb: 'FFE0E0E0' }
-    };
+      // Style the header row
+      worksheet.getRow(1).font = { bold: true };
+      worksheet.getRow(1).fill = {
+        type: 'pattern',
+        pattern: 'solid',
+        fgColor: { argb: 'FFE0E0E0' }
+      };
 
-    // Set response headers
-    res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
-    res.setHeader('Content-Disposition', `attachment; filename="orders_${new Date().toISOString().split('T')[0]}.xlsx"`);
+      // Set response headers
+      res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+      res.setHeader('Content-Disposition', `attachment; filename="orders_${new Date().toISOString().split('T')[0]}.xlsx"`);
 
-    // Write to response
-    await workbook.xlsx.write(res);
-    res.end();
+      // Write to response
+      await workbook.xlsx.write(res);
+      res.end();
+    } catch (error) {
+      console.error('Failed to generate Excel file:', error);
+      return res.status(500).json({
+        success: false,
+        error: 'Failed to generate Excel file. Please try CSV format instead.'
+      });
+    }
   } else {
     res.json({
       success: true,
@@ -1165,16 +1174,16 @@ export const findOrderByCode = asyncHandler(async (req: Request, res: Response) 
  * POST /api/admin/orders/delete-stale
  */
 export const deleteStaleOrders = asyncHandler(async (req: Request, res: Response) => {
-  const sixHoursAgo = new Date(Date.now() - 6 * 60 * 60 * 1000);
+  const twoHoursAgo = new Date(Date.now() - 2 * 60 * 60 * 1000);
 
-  // Find stale orders (payment_pending older than 6 hours)
+  // Find stale orders (payment_pending older than 2 hours)
   const staleOrders = await db
     .select()
     .from(orders)
     .where(
       and(
         eq(orders.status, 'payment_pending'),
-        lt(orders.createdAt, sixHoursAgo)
+        lt(orders.createdAt, twoHoursAgo)
       )
     );
 
@@ -1184,7 +1193,7 @@ export const deleteStaleOrders = asyncHandler(async (req: Request, res: Response
       data: {
         deletedCount: 0
       },
-      message: 'No stale orders found (payment_pending orders older than 6 hours)'
+      message: 'No stale orders found (payment_pending orders older than 2 hours)'
     });
   }
 
@@ -1194,7 +1203,7 @@ export const deleteStaleOrders = asyncHandler(async (req: Request, res: Response
     .where(
       and(
         eq(orders.status, 'payment_pending'),
-        lt(orders.createdAt, sixHoursAgo)
+        lt(orders.createdAt, twoHoursAgo)
       )
     )
     .returning();
@@ -1209,6 +1218,6 @@ export const deleteStaleOrders = asyncHandler(async (req: Request, res: Response
         customerName: order.customerName
       }))
     },
-    message: `Successfully deleted ${deletedOrders.length} stale orders (payment_pending orders older than 6 hours)`
+    message: `Successfully deleted ${deletedOrders.length} stale orders (payment_pending orders older than 2 hours)`
   });
 }); 

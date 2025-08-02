@@ -8,6 +8,7 @@ import { Badge } from '@/components/ui/badge';
 import { expenseService, type Expense, type ExpenseCategory, type CreateExpenseRequest } from '@/services/api';
 import { toast } from 'sonner';
 import Dropdown from '@/components/ui/dropdown';
+import DatePicker from '@/components/ui/date-picker';
 
 const AdminExpenses: React.FC = () => {
   // Form state
@@ -596,11 +597,10 @@ const ExpenseModal: React.FC<ExpenseModalProps> = ({
 
               <div>
                 <Label htmlFor="expense-date">Date *</Label>
-                <Input
-                  id="expense-date"
-                  type="date"
+                <DatePicker
                   value={formData.date}
-                  onChange={(e) => setFormData({ ...formData, date: e.target.value })}
+                  onChange={(date) => setFormData({ ...formData, date })}
+                  placeholder="Select date"
                 />
               </div>
             </div>
