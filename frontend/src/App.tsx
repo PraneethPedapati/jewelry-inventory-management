@@ -105,7 +105,7 @@ function App() {
         {/* Admin routes */}
         <Route
           path="/admin/login"
-          element={!isAuthenticated ? <AdminLogin onLogin={setIsAuthenticated} /> : <Navigate to="/admin/dashboard" />}
+          element={!isAuthenticated ? <AdminLogin onLogin={setIsAuthenticated} /> : <Navigate to="/admin/orders" />}
         />
         <Route
           path="/admin"

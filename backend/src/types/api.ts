@@ -21,6 +21,7 @@ export interface ProductSpecification {
 
 export interface CompleteProduct {
   id: string;
+  productCode: string;
   name: string;
   charmDescription: string;
   chainDescription: string;
@@ -82,7 +83,7 @@ export interface Order {
   orderNumber: string;
   orderCode: string; // New: User-friendly order code (e.g., ORD001)
   customerName: string;
-  customerEmail: string;
+
   customerPhone: string;
   customerAddress: string;
   totalAmount: number;
@@ -98,7 +99,7 @@ export interface Order {
 // API Request/Response Types
 export interface CreateOrderRequest {
   customerName: string;
-  customerEmail: string;
+
   customerPhone: string;
   customerAddress: string;
   items: {

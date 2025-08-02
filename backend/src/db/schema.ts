@@ -69,7 +69,7 @@ export const orders = pgTable('orders', {
   orderNumber: varchar('order_number', { length: 20 }).notNull().unique(),
   orderCode: varchar('order_code', { length: 10 }).notNull().unique(), // New: User-friendly order code (e.g., ORD001)
   customerName: varchar('customer_name', { length: 100 }).notNull(),
-  customerEmail: varchar('customer_email', { length: 255 }).notNull(),
+  
   customerPhone: varchar('customer_phone', { length: 20 }).notNull(),
   customerAddress: text('customer_address').notNull(),
   totalAmount: decimal('total_amount', { precision: 10, scale: 2 }).notNull(),

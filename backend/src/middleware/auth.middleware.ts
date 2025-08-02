@@ -6,7 +6,7 @@ import { admins } from '../db/schema.js';
 import { eq } from 'drizzle-orm';
 import { config } from '../config/app.js';
 import { UnauthorizedError, ForbiddenError, RateLimitError } from '../utils/errors.js';
-import { addSpanAttributes } from '../utils/tracing.js';
+
 
 // Extend Request interface for TypeScript
 declare global {
@@ -73,14 +73,7 @@ export const authenticateAdmin = async (
       name: admin.name,
     };
 
-    // Add tracing attributes if enabled
-    if (config.ENABLE_TRACING) {
-      addSpanAttributes({
-        'user.id': admin.id,
-        'user.email': admin.email,
-        'user.role': admin.role || 'admin',
-      });
-    }
+    
 
     next();
   } catch (error) {

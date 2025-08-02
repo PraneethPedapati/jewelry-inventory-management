@@ -21,7 +21,7 @@ A modern, mobile-first jewelry inventory management application with WhatsApp in
 - **Backend**: Node.js 20 LTS, Express.js, TypeScript, Drizzle ORM
 - **Database**: PostgreSQL 16 (Neon)
 - **Cache**: Redis
-- **Monitoring**: OpenTelemetry + Jaeger
+
 - **Hosting**: Vercel (Frontend) + Railway (Backend)
 
 ### Project Structure

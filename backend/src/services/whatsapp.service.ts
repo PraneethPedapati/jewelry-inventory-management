@@ -1,6 +1,6 @@
 import { config } from '../config/app.js';
 import { Order, OrderItem } from '../types/api.js';
-import { traceWhatsAppOperation } from '../utils/tracing.js';
+
 import { getCompanyName, getCompanyShortName } from './brand.service.js';
 
 export class WhatsAppService {
@@ -19,14 +19,11 @@ export class WhatsAppService {
    */
   static async generateCustomerOrderMessage(order: Order): Promise<{ url: string; message: string }> {
     // Use a valid operation name as per traceWhatsAppOperation's accepted types
-    const result = await traceWhatsAppOperation('generate_order_message', order.id, async () => {
-      const message = this.formatCustomerOrderMessage(order);
-      const encodedMessage = encodeURIComponent(message);
-      const url = `https://wa.me/${this.BUSINESS_PHONE}?text=${encodedMessage}`;
+    const message = this.formatCustomerOrderMessage(order);
+    const encodedMessage = encodeURIComponent(message);
+    const url = `https://wa.me/${this.BUSINESS_PHONE}?text=${encodedMessage}`;
 
-      return { url, message };
-    });
-    return result;
+    return { url, message };
   }
 
   /**
@@ -34,14 +31,11 @@ export class WhatsAppService {
    * Note: Using explicit await pattern to resolve TypeScript type inference issues
    */
   static async generateOrderMessage(order: Order): Promise<{ url: string; message: string }> {
-    const result = await traceWhatsAppOperation('generate_order_message', order.id, async () => {
-      const message = this.formatOrderMessage(order);
-      const encodedMessage = encodeURIComponent(message);
-      const url = `https://wa.me/${this.BUSINESS_PHONE}?text=${encodedMessage}`;
+    const message = this.formatOrderMessage(order);
+    const encodedMessage = encodeURIComponent(message);
+    const url = `https://wa.me/${this.BUSINESS_PHONE}?text=${encodedMessage}`;
 
-      return { url, message };
-    });
-    return result;
+    return { url, message };
   }
 
   /**
@@ -49,14 +43,11 @@ export class WhatsAppService {
    * Note: Using explicit await pattern to resolve TypeScript type inference issues
    */
   static async generateAdminOrderNotification(order: Order): Promise<{ url: string; message: string }> {
-    const result = await traceWhatsAppOperation('generate_admin_notification', order.id, async () => {
-      const message = this.formatAdminOrderNotification(order);
-      const encodedMessage = encodeURIComponent(message);
-      const url = `https://wa.me/${this.BUSINESS_PHONE}?text=${encodedMessage}`;
+    const message = this.formatAdminOrderNotification(order);
+    const encodedMessage = encodeURIComponent(message);
+    const url = `https://wa.me/${this.BUSINESS_PHONE}?text=${encodedMessage}`;
 
-      return { url, message };
-    });
-    return result;
+    return { url, message };
   }
 
   /**
@@ -274,7 +265,7 @@ WhatsApp sent to customer ✅`;
 
 *Customer Details:*
 👤 Name: ${order.customerName}
-📧 Email: ${order.customerEmail}
+
 📱 Phone: ${order.customerPhone}
 🏠 Address: ${order.customerAddress}
 
@@ -484,14 +475,11 @@ _Automated confirmation from jewelry inventory system_`;
    * This is used when admin changes order status and wants to notify customer
    */
   static async generateStatusUpdateMessage(order: Order): Promise<{ url: string; message: string }> {
-    const result = await traceWhatsAppOperation('generate_status_message', order.id, async () => {
-      const message = this.formatStatusMessage(order);
-      const encodedMessage = encodeURIComponent(message);
-      const url = `https://wa.me/${order.customerPhone}?text=${encodedMessage}`;
+    const message = this.formatStatusMessage(order);
+    const encodedMessage = encodeURIComponent(message);
+    const url = `https://wa.me/${order.customerPhone}?text=${encodedMessage}`;
 
-      return { url, message };
-    });
-    return result;
+    return { url, message };
   }
 
   /**

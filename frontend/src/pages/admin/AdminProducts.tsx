@@ -8,6 +8,7 @@ import { toast } from 'sonner';
 import ConfirmationDialog from '@/components/ui/confirmation-dialog';
 import { productService, dashboardService, type Product, type CreateProductRequest } from '@/services/api';
 import { useDocumentTitle } from '@/hooks/useDocumentTitle';
+import Dropdown from '@/components/ui/dropdown';
 
 // Placeholder image for products without images
 const PLACEHOLDER_IMAGE = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMzAwIiBoZWlnaHQ9IjMwMCIgdmlld0JveD0iMCAwIDMwMCAzMDAiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+CjxyZWN0IHdpZHRoPSIzMDAiIGhlaWdodD0iMzAwIiBmaWxsPSIjRjNGNEY2Ii8+CjxjaXJjbGUgY3g9IjE1MCIgY3k9IjEyMCIgcj0iNDAiIGZpbGw9IiM5Q0E4QjQiLz4KPHJlY3QgeD0iMTEwIiB5PSIxODAiIHdpZHRoPSI4MCIgaGVpZ2h0PSI4MCIgZmlsbD0iIzlDQThCNCIvPgo8L3N2Zz4=';
@@ -448,41 +449,29 @@ const AdminProducts: React.FC = () => {
           />
         </div>
 
-        {/* Modern Category Dropdown */}
-        <div className="relative">
-          <select
-            value={filterCategory}
-            onChange={(e) => setFilterCategory(e.target.value)}
-            className="appearance-none bg-background border border-border rounded-lg px-4 py-2 pr-10 text-foreground font-medium focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent min-w-[160px]"
-          >
-            <option value="All">All Categories</option>
-            <option value="chain">Chain</option>
-            <option value="bracelet-anklet">Bracelet & Anklet</option>
-          </select>
-          <div className="absolute right-3 top-1/2 transform -translate-y-1/2 pointer-events-none">
-            <svg className="w-4 h-4 text-muted-foreground" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-            </svg>
-          </div>
-        </div>
+        {/* Category Dropdown */}
+        <Dropdown
+          options={[
+            { value: 'All', label: 'All Categories' },
+            { value: 'chain', label: 'Chain' },
+            { value: 'bracelet-anklet', label: 'Bracelet & Anklet' }
+          ]}
+          value={filterCategory}
+          onChange={setFilterCategory}
+          placeholder="All Categories"
+        />
 
-        {/* Modern Status Dropdown */}
-        <div className="relative">
-          <select
-            value={filterStatus}
-            onChange={(e) => setFilterStatus(e.target.value)}
-            className="appearance-none bg-background border border-border rounded-lg px-4 py-2 pr-10 text-foreground font-medium focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent min-w-[140px]"
-          >
-            <option value="All">All Products</option>
-            <option value="In Stock">In Stock</option>
-            <option value="Out of Stock">Out of Stock</option>
-          </select>
-          <div className="absolute right-3 top-1/2 transform -translate-y-1/2 pointer-events-none">
-            <svg className="w-4 h-4 text-muted-foreground" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-            </svg>
-          </div>
-        </div>
+        {/* Status Dropdown */}
+        <Dropdown
+          options={[
+            { value: 'All', label: 'All Products' },
+            { value: 'In Stock', label: 'In Stock' },
+            { value: 'Out of Stock', label: 'Out of Stock' }
+          ]}
+          value={filterStatus}
+          onChange={setFilterStatus}
+          placeholder="All Products"
+        />
       </div>
 
       {/* Products Grid */}

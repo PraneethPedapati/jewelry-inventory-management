@@ -95,15 +95,9 @@ const Cart: React.FC = () => {
         customerPincode: customerDetails.pincode.trim(),
         items: cart.map(item => {
           const orderItem: any = {
-            productId: item.product.id.toString(),
+            productId: item.product.id,
             quantity: item.quantity
           };
-
-          // Only include specificationId if it exists
-          if (item.specification?.id) {
-            orderItem.specificationId = item.specification.id.toString();
-          }
-
           return orderItem;
         })
       };
@@ -212,8 +206,7 @@ const Cart: React.FC = () => {
         {/* Cart Items */}
         <div className="space-y-4 mb-8">
           {(cart || []).filter(item => item && item.product).map((item) => (
-            <div key={`${item.product.id}-${item.specification?.id || 'no-spec'}`}
-              className="bg-white rounded-xl p-4 shadow-sm">
+            <div key={`${item.product.id}-${item.size || 'no-size'}`} className="bg-white rounded-xl p-4 shadow-sm">
               <div className="flex gap-3">
                 <img
                   src={item.product.images[0] || '/placeholder-jewelry.jpg'}
@@ -223,12 +216,12 @@ const Cart: React.FC = () => {
 
                 <div className="flex-1">
                   <h3 className="font-medium text-gray-900">{item.product.name}</h3>
-                  <p className="text-sm text-gray-600">{item.specification?.displayName || 'Standard'}</p>
+                  <p className="text-sm text-gray-600">{item.size || 'Standard'}</p>
 
                   <div className="flex items-center justify-between mt-2">
                     <div className="flex items-center gap-2">
                       <button
-                        onClick={() => updateQuantity(item.product.id, item.specification?.id || '', item.quantity - 1)}
+                        onClick={() => updateQuantity(item.product.id, item.quantity - 1, item.size)}
                         className="w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center"
                         disabled={item.quantity <= 1}
                       >
@@ -236,7 +229,7 @@ const Cart: React.FC = () => {
                       </button>
                       <span className="w-8 text-center font-medium">{item.quantity}</span>
                       <button
-                        onClick={() => updateQuantity(item.product.id, item.specification?.id || '', item.quantity + 1)}
+                        onClick={() => updateQuantity(item.product.id, item.quantity + 1, item.size)}
                         className="w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center"
                       >
                         <FiPlus className="w-4 h-4" />
@@ -248,7 +241,7 @@ const Cart: React.FC = () => {
                         ₹{(item.price * item.quantity).toLocaleString('en-IN')}
                       </span>
                       <button
-                        onClick={() => removeFromCart(item.product.id, item.specification?.id || '')}
+                        onClick={() => removeFromCart(item.product.id, item.size)}
                         className="text-red-500 hover:text-red-700"
                       >
                         <FiTrash2 className="w-4 h-4" />

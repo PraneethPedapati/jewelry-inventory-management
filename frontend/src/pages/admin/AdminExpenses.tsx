@@ -7,6 +7,7 @@ import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import { expenseService, type Expense, type ExpenseCategory, type CreateExpenseRequest } from '@/services/api';
 import { toast } from 'sonner';
+import Dropdown from '@/components/ui/dropdown';
 
 const AdminExpenses: React.FC = () => {
   // Form state
@@ -29,6 +30,7 @@ const AdminExpenses: React.FC = () => {
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [searchTerm, setSearchTerm] = useState('');
+  const [filterCategory, setFilterCategory] = useState('All');
   const [itemsPerPage] = useState(10);
 
   // Load expenses from API
@@ -46,7 +48,7 @@ const AdminExpenses: React.FC = () => {
       };
 
       if (searchTerm) params.search = searchTerm;
-      // if (filterCategory !== 'All') params.category = filterCategory; // This line was removed
+      if (filterCategory !== 'All') params.category = filterCategory;
 
       const data = await expenseService.getExpenses(params);
       setExpenses(data.expenses);
@@ -85,7 +87,7 @@ const AdminExpenses: React.FC = () => {
   // Load expenses on component mount and when filters change
   useEffect(() => {
     loadExpenses();
-  }, [searchTerm, currentPage]); // Removed filterCategory from dependency array
+  }, [searchTerm, filterCategory, currentPage]);
 
   // Load categories and statistics on component mount
   useEffect(() => {
@@ -98,7 +100,7 @@ const AdminExpenses: React.FC = () => {
     if (currentPage !== 1) {
       setCurrentPage(1);
     }
-  }, [searchTerm]); // Removed filterCategory from dependency array
+  }, [searchTerm, filterCategory]);
 
   const handleCreateExpense = async (expenseData: { description: string; amount: string; category: string; date: string }) => {
     try {
@@ -309,13 +311,29 @@ const AdminExpenses: React.FC = () => {
 
       {/* Search and Filter Bar */}
       <div className="mb-6">
-        <div className="relative">
-          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground w-4 h-4" />
-          <Input
-            placeholder="Search expenses..."
-            className="pl-10 h-10 w-full"
-            value={searchTerm}
-            onChange={(e) => handleSearchChange(e.target.value)}
+        <div className="flex gap-4">
+          <div className="relative flex-1">
+            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground w-4 h-4" />
+            <Input
+              placeholder="Search expenses..."
+              className="pl-10 h-10 w-full"
+              value={searchTerm}
+              onChange={(e) => handleSearchChange(e.target.value)}
+            />
+          </div>
+
+          {/* Category Filter Dropdown */}
+          <Dropdown
+            options={[
+              { value: 'All', label: 'All Categories' },
+              ...expenseCategories.map(category => ({
+                value: category.id,
+                label: category.name
+              }))
+            ]}
+            value={filterCategory}
+            onChange={setFilterCategory}
+            placeholder="All Categories"
           />
         </div>
       </div>

@@ -1,6 +1,6 @@
 import React from 'react';
 import { Outlet, Link, useLocation } from 'react-router-dom';
-import { ShoppingBag, ShoppingCart, User, Info, Phone, Mail, MapPin, Clock } from 'lucide-react';
+import { ShoppingBag, ShoppingCart, Info, Phone, Mail, MapPin, Clock } from 'lucide-react';
 import Logo from '@/components/ui/Logo';
 import { useCart } from '@/hooks/useCart';
 
@@ -51,16 +51,7 @@ const CustomerLayout: React.FC = () => {
               })}
             </nav>
 
-            {/* Login Button - Hidden on Mobile */}
-            <div className="hidden md:flex items-center space-x-4">
-              <Link
-                to="/admin/login"
-                className="flex items-center space-x-2 text-muted-foreground hover:text-foreground transition-colors"
-              >
-                <User className="w-5 h-5" />
-                <span className="text-base">Login</span>
-              </Link>
-            </div>
+
           </div>
         </div>
       </header>
@@ -154,13 +145,7 @@ const CustomerLayout: React.FC = () => {
               </Link>
             );
           })}
-          <Link
-            to="/admin/login"
-            className="flex flex-col items-center py-3 px-1 text-sm text-muted-foreground"
-          >
-            <User className="w-6 h-6 mb-1" />
-            <span>Login</span>
-          </Link>
+
         </div>
       </nav>
     </div>

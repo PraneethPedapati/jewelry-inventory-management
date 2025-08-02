@@ -1,7 +1,7 @@
 import { Request, Response, NextFunction } from 'express';
 import { AppError, isOperationalError, formatErrorResponse } from '../utils/errors.js';
 import { config } from '../config/app.js';
-import { addSpanEvent } from '../utils/tracing.js';
+
 
 export const errorHandler = (
   error: Error,
@@ -27,14 +27,7 @@ export const errorHandler = (
 
   console.error('Error occurred:', errorContext);
 
-  // Add error event to current span if tracing is enabled
-  if (config.ENABLE_TRACING) {
-    addSpanEvent('error.occurred', {
-      'error.type': error.constructor.name,
-      'error.message': error.message,
-      'http.status_code': statusCode,
-    });
-  }
+  
 
   // Handle known application errors
   if (error instanceof AppError) {

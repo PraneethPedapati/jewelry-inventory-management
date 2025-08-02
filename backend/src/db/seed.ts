@@ -449,7 +449,7 @@ const seedDatabase = async (): Promise<void> => {
     const sanitizedOrders = sampleOrders.map(order => ({
       ...order,
       customerName: order.customerName ?? '',
-      customerEmail: order.customerEmail ?? '',
+      
       customerPhone: order.customerPhone ?? '',
       customerAddress: order.customerAddress ?? '',
     }));

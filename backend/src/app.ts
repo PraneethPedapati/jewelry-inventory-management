@@ -12,6 +12,8 @@ import { validateConfig } from './config/app.js';
 // Load environment variables
 dotenv.config();
 
+
+
 class Application {
   public app: express.Application;
 

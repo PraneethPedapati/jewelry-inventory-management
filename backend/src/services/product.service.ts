@@ -88,7 +88,7 @@ export class ProductService {
     const { page = 1, limit = 10, search, productType, isActive, sortBy } = params;
     const offset = (page - 1) * limit;
 
-    let query = db.select().from(products);
+    let productsQuery = db.select().from(products);
 
     // Apply filters
     const conditions = [];
@@ -111,13 +111,13 @@ export class ProductService {
       conditions.push(eq(products.isActive, isActive));
     }
 
-    // Apply conditions if any exist
+    // Apply conditions to the query
     if (conditions.length > 0) {
-      query = query.where(
+      productsQuery = productsQuery.where(
         conditions.length === 1
           ? conditions[0]
           : and(...conditions)
-      ) as typeof query;
+      ) as typeof productsQuery;
     }
 
     // Get total count for pagination
@@ -137,31 +137,22 @@ export class ProductService {
     const count = countResult[0]?.count || 0;
 
     // Apply sorting
-    let sortedQuery = query;
     switch (sortBy) {
-      case 'oldest':
-        sortedQuery = query.orderBy(products.createdAt);
-        break;
       case 'price-low':
-        sortedQuery = query.orderBy(products.price);
+        productsQuery = productsQuery.orderBy(sql`CAST(${products.price} AS NUMERIC)`);
         break;
       case 'price-high':
-        sortedQuery = query.orderBy(desc(products.price));
-        break;
-      case 'name-asc':
-        sortedQuery = query.orderBy(products.name);
-        break;
-      case 'name-desc':
-        sortedQuery = query.orderBy(desc(products.name));
+        productsQuery = productsQuery.orderBy(desc(sql`CAST(${products.price} AS NUMERIC)`));
         break;
       case 'newest':
       default:
-        sortedQuery = query.orderBy(desc(products.createdAt));
+        // Default to newest first
+        productsQuery = productsQuery.orderBy(desc(products.createdAt));
         break;
     }
 
     // Get paginated results
-    const results = await sortedQuery
+    const results = await productsQuery
       .limit(limit)
       .offset(offset);
 

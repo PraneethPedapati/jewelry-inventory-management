@@ -7,7 +7,8 @@ import {
   DollarSign,
   LogOut,
   Menu,
-  X
+  X,
+  User
 } from 'lucide-react';
 import Logo from '@/components/ui/Logo';
 
@@ -132,7 +133,7 @@ const AdminLayout: React.FC<AdminLayoutProps> = ({ onLogout }) => {
             <div className="p-3 border-t border-border">
               <div className={`flex items-center px-3 py-3 text-muted-foreground ${!isSidebarExpanded ? 'justify-center' : 'space-x-3'}`}>
                 <div className="w-8 h-8 bg-primary/10 rounded-full flex items-center justify-center flex-shrink-0">
-                  {/* <User className="w-4 h-4 text-primary" /> */}
+                  <User className="w-4 h-4 text-primary" />
                 </div>
                 <div
                   className={`transition-all duration-300 ${isSidebarExpanded ? 'opacity-100 w-auto' : 'opacity-0 w-0 overflow-hidden'

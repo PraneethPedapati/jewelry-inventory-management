@@ -102,7 +102,7 @@ Each product is a **complete jewelry piece** consisting of:
 - **Presentation Layer**: Responsive React.js applications with TypeScript
 - **Business Logic Layer**: Node.js 20 LTS/Express.js REST API with observability
 - **Data Layer**: PostgreSQL database with external image storage
-- **Observability Layer**: OpenTelemetry + Jaeger for monitoring[^1][^2]
+
 
 
 ### 2.2 System Architecture Diagram
@@ -117,7 +117,7 @@ Each product is a **complete jewelry piece** consisting of:
                      │ HTTPS/REST API
           ┌──────────▼───────────┐
           │   Node.js 20 LTS     │
-          │  Express.js + OTel   │
+          
           └──────────┬───────────┘
                      │
           ┌──────────▼───────────┐    ┌─────────────┐
@@ -125,10 +125,7 @@ Each product is a **complete jewelry piece** consisting of:
           │     (Neon)           │    │  (Images)   │
           └──────────────────────┘    └─────────────┘
                      │
-          ┌──────────▼───────────┐    ┌─────────────┐
-          │   WhatsApp Business  │    │   Jaeger    │
-          │    Integration       │    │ (Tracing)   │
-          └──────────────────────┘    └─────────────┘
+          
 ```
 
 
@@ -139,14 +136,15 @@ Each product is a **complete jewelry piece** consisting of:
 | Component | Technology | Version | Purpose |
 | :-- | :-- | :-- | :-- |
 | **Framework** | React.js | 18.3+ | Mobile-First UI Development |
-| **Language** | TypeScript | 5.5+ | Type Safety \& Developer Experience |
-| **Build Tool** | Vite | 5.x | Fast Development \& Build |
+| **Language** | TypeScript | 5.5+ | Type Safety & Developer Experience |
+| **Build Tool** | Vite | 5.x | Fast Development & Build |
 | **Styling** | Tailwind CSS | 3.4+ | Mobile Responsive Design |
 | **State Management** | Zustand | 4.x | Lightweight State Management |
 | **Routing** | React Router | 6.x | Client-side Navigation |
 | **UI Components** | Shadcn/UI | Latest | Modern Component Library |
-| **HTTP Client** | TanStack Query | 5.x | Data Fetching \& Caching |
+| **HTTP Client** | Axios | 1.7+ | HTTP Requests |
 | **PWA** | Vite PWA Plugin | 0.20+ | App-like Experience |
+| **Form Management** | React Hook Form | 7.5+ | Form State Management |
 
 ### 3.2 Backend Technologies (Latest 2025)
 
@@ -159,11 +157,11 @@ Each product is a **complete jewelry piece** consisting of:
 | **Password Hashing** | Argon2 | 0.41+ | Modern Password Hashing |
 | **File Upload** | Multer | 1.4+ | Image Processing |
 | **Validation** | Zod | 3.23+ | TypeScript-first Validation |
-| **Observability** | OpenTelemetry | 1.25+ | Distributed Tracing[^1][^2] |
 | **Database ORM** | Drizzle ORM | 0.32+ | Type-safe Database Access |
 | **CORS** | cors | 2.8+ | Cross-Origin Support |
+| **Excel Export** | exceljs | 4.4+ | Exporting data to Excel |
 
-### 3.3 Database \& Storage (Latest 2025)
+### 3.3 Database & Storage (Latest 2025)
 
 | Component | Service | Version | Purpose |
 | :-- | :-- | :-- | :-- |
@@ -172,15 +170,14 @@ Each product is a **complete jewelry piece** consisting of:
 | **Session Storage** | JWT Tokens | - | Admin Authentication |
 | **Caching** | Redis | 7.x | Performance Optimization |
 
-### 3.4 DevOps \& Hosting (Latest 2025)
+### 3.4 DevOps & Hosting (Latest 2025)
 
 | Component | Service | Plan | Purpose |
 | :-- | :-- | :-- | :-- |
 | **Frontend Hosting** | Vercel | Free | Mobile-Optimized Hosting |
 | **Backend Hosting** | Railway | Free (500 hrs) | API Hosting |
-| **Monitoring** | Jaeger (Self-hosted) | Free | Distributed Tracing[^2] |
 | **Version Control** | GitHub | Free | Code Repository |
-| **CI/CD** | GitHub Actions | Free | Automated Testing \& Deployment |
+| **CI/CD** | GitHub Actions | Free | Automated Testing & Deployment |
 
 ## 4. System Components
 
@@ -205,7 +202,7 @@ Each product is a **complete jewelry piece** consisting of:
 
 ### 4.2 Backend Components
 
-#### 4.2.1 API Modules (TypeScript + OpenTelemetry)
+#### 4.2.1 API Modules (TypeScript)
 
 - **Authentication Module**: Modern JWT with Argon2 hashing
 - **Product Module**: Complete jewelry CRUD with specifications
@@ -213,7 +210,7 @@ Each product is a **complete jewelry piece** consisting of:
 - **WhatsApp Module**: Complete order message formatting
 - **Upload Module**: Image handling via Imgur API
 - **Analytics Module**: Specification popularity tracking
-- **Observability Module**: OpenTelemetry integration for debugging[^2]
+
 
 
 #### 4.2.2 Database Schema (Complete Products)
@@ -221,11 +218,18 @@ Each product is a **complete jewelry piece** consisting of:
 ```sql
 -- Complete Jewelry Product Structure
 ├── admins (admin authentication)
-├── product_types (chain, bracelet, anklet)
-├── products (id, name, charm_description, chain_description, type, base_price, images)
-├── product_specifications (product_id, spec_type, spec_value, price_modifier)
-├── orders (customer orders with complete product details)
-└── order_items (product_id, specification_chosen, final_price, quantity)
+├── color_themes (configurable color palettes)
+├── product_code_sequences (for generating unique product codes)
+├── product_categories (product categories)
+├── products (complete jewelry products)
+├── orders (customer orders)
+├── order_items (items within an order)
+├── order_status_history (history of order status changes)
+├── expense_categories (expense categories)
+├── expenses (business expenses)
+├── analytics_cache (cache for analytics data)
+├── analytics_metadata (metadata for analytics)
+└── analytics_history (history of analytics data)
 ```
 
 
@@ -240,7 +244,7 @@ WhatsApp Message with Complete Order → Customer Sends Message
 ```
 
 
-### 5.2 Admin Order Processing Flow (With Observability)
+### 5.2 Admin Order Processing Flow
 
 ```
 Receive WhatsApp Order → Update Status (Traced) → 
@@ -255,23 +259,53 @@ Send Status via WhatsApp
 ```typescript
 // Public Endpoints
 interface PublicAPI {
-  'GET /api/products': CompleteJewelryProduct[]
-  'GET /api/products/:id': ProductWithSpecifications
-  'GET /api/products/:id/specifications': AvailableSpecifications
-  'POST /api/orders': CreateOrderWithSpecs
-  'POST /api/whatsapp/generate': WhatsAppMessageWithCompleteOrder
+  'GET /api/products': Product[]
+  'GET /api/products/:id': Product
+  'GET /api/product-types': ProductType[]
+  'POST /api/orders': Order
+  'GET /api/brand-config': BrandConfig
+  'GET /api/themes': Theme[]
 }
 
 // Protected Admin Endpoints
 interface AdminAPI {
-  'POST /api/admin/login': AuthResponse
-  'GET /api/admin/dashboard': DashboardAnalytics
-  'GET /api/admin/orders': OrdersWithSpecifications
-  'PUT /api/admin/orders/:id/status': StatusUpdate
-  'POST /api/admin/whatsapp/status': WhatsAppStatusMessage
-  'POST /api/admin/products': CreateCompleteProduct
-  'PUT /api/admin/products/:id': UpdateProductWithSpecs
-  'POST /api/admin/products/:id/specifications': ManageSpecifications
+  'POST /api/admin/auth/login': AuthResponse
+  'GET /api/admin/auth/profile': AdminProfile
+  'POST /api/admin/auth/change-password': StatusResponse
+  'GET /api/admin/dashboard': DashboardStats
+  'GET /api/admin/products': Product[]
+  'GET /api/admin/products/stats': ProductStats
+  'GET /api/admin/products/:id': Product
+  'POST /api/admin/products': Product
+  'PUT /api/admin/products/:id': Product
+  'DELETE /api/admin/products/:id': StatusResponse
+  'GET /api/admin/orders': Order[]
+  'GET /api/admin/orders/stats': OrderStats
+  'GET /api/admin/orders/export': File
+  'GET /api/admin/orders/:id': Order
+  'POST /api/admin/orders': Order
+  'PUT /api/admin/orders/:id': Order
+  'DELETE /api/admin/orders/:id': StatusResponse
+  'POST /api/admin/orders/:id/approve': StatusResponse
+  'POST /api/admin/orders/:id/send-payment-qr': StatusResponse
+  'POST /api/admin/orders/:id/confirm-payment': StatusResponse
+  'POST /api/admin/orders/:id/send-whatsapp': StatusResponse
+  'POST /api/admin/orders/:id/status-whatsapp': StatusResponse
+  'GET /api/admin/orders/find/:orderCode': Order
+  'POST /api/admin/orders/delete-stale': StatusResponse
+  'GET /api/admin/expenses': Expense[]
+  'GET /api/admin/expenses/categories': ExpenseCategory[]
+  'GET /api/admin/expenses/stats': ExpenseStats
+  'GET /api/admin/expenses/:id': Expense
+  'POST /api/admin/expenses': Expense
+  'PUT /api/admin/expenses/:id': Expense
+  'DELETE /api/admin/expenses/:id': StatusResponse
+  'GET /api/admin/analytics': Analytics
+  'POST /api/admin/analytics/refresh': StatusResponse
+  'GET /api/admin/analytics/status': AnalyticsStatus
+  'GET /api/admin/dashboard/widgets': DashboardWidgets
+  'POST /api/admin/dashboard/widgets/refresh': StatusResponse
+  'GET /api/admin/dashboard/debug/aov': DebugAOV
 }
 ```
 
@@ -281,9 +315,9 @@ interface AdminAPI {
 ### 6.1 Modern Deployment Strategy
 
 - **Frontend**: TypeScript-compiled React app on Vercel with PWA
-- **Backend**: Node.js 20 LTS container on Railway with observability[^1]
+- **Backend**: Node.js 20 LTS container on Railway 
 - **Database**: PostgreSQL 16 on Neon with connection pooling
-- **Monitoring**: Self-hosted Jaeger for distributed tracing[^2]
+- **Monitoring**: Self-hosted Jaeger 
 - **Images**: Optimized uploads to Imgur via API
 
 
@@ -293,14 +327,14 @@ interface AdminAPI {
 Development Environment:
 ├── Node.js 20 LTS + TypeScript
 ├── PostgreSQL 16 (local)
-├── OpenTelemetry (local Jaeger)
+
 └── Hot module replacement (Vite)
 
 Production Environment:
 ├── Vercel (PWA Frontend)
-├── Railway (Node.js 20 + OpenTelemetry)
+
 ├── Neon (PostgreSQL 16)
-├── Jaeger (Distributed Tracing)
+
 └── Imgur (Optimized Images)
 ```
 
@@ -315,7 +349,7 @@ Production Environment:
 | Railway | Free (500 hrs) | \$0 | \$0 |
 | Neon PostgreSQL | Free (0.5GB) | \$0 | \$0 |
 | Imgur | Free | \$0 | \$0 |
-| Jaeger (Self-hosted) | Free | \$0 | \$0 |
+
 | Domain (Optional) | - | \$1.25 | \$15 |
 | **Total** |  | **\$0-1.25** | **\$0-15** |
 
@@ -357,7 +391,7 @@ Production Environment:
 - **TypeScript Coverage**: 100% type safety
 - **Code Quality**: ESLint + Prettier + Husky
 - **Testing**: Vitest + Playwright for E2E
-- **Observability**: OpenTelemetry integration[^1][^2]
+
 - **Security**: Modern authentication + input validation
 
 
@@ -378,7 +412,7 @@ Production Environment:
 | **Node.js 20 Compatibility** | Low | Low | LTS stability, thorough testing |
 | **TypeScript Migration** | Medium | Low | Gradual adoption, strong typing |
 | **PWA Adoption** | Medium | Medium | Progressive enhancement |
-| **Observability Overhead** | Low | Medium | Configurable tracing levels[^1] |
+
 
 ### 9.2 Business Risks
 
@@ -401,7 +435,7 @@ Production Environment:
 ### 10.2 Long-term Vision (2026+)
 
 - **AI Recommendations**: Specification suggestions based on customer preferences
-- **Advanced Observability**: Custom metrics and alerting[^2]
+
 - **Real-time Inventory**: Live specification availability updates
 - **International Expansion**: Multi-currency, multi-language support
 
@@ -416,7 +450,7 @@ Production Environment:
 
 ## Conclusion
 
-This updated High Level Design leverages the latest 2025 technologies including Node.js 20 LTS, TypeScript 5.5+, modern React patterns, and observability tools like OpenTelemetry and Jaeger[^1][^2]. The complete jewelry product model (charm+chain combinations) simplifies both customer experience and inventory management while maintaining scalability.
+This updated High Level Design leverages the latest 2025 technologies including Node.js 20 LTS, TypeScript 5.5+, and modern React patterns. The complete jewelry product model (charm+chain combinations) simplifies both customer experience and inventory management while maintaining scalability.
 
 The architecture prioritizes mobile-first design, type safety, observability, and modern development practices, providing a solid foundation for sustainable growth.
 
@@ -424,13 +458,11 @@ The architecture prioritizes mobile-first design, type safety, observability, an
 
 1. TypeScript-first Low Level Design (LLD) creation
 2. Complete product database schema with specifications
-3. OpenTelemetry integration strategy[^1][^2]
+
 4. PWA implementation roadmap
 5. Mobile-first UI/UX design system development
 
 <div style="text-align: center">⁂</div>
 
-[^1]: tools.troubleshooting
 
-[^2]: tools.distributed_tracing
 

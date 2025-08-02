@@ -9,6 +9,7 @@ import ConfirmationDialog from '@/components/ui/confirmation-dialog';
 import { orderService, dashboardService, type Order, type DashboardWidgets } from '@/services/api';
 import { env } from '@/config/env';
 import { useDocumentTitle } from '@/hooks/useDocumentTitle';
+import Dropdown from '@/components/ui/dropdown';
 import {
   MonthlyOrdersWidget,
   PendingOrdersWidget,
@@ -112,9 +113,16 @@ const AdminOrders: React.FC = () => {
     }
   }, [searchTerm, filterStatus]);
 
-  const handleEditOrder = (order: Order) => {
-    setSelectedOrder(order);
-    setShowEditModal(true);
+  const handleEditOrder = async (order: Order) => {
+    try {
+      // Fetch full order details, including items
+      const fullOrder = await orderService.getOrderById(order.id);
+      setSelectedOrder(fullOrder);
+      setShowEditModal(true);
+    } catch (error) {
+      console.error('Failed to load order details for editing:', error);
+      toast.error('Failed to load order details. Please try again.');
+    }
   };
 
   const handleUpdateOrder = async (orderData: Partial<Order>) => {
@@ -412,19 +420,20 @@ const AdminOrders: React.FC = () => {
             onChange={(e) => setSearchTerm(e.target.value)}
           />
         </div>
-        <select
+        <Dropdown
+          options={[
+            { value: 'All', label: 'All Orders' },
+            { value: 'Payment_pending', label: 'Payment Pending' },
+            { value: 'Confirmed', label: 'Confirmed' },
+            { value: 'Processing', label: 'Processing' },
+            { value: 'Shipped', label: 'Shipped' },
+            { value: 'Delivered', label: 'Delivered' },
+            { value: 'Cancelled', label: 'Cancelled' }
+          ]}
           value={filterStatus}
-          onChange={(e) => setFilterStatus(e.target.value)}
-          className="px-4 py-2 border border-border rounded-md bg-background text-foreground min-w-[140px]"
-        >
-          <option value="All">All Orders</option>
-          <option value="Payment_pending">Payment Pending</option>
-          <option value="Confirmed">Confirmed</option>
-          <option value="Processing">Processing</option>
-          <option value="Shipped">Shipped</option>
-          <option value="Delivered">Delivered</option>
-          <option value="Cancelled">Cancelled</option>
-        </select>
+          onChange={setFilterStatus}
+          placeholder="All Orders"
+        />
       </div>
 
       {/* Orders List */}
@@ -454,92 +463,73 @@ const AdminOrders: React.FC = () => {
                       <ShoppingCart className="w-4 h-4 text-primary" />
                     </div>
                     <div className="flex-1 min-w-0">
-                      <div className="flex items-center justify-between">
-                        <div className="flex-1 min-w-0">
-                          <div className="flex items-center justify-between w-full">
-                            <div className="flex items-center justify-between w-full">
-                              <div>
-                                <h3 className="font-bold text-xl text-foreground">#{order.orderNumber}</h3>
-                                <div className="flex items-center gap-1.5 mt-1">
-                                  <Clock className="w-3.5 h-3.5 text-muted-foreground" />
-                                  <span className="text-xs text-muted-foreground">
-                                    {formatDate(order.createdAt)}
-                                  </span>
-                                </div>
-                              </div>
-
-                              <div className="flex items-center gap-2">
-                                <User className="w-4 h-4 text-muted-foreground" />
-                                <div>
-                                  <p className="font-medium text-sm">{order.customerName}</p>
-                                  <p className="text-muted-foreground text-xs flex items-center gap-1">
-                                    <Mail className="w-3 h-3" />
-                                    {order.customerEmail}
-                                  </p>
-                                </div>
-                              </div>
-
-                              <div className="flex items-center gap-2">
-                                <Phone className="w-4 h-4 text-muted-foreground" />
-                                <div>
-                                  <p className="font-medium text-sm">{order.customerPhone}</p>
-                                  <p className="text-muted-foreground text-xs flex items-center gap-1">
-                                    <MapPin className="w-3 h-3" />
-                                    Address on file
-                                  </p>
-                                </div>
-                              </div>
-
-                              <div className="flex items-center gap-2">
-                                <Package className="w-4 h-4 text-muted-foreground" />
-                                <div>
-                                  <p className="font-medium text-sm">{formatCurrency(order.totalAmount)}</p>
-                                  <p className="text-muted-foreground text-xs">
-                                    {order.items?.length || 0} item(s)
-                                  </p>
-                                </div>
-                              </div>
-
-                              <div className="flex items-center gap-3">
-                                <Badge
-                                  variant={getStatusVariant(order.status)}
-                                  className={`${getStatusColor(order.status)} font-medium px-2 py-0.5`}
-                                >
-                                  {formatStatus(order.status)}
-                                </Badge>
-                              </div>
-                            </div>
+                      <div className="grid grid-cols-4 gap-4 items-center">
+                        <div>
+                          <h3 className="font-bold text-xl text-foreground">#{order.orderNumber}</h3>
+                          <div className="flex items-center gap-1.5 mt-1">
+                            <Clock className="w-3.5 h-3.5 text-muted-foreground" />
+                            <span className="text-xs text-muted-foreground">
+                              {formatDate(order.createdAt)}
+                            </span>
                           </div>
                         </div>
 
-                        <div className="flex flex-col gap-2 ml-6">
-                          {/* Payment-related actions */}
-                          {order.status === 'payment_pending' && (
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              onClick={() => handleSendPaymentQR(order.id)}
-                              className="h-9 px-3 bg-blue-50 border-blue-200 text-blue-700 hover:bg-blue-100 w-28"
-                            >
-                              <MessageCircle className="w-4 h-4 mr-1.5" />
-                              Send QR
-                            </Button>
-                          )}
+                        <div className="flex items-center gap-2">
+                          <User className="w-4 h-4 text-muted-foreground" />
+                          <div>
+                            <p className="font-medium text-sm">{order.customerName}</p>
+                            <p className="text-muted-foreground text-xs">{order.customerPhone}</p>
+                            <p className="text-muted-foreground text-xs">{order.customerEmail}</p>
+                          </div>
+                        </div>
 
-                          {/* Standard actions */}
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => handleEditOrder(order)}
-                            disabled={updating}
-                            className="h-9 px-3 hover:bg-primary/10 w-28"
+                        <div className="flex items-center gap-2">
+                          <Package className="w-4 h-4 text-muted-foreground" />
+                          <div>
+                            <p className="font-medium text-sm">{formatCurrency(order.totalAmount)}</p>
+                            <p className="text-muted-foreground text-xs">
+                              {order.items?.length || 0} item(s)
+                            </p>
+                          </div>
+                        </div>
+
+                        <div className="flex items-center justify-center">
+                          <Badge
+                            variant={getStatusVariant(order.status)}
+                            className={`${getStatusColor(order.status)} font-medium px-2 py-0.5 min-w-[80px] text-center`}
                           >
-                            <Edit className="w-4 h-4 mr-1.5" />
-                            Edit
-                          </Button>
+                            {formatStatus(order.status)}
+                          </Badge>
                         </div>
                       </div>
                     </div>
+                  </div>
+
+                  <div className="flex flex-col gap-2 ml-6">
+                    {/* Payment-related actions */}
+                    {order.status === 'payment_pending' && (
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => handleSendPaymentQR(order.id)}
+                        className="h-9 px-3 bg-blue-50 border-blue-200 text-blue-700 hover:bg-blue-100 w-28"
+                      >
+                        <MessageCircle className="w-4 h-4 mr-1.5" />
+                        Send QR
+                      </Button>
+                    )}
+
+                    {/* Standard actions */}
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => handleEditOrder(order)}
+                      disabled={updating}
+                      className="h-9 px-3 hover:bg-primary/10 w-28"
+                    >
+                      <Edit className="w-4 h-4 mr-1.5" />
+                      Edit
+                    </Button>
                   </div>
                 </div>
               </CardContent>
@@ -549,101 +539,110 @@ const AdminOrders: React.FC = () => {
       </div>
 
       {/* Pagination */}
-      {totalPages > 1 && (
-        <div className="flex items-center justify-center gap-2 mt-8">
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => handlePageChange(currentPage - 1)}
-            disabled={currentPage === 1 || loading}
-            className="h-10 px-3"
-          >
-            <ChevronLeft className="w-4 h-4" />
-          </Button>
+      {
+        totalPages > 1 && (
+          <div className="flex items-center justify-center gap-2 mt-8">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => handlePageChange(currentPage - 1)}
+              disabled={currentPage === 1 || loading}
+              className="h-10 px-3"
+            >
+              <ChevronLeft className="w-4 h-4" />
+            </Button>
 
-          <div className="flex gap-1">
-            {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
-              let pageNumber;
-              if (totalPages <= 5) {
-                pageNumber = i + 1;
-              } else if (currentPage <= 3) {
-                pageNumber = i + 1;
-              } else if (currentPage >= totalPages - 2) {
-                pageNumber = totalPages - 4 + i;
-              } else {
-                pageNumber = currentPage - 2 + i;
-              }
+            <div className="flex gap-1">
+              {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
+                let pageNumber;
+                if (totalPages <= 5) {
+                  pageNumber = i + 1;
+                } else if (currentPage <= 3) {
+                  pageNumber = i + 1;
+                } else if (currentPage >= totalPages - 2) {
+                  pageNumber = totalPages - 4 + i;
+                } else {
+                  pageNumber = currentPage - 2 + i;
+                }
 
-              return (
-                <Button
-                  key={pageNumber}
-                  variant={currentPage === pageNumber ? "default" : "outline"}
-                  size="sm"
-                  onClick={() => handlePageChange(pageNumber)}
-                  disabled={loading}
-                  className="h-10 w-10"
-                >
-                  {pageNumber}
-                </Button>
-              );
-            })}
+                return (
+                  <Button
+                    key={pageNumber}
+                    variant={currentPage === pageNumber ? "default" : "outline"}
+                    size="sm"
+                    onClick={() => handlePageChange(pageNumber)}
+                    disabled={loading}
+                    className="h-10 w-10"
+                  >
+                    {pageNumber}
+                  </Button>
+                );
+              })}
+            </div>
+
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => handlePageChange(currentPage + 1)}
+              disabled={currentPage === totalPages || loading}
+              className="h-10 px-3"
+            >
+              <ChevronRight className="w-4 h-4" />
+            </Button>
           </div>
-
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => handlePageChange(currentPage + 1)}
-            disabled={currentPage === totalPages || loading}
-            className="h-10 px-3"
-          >
-            <ChevronRight className="w-4 h-4" />
-          </Button>
-        </div>
-      )}
+        )
+      }
 
       {/* Edit Order Modal */}
-      {showEditModal && selectedOrder && (
-        <OrderEditModal
-          order={selectedOrder}
-          isOpen={showEditModal}
-          onClose={() => {
-            setShowEditModal(false);
-            setSelectedOrder(null);
-          }}
-          onSave={handleUpdateOrder}
-          updating={updating}
-        />
-      )}
+      {
+        showEditModal && selectedOrder && (
+          <OrderEditModal
+            order={selectedOrder}
+            isOpen={showEditModal}
+            onClose={() => {
+              setShowEditModal(false);
+              setSelectedOrder(null);
+            }}
+            onSave={handleUpdateOrder}
+            updating={updating}
+            formatCurrency={formatCurrency}
+          />
+        )
+      }
 
       {/* Export Modal */}
-      {showExportModal && (
-        <ExportModal
-          isOpen={showExportModal}
-          onClose={() => setShowExportModal(false)}
-          onExport={handleExportOrders}
-          exporting={exporting}
-          exportDateFrom={exportDateFrom}
-          setExportDateFrom={setExportDateFrom}
-          exportDateTo={exportDateTo}
-          setExportDateTo={setExportDateTo}
-        />
-      )}
+      {
+        showExportModal && (
+          <ExportModal
+            isOpen={showExportModal}
+            onClose={() => setShowExportModal(false)}
+            onExport={handleExportOrders}
+            exporting={exporting}
+            exportDateFrom={exportDateFrom}
+            setExportDateFrom={setExportDateFrom}
+            exportDateTo={exportDateTo}
+            setExportDateTo={setExportDateTo}
+          />
+        )
+      }
 
       {/* Delete Stale Orders Modal */}
-      {showDeleteStaleModal && (
-        <ConfirmationDialog
-          isOpen={showDeleteStaleModal}
-          onClose={() => setShowDeleteStaleModal(false)}
-          onConfirm={handleDeleteStaleOrders}
-          title="Delete Stale Orders"
-          description="This will permanently delete all payment_pending orders older than 6 hours. This action cannot be undone."
-          confirmText="Delete Stale Orders"
-          cancelText="Cancel"
-          variant="destructive"
-          confirmButtonVariant="destructive"
-        />
-      )}
-    </div>
+      {
+        showDeleteStaleModal && (
+          <ConfirmationDialog
+            isOpen={showDeleteStaleModal}
+            onClose={() => setShowDeleteStaleModal(false)}
+            onConfirm={handleDeleteStaleOrders}
+            title="Delete Stale Orders"
+            description="This will permanently delete all payment_pending orders older than 6 hours. This action cannot be undone."
+            confirmText="Delete Stale Orders"
+            cancelText="Cancel"
+            variant="destructive"
+            confirmButtonVariant="destructive"
+          />
+        )
+      }
+    </div >
   );
 };
 
@@ -654,6 +653,7 @@ interface OrderEditModalProps {
   onClose: () => void;
   onSave: (orderData: Partial<Order>) => void;
   updating: boolean;
+  formatCurrency: (amount: string | number) => string;
 }
 
 const OrderEditModal: React.FC<OrderEditModalProps> = ({
@@ -661,11 +661,11 @@ const OrderEditModal: React.FC<OrderEditModalProps> = ({
   isOpen,
   onClose,
   onSave,
-  updating
+  updating,
+  formatCurrency
 }) => {
   const [formData, setFormData] = useState({
     customerName: order.customerName,
-    customerEmail: order.customerEmail,
     customerPhone: order.customerPhone,
     customerAddress: order.customerAddress,
     status: order.status
@@ -694,25 +694,14 @@ const OrderEditModal: React.FC<OrderEditModalProps> = ({
           </div>
 
           <div className="space-y-4">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <label className="block text-sm font-medium mb-2">Customer Name</label>
-                <Input
-                  value={formData.customerName}
-                  disabled
-                  placeholder="Customer name"
-                  className="bg-muted cursor-not-allowed"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium mb-2">Email</label>
-                <Input
-                  value={formData.customerEmail}
-                  disabled
-                  placeholder="Customer email"
-                  className="bg-muted cursor-not-allowed"
-                />
-              </div>
+            <div>
+              <label className="block text-sm font-medium mb-2">Customer Name</label>
+              <Input
+                value={formData.customerName}
+                disabled
+                placeholder="Customer name"
+                className="bg-muted cursor-not-allowed"
+              />
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -730,7 +719,7 @@ const OrderEditModal: React.FC<OrderEditModalProps> = ({
                 <select
                   value={formData.status}
                   onChange={(e) => setFormData({ ...formData, status: e.target.value as Order['status'] })}
-                  className="w-full px-3 py-2 border border-border rounded-md bg-background"
+                  className="w-full px-3 py-2 border border-border rounded-md bg-background text-sm"
                 >
                   <option value="payment_pending">Payment Pending</option>
                   <option value="confirmed">Confirmed</option>
@@ -748,8 +737,27 @@ const OrderEditModal: React.FC<OrderEditModalProps> = ({
                 value={formData.customerAddress}
                 disabled
                 placeholder="Customer address"
-                className="w-full px-3 py-2 border border-border rounded-md bg-muted cursor-not-allowed min-h-[80px]"
+                className="w-full px-3 py-2 border border-border rounded-md bg-muted cursor-not-allowed min-h-[80px] text-sm"
               />
+            </div>
+
+            {/* Order Items Details */}
+            <div className="space-y-2">
+              <label className="block text-sm font-medium">Order Items</label>
+              <div className="space-y-2 max-h-40 overflow-y-auto">
+                {order.items?.map(item => (
+                  <div key={item.id} className="flex justify-between items-center text-sm">
+                    <div>
+                      <p className="font-semibold text-foreground">{item.product?.name || 'N/A'}</p>
+                      <p className="text-xs text-muted-foreground">SKU: {item.product?.productCode || 'N/A'}</p>
+                    </div>
+                    <div className="text-right">
+                      <p className="font-medium">x{item.quantity}</p>
+                      <p className="text-xs text-muted-foreground">{formatCurrency(item.unitPrice)}</p>
+                    </div>
+                  </div>
+                ))}
+              </div>
             </div>
 
 

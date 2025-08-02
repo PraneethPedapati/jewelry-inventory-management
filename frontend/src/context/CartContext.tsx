@@ -2,23 +2,22 @@ import React, { createContext, useState, useCallback } from 'react';
 
 // Types for cart items and products
 export interface Product {
-  id: string; // Changed to string for UUID compatibility
+  id: string;
+  productCode: string;
   name: string;
+  description: string;
+  productType: string;
+  categoryId?: string;
+  price: string;
+  discountedPrice?: string;
   images: string[];
-  category: string;
-  description?: string;
-}
-
-export interface ProductSpecification {
-  id: string; // Changed to string for UUID compatibility
-  displayName: string;
-  value: string;
-  type: 'size' | 'layer' | 'material' | 'color';
+  isActive: boolean;
+  createdAt: string;
+  updatedAt: string;
 }
 
 export interface CartItem {
   product: Product;
-  specification: ProductSpecification | null;
   size?: string; // Simple size string for bracelet products
   quantity: number;
   price: number;
@@ -27,13 +26,13 @@ export interface CartItem {
 // Context interface
 interface CartContextType {
   cart: CartItem[];
-  addToCart: (product: Product, specification: ProductSpecification | null, quantity: number, price: number, size?: string) => void;
-  updateQuantity: (productId: string, specificationId: string, newQuantity: number) => void;
-  removeFromCart: (productId: string, specificationId: string) => void;
+  addToCart: (product: Product, quantity: number, price: number, size?: string) => void;
+  updateQuantity: (productId: string, newQuantity: number, size?: string) => void;
+  removeFromCart: (productId: string, size?: string) => void;
   getTotalPrice: () => number;
   getTotalItems: () => number;
   clearCart: () => void;
-  isInCart: (productId: string, specificationId: string) => boolean;
+  isInCart: (productId: string, size?: string) => boolean;
 }
 
 // Create context
@@ -44,13 +43,10 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [cart, setCart] = useState<CartItem[]>([]);
 
   // Add item to cart
-  const addToCart = useCallback((product: Product, specification: ProductSpecification | null, quantity: number, price: number, size?: string) => {
+  const addToCart = useCallback((product: Product, quantity: number, price: number, size?: string) => {
     setCart(prevCart => {
       const existingItemIndex = prevCart.findIndex(
-        item => item.product.id === product.id &&
-          ((item.specification?.id === specification?.id) ||
-            (item.specification === null && specification === null)) &&
-          item.size === size
+        item => item.product.id === product.id && item.size === size
       );
 
       if (existingItemIndex > -1) {
@@ -63,34 +59,30 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
         return updatedCart;
       } else {
         // New item, add to cart
-        return [...prevCart, { product, specification, size, quantity, price }];
+        return [...prevCart, { product, size, quantity, price } as CartItem];
       }
     });
   }, []);
 
   // Remove item from cart
-  const removeFromCart = useCallback((productId: string, specificationId: string) => {
+  const removeFromCart = useCallback((productId: string, size?: string) => {
     setCart(prevCart =>
       prevCart.filter(
-        item => !(item.product.id === productId &&
-          ((item.specification?.id === specificationId) ||
-            (item.specification === null && specificationId === '')))
+        item => !(item.product.id === productId && item.size === size)
       )
     );
   }, []);
 
   // Update quantity of existing item
-  const updateQuantity = useCallback((productId: string, specificationId: string, newQuantity: number) => {
+  const updateQuantity = useCallback((productId: string, newQuantity: number, size?: string) => {
     if (newQuantity <= 0) {
-      removeFromCart(productId, specificationId);
+      removeFromCart(productId, size);
       return;
     }
 
     setCart(prevCart =>
       prevCart.map(item =>
-        item.product.id === productId &&
-          ((item.specification?.id === specificationId) ||
-            (item.specification === null && specificationId === ''))
+        item.product.id === productId && item.size === size
           ? { ...item, quantity: newQuantity }
           : item
       )
@@ -113,11 +105,9 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
   }, []);
 
   // Check if item is in cart
-  const isInCart = useCallback((productId: string, specificationId: string) => {
+  const isInCart = useCallback((productId: string, size?: string) => {
     return cart.some(
-      item => item.product.id === productId &&
-        ((item.specification?.id === specificationId) ||
-          (item.specification === null && specificationId === ''))
+      item => item.product.id === productId && item.size === size
     );
   }, [cart]);
 

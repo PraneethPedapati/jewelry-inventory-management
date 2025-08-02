@@ -9,6 +9,7 @@ import { toast } from 'sonner';
 import { authService, type AdminLoginRequest } from '@/services/api';
 import { env } from '@/config/env';
 import { useDocumentTitle } from '@/hooks/useDocumentTitle';
+import Logo from '@/components/ui/Logo';
 
 interface AdminLoginProps {
   onLogin: (isLoggedIn: boolean) => void;
@@ -88,11 +89,11 @@ const AdminLogin: React.FC<AdminLoginProps> = ({ onLogin }) => {
 
       <Card className="w-full max-w-md shadow-lg">
         <CardHeader className="text-center space-y-4">
-          <div className="mx-auto w-16 h-16 bg-primary rounded-full flex items-center justify-center">
-            <LogIn className="w-8 h-8 text-primary-foreground" />
+          <div className="mx-auto flex justify-center">
+            <Logo size="xl" variant="icon" />
           </div>
           <div>
-            <CardTitle className="text-2xl font-bold">{env.VITE_COMPANY_NAME}</CardTitle>
+            <CardTitle className="text-2xl font-bold">Admin Login</CardTitle>
             <CardDescription className="text-muted-foreground">
               Access the {env.VITE_COMPANY_SHORT_NAME} admin panel
             </CardDescription>

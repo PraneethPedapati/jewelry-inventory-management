@@ -19,7 +19,13 @@ const AdminDashboard: React.FC = () => {
   const [widgetsData, setWidgetsData] = useState<DashboardWidgets | null>(null);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
-  const [cacheStatus, setCacheStatus] = useState<any>(null);
+  const [cacheStatus, setCacheStatus] = useState<{
+    hasCache: boolean;
+    isStale: boolean;
+    age: number;
+    lastUpdated: Date | null;
+    source: 'memory' | 'localStorage' | null;
+  } | null>(null);
   const navigate = useNavigate();
 
   // Set document title
@@ -36,6 +42,21 @@ const AdminDashboard: React.FC = () => {
     }
 
     console.log('✅ Admin token found, proceeding to load dashboard');
+
+    // Initialize cache and handle hard reload detection
+    const initializeCache = () => {
+      // Check if this is a hard reload
+      const navigationEntry = window.performance.getEntriesByType('navigation')[0] as any;
+      const isHardReload = !navigationEntry || navigationEntry.type === 'reload';
+
+      if (isHardReload) {
+        console.log('🔄 Hard reload detected, clearing persistent cache');
+        // Clear persistent cache on hard reload
+        localStorage.removeItem('cache_DASHBOARD_WIDGETS');
+      }
+    };
+
+    initializeCache();
     loadWidgetsData();
   }, [navigate]);
 
@@ -82,9 +103,10 @@ const AdminDashboard: React.FC = () => {
       const data = await dashboardService.getWidgets();
       setWidgetsData(data);
 
-      // Update cache status
+      // Update cache status after loading
       const status = dashboardService.getCacheStatus();
       setCacheStatus(status);
+      console.log('📊 Cache status after loading:', status);
 
       console.log('✅ Widgets loaded successfully');
     } catch (error) {
@@ -183,13 +205,18 @@ const AdminDashboard: React.FC = () => {
             <div className="flex items-center gap-2 mt-2 text-sm text-muted-foreground">
               {cacheStatus.hasCache ? (
                 <>
-                  <span>📊 Using cached data</span>
+                  <span className="flex items-center gap-1">
+                    📊 Using cached data
+                    {cacheStatus.source === 'localStorage' && <span className="text-blue-600">(persistent)</span>}
+                    {cacheStatus.source === 'memory' && <span className="text-green-600">(memory)</span>}
+                  </span>
                   {cacheStatus.lastUpdated && (
                     <span>• Last updated: {cacheStatus.lastUpdated.toLocaleTimeString()}</span>
                   )}
                   {cacheStatus.isStale && (
                     <span className="text-orange-600">• Data may be stale</span>
                   )}
+                  <span>• Age: {Math.round(cacheStatus.age / 1000)}s</span>
                 </>
               ) : (
                 <span>🔄 Fresh data from server</span>

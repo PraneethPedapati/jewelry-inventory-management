@@ -64,7 +64,7 @@ frontend/
 - **Backend**: Node.js 20 LTS + Express + TypeScript 5.5+
 - **Frontend**: React 18.3+ + Vite + Tailwind CSS + PWA
 - **Database**: PostgreSQL 16 with Drizzle ORM
-- **Monitoring**: OpenTelemetry + Jaeger integration ready
+
 - **Authentication**: JWT with Argon2 password hashing
 
 ### 📱 Mobile-First Design
@@ -158,7 +158,7 @@ backend/src/db/
 ```bash
 # Backend utilities
 backend/src/utils/
-├── tracing.ts                     # OpenTelemetry setup
+
 ├── errors.ts                      # Custom error classes
 ├── cache.ts                       # Redis caching
 ├── validation.ts                  # Zod schemas

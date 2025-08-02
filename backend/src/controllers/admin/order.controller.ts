@@ -2,7 +2,7 @@ import { Request, Response } from 'express';
 import { z } from 'zod';
 import { db } from '../../db/connection.js';
 import { orders, orderItems, products } from '../../db/schema.js';
-import { eq, desc, and, like, or, gte, lte, lt, count } from 'drizzle-orm';
+import { eq, desc, and, like, or, gte, lte, lt, count, sql } from 'drizzle-orm';
 import { asyncHandler } from '../../middleware/error-handler.middleware.js';
 import { WhatsAppService } from '../../services/whatsapp.service.js';
 import { OrderCodeService } from '../../services/order-code.service.js';
@@ -12,7 +12,6 @@ import { config } from '../../config/app.js';
 const CreateOrderSchema = z.object({
   body: z.object({
     customerName: z.string().min(1, 'Customer name is required'),
-    customerEmail: z.string().email('Valid email is required'),
     customerPhone: z.string().min(1, 'Phone number is required'),
     customerAddress: z.string().min(1, 'Address is required'),
     items: z.array(z.object({
@@ -27,7 +26,7 @@ const CreateOrderSchema = z.object({
 const UpdateOrderSchema = z.object({
   body: z.object({
     customerName: z.string().optional(),
-    customerEmail: z.string().email().optional(),
+
     customerPhone: z.string().optional(),
     customerAddress: z.string().optional(),
     status: z.enum(['payment_pending', 'confirmed', 'processing', 'shipped', 'delivered', 'cancelled']).optional(),
@@ -90,11 +89,10 @@ export const getOrders = asyncHandler(async (req: Request, res: Response) => {
   if (search && typeof search === 'string') {
     conditions.push(
       or(
-        like(orders.orderNumber, `%${search}%`),
-        like(orders.orderCode, `%${search}%`),
-        like(orders.customerName, `%${search}%`),
-        like(orders.customerEmail, `%${search}%`),
-        like(orders.customerPhone, `%${search}%`)
+        sql`LOWER(${orders.orderNumber}) LIKE ${`%${search.toLowerCase()}%`}`,
+        sql`LOWER(${orders.orderCode}) LIKE ${`%${search.toLowerCase()}%`}`,
+        sql`LOWER(${orders.customerName}) LIKE ${`%${search.toLowerCase()}%`}`,
+        sql`LOWER(${orders.customerPhone}) LIKE ${`%${search.toLowerCase()}%`}`
       )
     );
   }
@@ -116,8 +114,8 @@ export const getOrders = asyncHandler(async (req: Request, res: Response) => {
     .select({
       id: orders.id,
       orderNumber: orders.orderNumber,
+      orderCode: orders.orderCode,
       customerName: orders.customerName,
-      customerEmail: orders.customerEmail,
       customerPhone: orders.customerPhone,
       customerAddress: orders.customerAddress,
       totalAmount: orders.totalAmount,
@@ -149,10 +147,38 @@ export const getOrders = asyncHandler(async (req: Request, res: Response) => {
 
   const totalCount = totalCountResult[0]?.count || 0;
 
+  // Fetch items for each order
+  const ordersWithItems = await Promise.all(
+    result.map(async (order) => {
+      const items = await db
+        .select({
+          id: orderItems.id,
+          quantity: orderItems.quantity,
+          unitPrice: orderItems.unitPrice,
+          totalPrice: orderItems.totalPrice,
+          productSnapshot: orderItems.productSnapshot,
+          product: {
+            id: products.id,
+            name: products.name,
+            description: products.description,
+            productCode: products.productCode
+          }
+        })
+        .from(orderItems)
+        .leftJoin(products, eq(orderItems.productId, products.id))
+        .where(eq(orderItems.orderId, order.id));
+
+      return {
+        ...order,
+        items
+      };
+    })
+  );
+
   res.json({
     success: true,
     data: {
-      orders: result,
+      orders: ordersWithItems,
       pagination: {
         page: pageNum,
         limit: limitNum,
@@ -202,7 +228,8 @@ export const getOrderById = asyncHandler(async (req: Request, res: Response) => 
       product: {
         id: products.id,
         name: products.name,
-        description: products.description
+        description: products.description,
+        productCode: products.productCode
       }
     })
     .from(orderItems)
@@ -282,7 +309,6 @@ export const createOrder = asyncHandler(async (req: Request, res: Response) => {
       orderNumber,
       orderCode,
       customerName: body.customerName,
-      customerEmail: body.customerEmail,
       customerPhone: body.customerPhone,
       customerAddress: body.customerAddress,
       totalAmount: totalAmount.toString(),
@@ -340,7 +366,6 @@ export const updateOrder = asyncHandler(async (req: Request, res: Response) => {
   };
 
   if (body.customerName !== undefined) updateData.customerName = body.customerName;
-  if (body.customerEmail !== undefined) updateData.customerEmail = body.customerEmail;
   if (body.customerPhone !== undefined) updateData.customerPhone = body.customerPhone;
   if (body.customerAddress !== undefined) updateData.customerAddress = body.customerAddress;
   if (body.status !== undefined) updateData.status = body.status;
@@ -486,22 +511,21 @@ export const exportOrders = asyncHandler(async (req: Request, res: Response) => 
     }
   });
 
-  const ordersWithItems = Array.from(ordersMap.values());
+  const ordersWithItems = Array.from(ordersMap.values()) as any[];
 
   if (format === 'csv') {
     const csvData = [
-      ['Order Number', 'Customer Name', 'Email', 'Phone', 'Address', 'Amount', 'Status', 'Date', 'Items'].join(','),
-      ...ordersWithItems.map(order => [
+      ['Order Number', 'Customer Name', 'Phone', 'Address', 'Amount', 'Status', 'Date', 'Items'].join(','),
+      ...ordersWithItems.map((order: any) => [
         order.orderNumber,
         `"${order.customerName}"`,
-        order.customerEmail,
         order.customerPhone,
         `"${order.customerAddress}"`,
         order.totalAmount,
         order.status,
         order.createdAt ? order.createdAt.toISOString().split('T')[0] : 'N/A',
-        `"${order.items.map(item => `${item.product?.name || 'Unknown'} (${item.quantity})`).join('; ')}"`
-      ].join(','))
+        `"${order.items.map((item: { product?: { name?: string | null } | null, quantity: number }) => `${item.product?.name || 'Unknown'} (${item.quantity})`).join('; ')}"`
+      ])
     ].join('\n');
 
     res.setHeader('Content-Type', 'text/csv');
@@ -517,7 +541,6 @@ export const exportOrders = asyncHandler(async (req: Request, res: Response) => 
     worksheet.columns = [
       { header: 'Order Number', key: 'orderNumber', width: 15 },
       { header: 'Customer Name', key: 'customerName', width: 20 },
-      { header: 'Email', key: 'email', width: 25 },
       { header: 'Phone', key: 'phone', width: 15 },
       { header: 'Address', key: 'address', width: 30 },
       { header: 'Amount (₹)', key: 'amount', width: 12 },
@@ -531,13 +554,12 @@ export const exportOrders = asyncHandler(async (req: Request, res: Response) => 
       worksheet.addRow({
         orderNumber: order.orderNumber,
         customerName: order.customerName,
-        email: order.customerEmail,
         phone: order.customerPhone,
         address: order.customerAddress,
         amount: order.totalAmount,
         status: order.status,
         date: order.createdAt ? order.createdAt.toISOString().split('T')[0] : 'N/A',
-        items: order.items.map(item => `${item.product?.name || 'Unknown'} (${item.quantity})`).join('; ')
+        items: order.items.map((item: { product?: { name?: string | null } | null, quantity: number }) => `${item.product?.name || 'Unknown'} (${item.quantity})`).join('; ')
       });
     });
 
@@ -617,7 +639,6 @@ export const approveOrder = asyncHandler(async (req: Request, res: Response) => 
     id: currentOrder.id,
     orderNumber: currentOrder.orderNumber || '',
     customerName: currentOrder.customerName || '',
-    customerEmail: currentOrder.customerEmail || '',
     customerPhone: currentOrder.customerPhone || '',
     customerAddress: currentOrder.customerAddress || '',
     totalAmount: parseFloat(currentOrder.totalAmount),
@@ -627,7 +648,7 @@ export const approveOrder = asyncHandler(async (req: Request, res: Response) => 
     notes: currentOrder.notes || '',
     createdAt: currentOrder.createdAt?.toISOString() || new Date().toISOString(),
     updatedAt: currentOrder.updatedAt?.toISOString() || new Date().toISOString(),
-    items: items.map(item => ({
+    items: items.map((item: any) => ({
       ...item,
       unitPrice: parseFloat(item.unitPrice),
       totalPrice: parseFloat(item.totalPrice || '0'),
@@ -736,7 +757,6 @@ export const sendPaymentQR = asyncHandler(async (req: Request, res: Response) =>
     id: currentOrder.id,
     orderNumber: currentOrder.orderNumber || '',
     customerName: currentOrder.customerName || '',
-    customerEmail: currentOrder.customerEmail || '',
     customerPhone: currentOrder.customerPhone || '',
     customerAddress: currentOrder.customerAddress || '',
     totalAmount: parseFloat(currentOrder.totalAmount),
@@ -746,7 +766,7 @@ export const sendPaymentQR = asyncHandler(async (req: Request, res: Response) =>
     notes: currentOrder.notes || '',
     createdAt: currentOrder.createdAt?.toISOString() || new Date().toISOString(),
     updatedAt: currentOrder.updatedAt?.toISOString() || new Date().toISOString(),
-    items: items.map(item => ({
+    items: items.map((item: any) => ({
       ...item,
       unitPrice: parseFloat(item.unitPrice),
       totalPrice: parseFloat(item.totalPrice || '0'),
@@ -838,7 +858,6 @@ export const confirmPayment = asyncHandler(async (req: Request, res: Response) =
     id: currentOrder.id,
     orderNumber: currentOrder.orderNumber || '',
     customerName: currentOrder.customerName || '',
-    customerEmail: currentOrder.customerEmail || '',
     customerPhone: currentOrder.customerPhone || '',
     customerAddress: currentOrder.customerAddress || '',
     totalAmount: parseFloat(currentOrder.totalAmount),
@@ -848,7 +867,7 @@ export const confirmPayment = asyncHandler(async (req: Request, res: Response) =
     notes: currentOrder.notes || '',
     createdAt: currentOrder.createdAt?.toISOString() || new Date().toISOString(),
     updatedAt: currentOrder.updatedAt?.toISOString() || new Date().toISOString(),
-    items: items.map(item => ({
+    items: items.map((item: any) => ({
       ...item,
       unitPrice: parseFloat(item.unitPrice),
       totalPrice: parseFloat(item.totalPrice || '0'),
@@ -1044,7 +1063,6 @@ export const generateStatusWhatsApp = asyncHandler(async (req: Request, res: Res
     id: currentOrder.id,
     orderNumber: currentOrder.orderNumber || '',
     customerName: currentOrder.customerName || '',
-    customerEmail: currentOrder.customerEmail || '',
     customerPhone: currentOrder.customerPhone || '',
     customerAddress: currentOrder.customerAddress || '',
     totalAmount: parseFloat(currentOrder.totalAmount),
@@ -1054,7 +1072,7 @@ export const generateStatusWhatsApp = asyncHandler(async (req: Request, res: Res
     notes: currentOrder.notes || '',
     createdAt: currentOrder.createdAt?.toISOString() || new Date().toISOString(),
     updatedAt: currentOrder.updatedAt?.toISOString() || new Date().toISOString(),
-    items: items.map(item => ({
+    items: items.map((item: any) => ({
       ...item,
       unitPrice: parseFloat(item.unitPrice),
       totalPrice: parseFloat(item.totalPrice || '0'),

@@ -2,7 +2,7 @@ import { Request, Response } from 'express';
 import { z } from 'zod';
 import { db } from '../../db/connection.js';
 import { expenses, expenseCategories, admins } from '../../db/schema.js';
-import { eq, desc, and, like, or, gte, lte, count } from 'drizzle-orm';
+import { eq, desc, and, like, or, gte, lte, count, sql } from 'drizzle-orm';
 import { asyncHandler } from '../../middleware/error-handler.middleware.js';
 
 // Validation schemas
@@ -57,8 +57,8 @@ export const getExpenses = asyncHandler(async (req: Request, res: Response) => {
   if (search && typeof search === 'string') {
     conditions.push(
       or(
-        like(expenses.title, `%${search}%`),
-        like(expenses.description, `%${search}%`)
+        sql`LOWER(${expenses.title}) LIKE ${`%${search.toLowerCase()}%`}`,
+        sql`LOWER(${expenses.description}) LIKE ${`%${search.toLowerCase()}%`}`
       )
     );
   }

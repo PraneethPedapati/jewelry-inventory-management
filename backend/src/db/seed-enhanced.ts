@@ -478,7 +478,7 @@ const seedDatabase = async (): Promise<void> => {
         orderNumber: `INV${String(i + 1).padStart(6, '0')}`,
         orderCode: `ORD${String(i + 1).padStart(3, '0')}`,
         customerName: name || 'Unknown Customer',
-        customerEmail: customerEmails[i] || 'customer@example.com',
+        
         customerPhone: customerPhones[i] || '+1234567890',
         customerAddress: addresses[i % addresses.length] || 'No address provided',
         totalAmount,

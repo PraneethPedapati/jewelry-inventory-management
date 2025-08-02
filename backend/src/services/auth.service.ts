@@ -9,7 +9,7 @@ import {
   UnauthorizedError,
   NotFoundError
 } from '../utils/errors.js';
-import { traceBusinessLogic } from '../utils/tracing.js';
+
 import type { AdminLoginRequest, AdminLoginResponse, Admin } from '../types/api.js';
 
 export class AuthService {
@@ -17,46 +17,44 @@ export class AuthService {
    * Authenticate admin user with email and password
    */
   static async login(credentials: AdminLoginRequest): Promise<AdminLoginResponse> {
-    return traceBusinessLogic('admin_login', async () => {
-      const { email, password } = credentials;
+    const { email, password } = credentials;
 
-      // Find admin by email
-      const [admin] = await db
-        .select()
-        .from(admins)
-        .where(eq(admins.email, email))
-        .limit(1);
+    // Find admin by email
+    const [admin] = await db
+      .select()
+      .from(admins)
+      .where(eq(admins.email, email))
+      .limit(1);
 
-      if (!admin) {
-        throw new InvalidCredentialsError();
-      }
+    if (!admin) {
+      throw new InvalidCredentialsError();
+    }
 
-      // Verify password
-      const isValidPassword = await verify(admin.passwordHash, password);
-      if (!isValidPassword) {
-        throw new InvalidCredentialsError();
-      }
+    // Verify password
+    const isValidPassword = await verify(admin.passwordHash, password);
+    if (!isValidPassword) {
+      throw new InvalidCredentialsError();
+    }
 
-      // Update last login timestamp
-      await db
-        .update(admins)
-        .set({ lastLogin: new Date() })
-        .where(eq(admins.id, admin.id));
+    // Update last login timestamp
+    await db
+      .update(admins)
+      .set({ lastLogin: new Date() })
+      .where(eq(admins.id, admin.id));
 
-      // Generate JWT token
-      const token = await this.generateToken(admin.id);
+    // Generate JWT token
+    const token = await this.generateToken(admin.id);
 
-      return {
-        token,
-        admin: {
-          id: admin.id,
-          name: admin.name,
-          email: admin.email,
-          role: admin.role || 'admin', // Provide default value if role is null
-        },
-        expiresIn: 24 * 60 * 60, // 24 hours in seconds
-      };
-    });
+    return {
+      token,
+      admin: {
+        id: admin.id,
+        name: admin.name,
+        email: admin.email,
+        role: admin.role || 'admin', // Provide default value if role is null
+      },
+      expiresIn: 24 * 60 * 60, // 24 hours in seconds
+    };
   }
 
   /**
@@ -106,29 +104,27 @@ export class AuthService {
    * Get admin by ID
    */
   static async getAdminById(adminId: string): Promise<Admin> {
-    return traceBusinessLogic('get_admin_by_id', async () => {
-      const [admin] = await db
-        .select({
-          id: admins.id,
-          name: admins.name,
-          email: admins.email,
-          role: admins.role,
-        })
-        .from(admins)
-        .where(eq(admins.id, adminId))
-        .limit(1);
+    const [admin] = await db
+      .select({
+        id: admins.id,
+        name: admins.name,
+        email: admins.email,
+        role: admins.role,
+      })
+      .from(admins)
+      .where(eq(admins.id, adminId))
+      .limit(1);
 
-      if (!admin) {
-        throw new NotFoundError('Admin');
-      }
+    if (!admin) {
+      throw new NotFoundError('Admin');
+    }
 
-      return {
-        id: admin.id,
-        name: admin.name,
-        email: admin.email,
-        role: admin.role || 'admin', // Provide default value if role is null
-      };
-    });
+    return {
+      id: admin.id,
+      name: admin.name,
+      email: admin.email,
+      role: admin.role || 'admin', // Provide default value if role is null
+    };
   }
 
   /**
@@ -140,50 +136,48 @@ export class AuthService {
     name: string;
     role?: string;
   }): Promise<Admin> {
-    return traceBusinessLogic('create_admin', async () => {
-      const { email, password, name, role = 'admin' } = adminData;
+    const { email, password, name, role = 'admin' } = adminData;
 
-      // Check if admin with email already exists
-      const [existingAdmin] = await db
-        .select()
-        .from(admins)
-        .where(eq(admins.email, email))
-        .limit(1);
+    // Check if admin with email already exists
+    const [existingAdmin] = await db
+      .select()
+      .from(admins)
+      .where(eq(admins.email, email))
+      .limit(1);
 
-      if (existingAdmin) {
-        throw new Error('Admin with this email already exists');
-      }
+    if (existingAdmin) {
+      throw new Error('Admin with this email already exists');
+    }
 
-      // Hash password
-      const passwordHash = await this.hashPassword(password);
+    // Hash password
+    const passwordHash = await this.hashPassword(password);
 
-      // Create admin
-      const [newAdmin] = await db
-        .insert(admins)
-        .values({
-          email,
-          passwordHash,
-          name,
-          role,
-        })
-        .returning({
-          id: admins.id,
-          name: admins.name,
-          email: admins.email,
-          role: admins.role,
-        });
+    // Create admin
+    const [newAdmin] = await db
+      .insert(admins)
+      .values({
+        email,
+        passwordHash,
+        name,
+        role,
+      })
+      .returning({
+        id: admins.id,
+        name: admins.name,
+        email: admins.email,
+        role: admins.role,
+      });
 
-      if (!newAdmin) {
-        throw new Error('Failed to create admin');
-      }
+    if (!newAdmin) {
+      throw new Error('Failed to create admin');
+    }
 
-      return {
-        id: newAdmin.id,
-        name: newAdmin.name,
-        email: newAdmin.email,
-        role: newAdmin.role || 'admin', // Provide default value if role is null
-      };
-    });
+    return {
+      id: newAdmin.id,
+      name: newAdmin.name,
+      email: newAdmin.email,
+      role: newAdmin.role || 'admin', // Provide default value if role is null
+    };
   }
 
   /**
@@ -194,49 +188,47 @@ export class AuthService {
     email?: string;
     role?: string;
   }): Promise<Admin> {
-    return traceBusinessLogic('update_admin', async () => {
-      // Check if admin exists
-      const existingAdmin = await this.getAdminById(adminId);
+    // Check if admin exists
+    const existingAdmin = await this.getAdminById(adminId);
 
-      // If email is being updated, check for conflicts
-      if (updates.email && updates.email !== existingAdmin.email) {
-        const [emailConflict] = await db
-          .select()
-          .from(admins)
-          .where(eq(admins.email, updates.email))
-          .limit(1);
+    // If email is being updated, check for conflicts
+    if (updates.email && updates.email !== existingAdmin.email) {
+      const [emailConflict] = await db
+        .select()
+        .from(admins)
+        .where(eq(admins.email, updates.email))
+        .limit(1);
 
-        if (emailConflict) {
-          throw new Error('Email already in use by another admin');
-        }
+      if (emailConflict) {
+        throw new Error('Email already in use by another admin');
       }
+    }
 
-      // Update admin
-      const [updatedAdmin] = await db
-        .update(admins)
-        .set({
-          ...updates,
-          updatedAt: new Date(),
-        })
-        .where(eq(admins.id, adminId))
-        .returning({
-          id: admins.id,
-          name: admins.name,
-          email: admins.email,
-          role: admins.role,
-        });
+    // Update admin
+    const [updatedAdmin] = await db
+      .update(admins)
+      .set({
+        ...updates,
+        updatedAt: new Date(),
+      })
+      .where(eq(admins.id, adminId))
+      .returning({
+        id: admins.id,
+        name: admins.name,
+        email: admins.email,
+        role: admins.role,
+      });
 
-      if (!updatedAdmin) {
-        throw new Error('Failed to update admin');
-      }
+    if (!updatedAdmin) {
+      throw new Error('Failed to update admin');
+    }
 
-      return {
-        id: updatedAdmin.id,
-        name: updatedAdmin.name,
-        email: updatedAdmin.email,
-        role: updatedAdmin.role || 'admin', // Provide default value if role is null
-      };
-    });
+    return {
+      id: updatedAdmin.id,
+      name: updatedAdmin.name,
+      email: updatedAdmin.email,
+      role: updatedAdmin.role || 'admin', // Provide default value if role is null
+    };
   }
 
   /**
@@ -247,36 +239,34 @@ export class AuthService {
     currentPassword: string,
     newPassword: string
   ): Promise<void> {
-    return traceBusinessLogic('change_admin_password', async () => {
-      // Get current admin
-      const [admin] = await db
-        .select()
-        .from(admins)
-        .where(eq(admins.id, adminId))
-        .limit(1);
+    // Get current admin
+    const [admin] = await db
+      .select()
+      .from(admins)
+      .where(eq(admins.id, adminId))
+      .limit(1);
 
-      if (!admin) {
-        throw new NotFoundError('Admin');
-      }
+    if (!admin) {
+      throw new NotFoundError('Admin');
+    }
 
-      // Verify current password
-      const isValidPassword = await verify(admin.passwordHash, currentPassword);
-      if (!isValidPassword) {
-        throw new InvalidCredentialsError();
-      }
+    // Verify current password
+    const isValidPassword = await verify(admin.passwordHash, currentPassword);
+    if (!isValidPassword) {
+      throw new InvalidCredentialsError();
+    }
 
-      // Hash new password
-      const newPasswordHash = await this.hashPassword(newPassword);
+    // Hash new password
+    const newPasswordHash = await this.hashPassword(newPassword);
 
-      // Update password
-      await db
-        .update(admins)
-        .set({
-          passwordHash: newPasswordHash,
-          updatedAt: new Date(),
-        })
-        .where(eq(admins.id, adminId));
-    });
+    // Update password
+    await db
+      .update(admins)
+      .set({
+        passwordHash: newPasswordHash,
+        updatedAt: new Date(),
+      })
+      .where(eq(admins.id, adminId));
   }
 
   /**
@@ -318,32 +308,30 @@ export class AuthService {
    * Generate password reset token (for future implementation)
    */
   static async generatePasswordResetToken(email: string): Promise<string> {
-    return traceBusinessLogic('generate_password_reset_token', async () => {
-      // Check if admin exists
-      const [admin] = await db
-        .select()
-        .from(admins)
-        .where(eq(admins.email, email))
-        .limit(1);
+    // Check if admin exists
+    const [admin] = await db
+      .select()
+      .from(admins)
+      .where(eq(admins.email, email))
+      .limit(1);
 
-      if (!admin) {
-        throw new NotFoundError('Admin');
-      }
+    if (!admin) {
+      throw new NotFoundError('Admin');
+    }
 
-      // Generate reset token (expires in 1 hour)
-      const secret = new TextEncoder().encode(config.JWT_SECRET);
-      const resetToken = await new SignJWT({
-        type: 'password_reset',
-        email: admin.email
-      })
-        .setProtectedHeader({ alg: 'HS256' })
-        .setIssuedAt()
-        .setIssuer('jewelry-inventory-api')
-        .setSubject(admin.id)
-        .setExpirationTime('1h')
-        .sign(secret);
+    // Generate reset token (expires in 1 hour)
+    const secret = new TextEncoder().encode(config.JWT_SECRET);
+    const resetToken = await new SignJWT({
+      type: 'password_reset',
+      email: admin.email
+    })
+      .setProtectedHeader({ alg: 'HS256' })
+      .setIssuedAt()
+      .setIssuer('jewelry-inventory-api')
+      .setSubject(admin.id)
+      .setExpirationTime('1h')
+      .sign(secret);
 
-      return resetToken;
-    });
+    return resetToken;
   }
 } 

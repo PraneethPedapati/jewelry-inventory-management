@@ -4,6 +4,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
 import { analyticsService, type AnalyticsData, type AnalyticsStatus } from '@/services/api';
+import Dropdown from '@/components/ui/dropdown';
 
 const AdminAnalytics: React.FC = () => {
   const [selectedPeriod, setSelectedPeriod] = useState('This Month');
@@ -235,16 +236,17 @@ const AdminAnalytics: React.FC = () => {
         </div>
 
         <div className="flex items-center gap-4">
-          <select
+          <Dropdown
+            options={[
+              { value: 'This Week', label: 'This Week' },
+              { value: 'This Month', label: 'This Month' },
+              { value: 'Last 3 Months', label: 'Last 3 Months' },
+              { value: 'This Year', label: 'This Year' }
+            ]}
             value={selectedPeriod}
-            onChange={(e) => setSelectedPeriod(e.target.value)}
-            className="px-4 py-2 border border-border rounded-md bg-background text-foreground"
-          >
-            <option value="This Week">This Week</option>
-            <option value="This Month">This Month</option>
-            <option value="Last 3 Months">Last 3 Months</option>
-            <option value="This Year">This Year</option>
-          </select>
+            onChange={setSelectedPeriod}
+            placeholder="Select Period"
+          />
           <Button
             onClick={handleRefreshAnalytics}
             disabled={refreshing || !analyticsStatus?.canRefresh}

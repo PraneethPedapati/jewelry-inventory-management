@@ -11,7 +11,6 @@ import { publicOrderService } from '@/services/api';
 interface UserDetails {
   name: string;
   phone: string;
-  email: string;
   address: string;
   pincode: string;
 }
@@ -23,7 +22,6 @@ const Cart: React.FC = () => {
   const [userDetails, setUserDetails] = useState<UserDetails>({
     name: '',
     phone: '',
-    email: '',
     address: '',
     pincode: ''
   });
@@ -34,12 +32,12 @@ const Cart: React.FC = () => {
     return `₹${price.toLocaleString('en-IN')}`;
   };
 
-  const handleUpdateQuantity = (productId: string, specificationId: string, newQuantity: number) => {
-    updateQuantity(productId, specificationId, newQuantity);
+  const handleUpdateQuantity = (productId: string, size: string | undefined, newQuantity: number) => {
+    updateQuantity(productId, newQuantity, size);
   };
 
-  const handleRemoveItem = (productId: string, specificationId: string) => {
-    removeFromCart(productId, specificationId);
+  const handleRemoveItem = (productId: string, size: string | undefined) => {
+    removeFromCart(productId, size);
   };
 
   const calculateSubtotal = () => {
@@ -73,12 +71,12 @@ const Cart: React.FC = () => {
       const orderData = {
         customerName: userDetails.name,
         customerPhone: userDetails.phone,
-        customerEmail: userDetails.email,
         customerAddress: userDetails.address,
         customerPincode: userDetails.pincode,
         items: cart.map(item => ({
           productId: item.product.id,
-          quantity: item.quantity
+          quantity: item.quantity,
+          size: item.size
         }))
       };
 
@@ -138,7 +136,7 @@ const Cart: React.FC = () => {
             </CardHeader>
             <CardContent className="space-y-4">
               {cart.map((item) => (
-                <div key={`${item.product.id}-${item.specification?.id || 'no-spec'}`} className="border rounded-lg p-4">
+                <div key={`${item.product.id}-${item.size || 'no-size'}`} className="border rounded-lg p-4">
                   {/* Mobile: Stacked layout, Desktop: Horizontal layout */}
                   <div className="flex flex-col md:flex-row md:items-center gap-4">
                     {/* Product Image and Name Row */}
@@ -156,11 +154,11 @@ const Cart: React.FC = () => {
                       <div className="flex-1 min-w-0">
                         <h3 className="font-medium text-foreground line-clamp-2 text-base md:text-sm">{item.product.name}</h3>
                         <div className="flex flex-wrap items-center gap-2 text-sm text-muted-foreground mt-1">
-                          <span className="capitalize">{item.product.category === 'chain' ? 'Chain' : 'Bracelet/Anklet'}</span>
-                          {item.specification && (
+                          <span className="capitalize">{item.product.productType === 'chain' ? 'Chain' : 'Bracelet/Anklet'}</span>
+                          {item.size && (
                             <>
                               <span>•</span>
-                              <span>{item.specification.displayName}: {item.specification.value}</span>
+                              <span>Size: {item.size}</span>
                             </>
                           )}
                         </div>
@@ -174,14 +172,14 @@ const Cart: React.FC = () => {
                             {/* Quantity Controls */}
                             <div className="flex items-center gap-2">
                               <div
-                                onClick={() => handleUpdateQuantity(item.product.id, item.specification?.id || '', item.quantity - 1)}
+                                onClick={() => handleUpdateQuantity(item.product.id, item.size, item.quantity - 1)}
                                 className="w-8 h-8 rounded-full bg-white border border-brand-border flex items-center justify-center cursor-pointer hover:bg-brand-primary hover:text-white hover:border-brand-primary transition-all duration-200 shadow-sm"
                               >
                                 <Minus className="w-3 h-3" />
                               </div>
                               <span className="text-sm font-semibold text-brand-shade w-8 text-center">{item.quantity}</span>
                               <div
-                                onClick={() => handleUpdateQuantity(item.product.id, item.specification?.id || '', item.quantity + 1)}
+                                onClick={() => handleUpdateQuantity(item.product.id, item.size, item.quantity + 1)}
                                 className="w-8 h-8 rounded-full bg-brand-primary border border-brand-primary flex items-center justify-center cursor-pointer hover:bg-brand-shade transition-all duration-200 shadow-sm text-white"
                               >
                                 <Plus className="w-3 h-3" />
@@ -190,7 +188,7 @@ const Cart: React.FC = () => {
 
                             {/* Remove Button */}
                             <div
-                              onClick={() => handleRemoveItem(item.product.id, item.specification?.id || '')}
+                              onClick={() => handleRemoveItem(item.product.id, item.size)}
                               className="w-8 h-8 rounded-full bg-red-500 border border-red-500 flex items-center justify-center cursor-pointer hover:bg-red-600 transition-all duration-200 shadow-sm text-white"
                             >
                               <Trash2 className="w-4 h-4" />
@@ -242,20 +240,7 @@ const Cart: React.FC = () => {
                 </div>
               </div>
 
-              <div>
-                <Label htmlFor="email">Email Address (Optional)</Label>
-                <div className="relative mt-1">
-                  <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground w-4 h-4" />
-                  <Input
-                    id="email"
-                    type="email"
-                    placeholder="Enter your email address (optional)"
-                    value={userDetails.email}
-                    onChange={(e) => handleUserDetailsChange('email', e.target.value)}
-                    className="pl-10"
-                  />
-                </div>
-              </div>
+              
 
               <div>
                 <Label htmlFor="address">Address *</Label>
@@ -300,7 +285,7 @@ const Cart: React.FC = () => {
 
               <div className="flex justify-between text-sm">
                 <span>Shipping</span>
-                <span>₹15</span>
+                <span>{formatPrice(15)}</span>
               </div>
 
               <div className="border-t pt-4">
@@ -331,4 +316,4 @@ const Cart: React.FC = () => {
   );
 };
 
-export default Cart; 
+export default Cart;

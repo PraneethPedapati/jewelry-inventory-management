@@ -75,20 +75,10 @@ export class DashboardWidgetService {
    * Get pending orders count (payment_pending orders + recent orders ≤6hrs old, all statuses except cancelled)
    */
   static async getPendingOrders(): Promise<number> {
-    const sixHoursAgo = new Date(Date.now() - 6 * 60 * 60 * 1000);
-
     const result = await db
       .select({ count: count() })
       .from(orders)
-      .where(
-        and(
-          notInArray(orders.status, ['cancelled']),
-          or(
-            eq(orders.status, 'payment_pending'),
-            gte(orders.createdAt, sixHoursAgo)
-          )
-        )
-      );
+      .where(eq(orders.status, 'payment_pending'));
 
     return result[0]?.count || 0;
   }
@@ -564,7 +554,7 @@ export class DashboardWidgetService {
       monthlyRevenue,
       monthlyOrders,
       netProfit,
-      averageOrderValue,
+      overallAOV, // Use overall AOV
       revenueGrowth,
       expenseBreakdown,
       topSellingProducts,
@@ -574,7 +564,7 @@ export class DashboardWidgetService {
       this.getMonthlyRevenue(),
       this.getMonthlyOrders(),
       this.getNetProfit(),
-      this.getAverageOrderValue(),
+      this.getOverallAOV(), // Fetch overall AOV
       this.getRevenueGrowth(),
       this.getExpenseBreakdown(),
       this.getTopSellingProducts(),
@@ -588,7 +578,7 @@ export class DashboardWidgetService {
       netProfit,
       pendingOrders,
       staleData,
-      averageOrderValue,
+      averageOrderValue: overallAOV, // Assign overall AOV to averageOrderValue
       revenueGrowth,
       expenseBreakdown,
       topSellingProducts,

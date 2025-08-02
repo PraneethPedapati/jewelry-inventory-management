@@ -2,7 +2,7 @@ import { Request, Response } from 'express';
 import { z } from 'zod';
 import { AuthService } from '../../services/auth.service.js';
 import { asyncHandler } from '../../middleware/error-handler.middleware.js';
-import { traceApiCall } from '../../utils/tracing.js';
+
 
 // Validation schemas
 const LoginSchema = z.object({
@@ -44,8 +44,7 @@ const UpdateAdminSchema = z.object({
  * POST /api/admin/auth/login
  */
 export const login = asyncHandler(async (req: Request, res: Response) => {
-  await traceApiCall('POST', '/api/admin/auth/login', async () => {
-    const { body } = LoginSchema.parse({ body: req.body });
+  const { body } = LoginSchema.parse({ body: req.body });
 
     const result = await AuthService.login(body);
 
@@ -54,7 +53,6 @@ export const login = asyncHandler(async (req: Request, res: Response) => {
       data: result,
       message: 'Login successful'
     });
-  });
 });
 
 /**
@@ -62,8 +60,7 @@ export const login = asyncHandler(async (req: Request, res: Response) => {
  * GET /api/admin/auth/profile
  */
 export const getProfile = asyncHandler(async (req: Request, res: Response) => {
-  await traceApiCall('GET', '/api/admin/auth/profile', async () => {
-    const adminId = req.admin?.id;
+  const adminId = req.admin?.id;
     if (!adminId) {
       return res.status(401).json({
         success: false,
@@ -77,7 +74,6 @@ export const getProfile = asyncHandler(async (req: Request, res: Response) => {
       success: true,
       data: admin
     });
-  });
 });
 
 /**
@@ -85,8 +81,7 @@ export const getProfile = asyncHandler(async (req: Request, res: Response) => {
  * PUT /api/admin/auth/password
  */
 export const changePassword = asyncHandler(async (req: Request, res: Response) => {
-  await traceApiCall('PUT', '/api/admin/auth/password', async () => {
-    const adminId = req.admin?.id;
+  const adminId = req.admin?.id;
     if (!adminId) {
       return res.status(401).json({
         success: false,
@@ -112,7 +107,6 @@ export const changePassword = asyncHandler(async (req: Request, res: Response) =
       success: true,
       message: 'Password changed successfully'
     });
-  });
 });
 
 /**
@@ -120,8 +114,7 @@ export const changePassword = asyncHandler(async (req: Request, res: Response) =
  * POST /api/admin/auth/create-admin
  */
 export const createAdmin = asyncHandler(async (req: Request, res: Response) => {
-  await traceApiCall('POST', '/api/admin/auth/create-admin', async () => {
-    // Check if current user is super admin
+  // Check if current user is super admin
     if (req.admin?.role !== 'super_admin') {
       return res.status(403).json({
         success: false,
@@ -151,7 +144,6 @@ export const createAdmin = asyncHandler(async (req: Request, res: Response) => {
       data: newAdmin,
       message: 'Admin created successfully'
     });
-  });
 });
 
 /**
@@ -159,8 +151,7 @@ export const createAdmin = asyncHandler(async (req: Request, res: Response) => {
  * PUT /api/admin/auth/admin/:id
  */
 export const updateAdmin = asyncHandler(async (req: Request, res: Response) => {
-  await traceApiCall('PUT', '/api/admin/auth/admin/:id', async () => {
-    // Check if current user is super admin
+  // Check if current user is super admin
     if (req.admin?.role !== 'super_admin') {
       return res.status(403).json({
         success: false,
@@ -185,7 +176,6 @@ export const updateAdmin = asyncHandler(async (req: Request, res: Response) => {
       data: updatedAdmin,
       message: 'Admin updated successfully'
     });
-  });
 });
 
 /**
@@ -193,8 +183,7 @@ export const updateAdmin = asyncHandler(async (req: Request, res: Response) => {
  * POST /api/admin/auth/validate-password
  */
 export const validatePassword = asyncHandler(async (req: Request, res: Response) => {
-  await traceApiCall('POST', '/api/admin/auth/validate-password', async () => {
-    const { password } = z.object({
+  const { password } = z.object({
       password: z.string()
     }).parse(req.body);
 
@@ -204,7 +193,6 @@ export const validatePassword = asyncHandler(async (req: Request, res: Response)
       success: true,
       data: validation
     });
-  });
 });
 
 /**
@@ -212,8 +200,7 @@ export const validatePassword = asyncHandler(async (req: Request, res: Response)
  * POST /api/admin/auth/request-reset
  */
 export const requestPasswordReset = asyncHandler(async (req: Request, res: Response) => {
-  await traceApiCall('POST', '/api/admin/auth/request-reset', async () => {
-    const { email } = z.object({
+  const { email } = z.object({
       email: z.string().email()
     }).parse(req.body);
 
@@ -225,7 +212,6 @@ export const requestPasswordReset = asyncHandler(async (req: Request, res: Respo
       success: true,
       message: 'Password reset instructions sent to email (if account exists)'
     });
-  });
 });
 
 /**
@@ -233,13 +219,11 @@ export const requestPasswordReset = asyncHandler(async (req: Request, res: Respo
  * POST /api/admin/auth/logout
  */
 export const logout = asyncHandler(async (req: Request, res: Response) => {
-  await traceApiCall('POST', '/api/admin/auth/logout', async () => {
-    // Since we're using stateless JWT tokens, logout is handled client-side
+  // Since we're using stateless JWT tokens, logout is handled client-side
     // In a more complex implementation, you might maintain a token blacklist
 
     res.json({
       success: true,
       message: 'Logged out successfully'
     });
-  });
 }); 

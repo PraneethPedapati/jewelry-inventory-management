@@ -42,87 +42,86 @@ CREATE TABLE admins (
     last_login TIMESTAMP WITH TIME ZONE
 );
 
--- Product Types (chain, bracelet, anklet)
-CREATE TABLE product_types (
+-- Color Themes for Configurable Palettes
+CREATE TABLE color_themes (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    name VARCHAR(50) UNIQUE NOT NULL, -- 'chain', 'bracelet', 'anklet'
+    name VARCHAR(100) NOT NULL,
     display_name VARCHAR(100) NOT NULL,
-    specification_type VARCHAR(20) NOT NULL, -- 'layer' or 'size'
-    is_active BOOLEAN DEFAULT true,
-    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+    is_active BOOLEAN DEFAULT false,
+    is_default BOOLEAN DEFAULT false,
+    colors JSONB NOT NULL, -- {primary: "#hex", secondary: "#hex", accent: "#hex", etc.}
+    description TEXT,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
--- Complete Jewelry Products (Charm + Chain combinations)
+-- Product Code Sequences for generating unique product codes
+CREATE TABLE product_code_sequences (
+  product_type VARCHAR(20) PRIMARY KEY,
+  current_sequence INTEGER DEFAULT 0
+);
+
+-- Product Categories
+CREATE TABLE product_categories (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    name VARCHAR(100) UNIQUE NOT NULL,
+    description TEXT,
+    is_active BOOLEAN DEFAULT true,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+-- Complete Jewelry Products with auto-generated product codes
 CREATE TABLE products (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    product_code VARCHAR(20) UNIQUE NOT NULL, -- Auto-generated user-friendly code
     name VARCHAR(200) NOT NULL,
-    charm_description TEXT NOT NULL,
-    chain_description TEXT NOT NULL,
-    product_type_id UUID NOT NULL REFERENCES product_types(id),
-    base_price DECIMAL(10,2) NOT NULL,
-    sku VARCHAR(50) UNIQUE,
-    images JSONB DEFAULT '[]', -- Array of image URLs
+    description TEXT NOT NULL,
+    product_type VARCHAR(20) NOT NULL,
+    category_id UUID REFERENCES product_categories(id),
+    price DECIMAL(10,2) NOT NULL,
+    discounted_price DECIMAL(10,2),
+    images JSONB DEFAULT '[]'::jsonb,
     is_active BOOLEAN DEFAULT true,
-    stock_alert_threshold INTEGER DEFAULT 5,
-    meta_description TEXT,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
-    
-    -- Search optimization
-    search_vector TSVECTOR GENERATED ALWAYS AS (
-        to_tsvector('english', name || ' ' || charm_description || ' ' || chain_description)
-    ) STORED
-);
-
--- Product Specifications (Sizes or Layers)
-CREATE TABLE product_specifications (
-    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    product_id UUID NOT NULL REFERENCES products(id) ON DELETE CASCADE,
-    spec_type VARCHAR(20) NOT NULL, -- 'size' or 'layer'
-    spec_value VARCHAR(20) NOT NULL, -- 'S', 'M', 'L' or 'single', 'double', 'triple'
-    display_name VARCHAR(50) NOT NULL,
-    price_modifier DECIMAL(10,2) DEFAULT 0.00,
-    stock_quantity INTEGER DEFAULT 0,
-    is_available BOOLEAN DEFAULT true,
-    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
-    
-    CONSTRAINT unique_product_spec UNIQUE(product_id, spec_type, spec_value)
+    CONSTRAINT product_type_check CHECK (product_type IN ('chain', 'bracelet-anklet')),
+    CONSTRAINT price_check CHECK (price > 0),
+    CONSTRAINT discounted_price_check CHECK (discounted_price IS NULL OR (discounted_price > 0 AND discounted_price < price))
 );
 
 -- Customer Orders
 CREATE TABLE orders (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     order_number VARCHAR(20) UNIQUE NOT NULL,
+    order_code VARCHAR(10) UNIQUE NOT NULL, -- New: User-friendly order code (e.g., ORD001)
     customer_name VARCHAR(100) NOT NULL,
     customer_email VARCHAR(255) NOT NULL,
     customer_phone VARCHAR(20) NOT NULL,
     customer_address TEXT NOT NULL,
     total_amount DECIMAL(10,2) NOT NULL,
-    status VARCHAR(20) DEFAULT 'pending', -- pending, confirmed, processing, shipped, delivered, cancelled
+    status VARCHAR(20) DEFAULT 'payment_pending', -- Changed: default to 'payment_pending'
     whatsapp_message_sent BOOLEAN DEFAULT false,
     payment_received BOOLEAN DEFAULT false,
     notes TEXT,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
-    
-    -- Indexes for performance
-    CONSTRAINT valid_status CHECK (status IN ('pending', 'confirmed', 'processing', 'shipped', 'delivered', 'cancelled'))
+    CONSTRAINT status_check CHECK (status IN ('payment_pending', 'confirmed', 'processing', 'shipped', 'delivered', 'cancelled')),
+    CONSTRAINT total_amount_check CHECK (total_amount > 0)
 );
 
--- Order Items with Specifications
+-- Order Items
 CREATE TABLE order_items (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     order_id UUID NOT NULL REFERENCES orders(id) ON DELETE CASCADE,
     product_id UUID NOT NULL REFERENCES products(id),
-    specification_id UUID NOT NULL REFERENCES product_specifications(id),
     quantity INTEGER NOT NULL DEFAULT 1,
     unit_price DECIMAL(10,2) NOT NULL,
     total_price DECIMAL(10,2) GENERATED ALWAYS AS (quantity * unit_price) STORED,
-    product_snapshot JSONB NOT NULL, -- Snapshot of product at time of order
+    product_snapshot JSONB NOT NULL,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
-    
-    CONSTRAINT positive_quantity CHECK (quantity > 0),
-    CONSTRAINT positive_price CHECK (unit_price > 0)
+    CONSTRAINT quantity_check CHECK (quantity > 0),
+    CONSTRAINT unit_price_check CHECK (unit_price > 0)
 );
 
 -- Order Status History
@@ -136,12 +135,62 @@ CREATE TABLE order_status_history (
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
--- System Configurations
-CREATE TABLE system_configs (
-    key VARCHAR(100) PRIMARY KEY,
-    value JSONB NOT NULL,
+-- Expense Categories
+CREATE TABLE expense_categories (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    name VARCHAR(100) UNIQUE NOT NULL,
     description TEXT,
+    is_active BOOLEAN DEFAULT true,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+-- Expenses
+CREATE TABLE expenses (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    title VARCHAR(200) NOT NULL,
+    description TEXT,
+    amount DECIMAL(10,2) NOT NULL,
+    category_id UUID NOT NULL REFERENCES expense_categories(id),
+    expense_date TIMESTAMP WITH TIME ZONE NOT NULL,
+    receipt VARCHAR(500), -- URL to receipt image
+    added_by UUID NOT NULL REFERENCES admins(id),
+    tags JSONB DEFAULT '[]'::jsonb,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    CONSTRAINT amount_check CHECK (amount > 0)
+);
+
+-- Analytics Cache Table
+CREATE TABLE analytics_cache (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    metric_type VARCHAR(50) UNIQUE NOT NULL,
+    calculated_data JSONB NOT NULL,
+    computation_time_ms INTEGER,
+    data_period_start TIMESTAMP WITH TIME ZONE,
+    data_period_end TIMESTAMP WITH TIME ZONE,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+-- Analytics Metadata Table
+CREATE TABLE analytics_metadata (
+    id SERIAL PRIMARY KEY,
+    last_refresh_at TIMESTAMP WITH TIME ZONE,
+    refresh_duration_ms INTEGER,
+    total_orders_processed INTEGER,
+    total_expenses_processed INTEGER,
+    triggered_by VARCHAR(100),
+    status VARCHAR(20) DEFAULT 'completed',
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+-- Analytics History Table
+CREATE TABLE analytics_history (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    metric_type VARCHAR(50) NOT NULL,
+    calculated_data JSONB NOT NULL,
+    snapshot_date TIMESTAMP WITH TIME ZONE NOT NULL,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 ```
 
@@ -206,93 +255,134 @@ INSERT INTO product_specifications (product_id, spec_type, spec_value, display_n
 ```typescript
 // src/types/api.ts
 
-// Product Types
-interface ProductType {
+// Admin
+interface Admin {
   id: string;
-  name: 'chain' | 'bracelet' | 'anklet';
-  displayName: string;
-  specificationType: 'layer' | 'size';
-  isActive: boolean;
-  createdAt: string;
+  email: string;
+  name: string;
+  role: string;
 }
 
-interface ProductSpecification {
-  id: string;
-  productId: string;
-  specType: 'size' | 'layer';
-  specValue: string;
-  displayName: string;
-  priceModifier: number;
-  stockQuantity: number;
-  isAvailable: boolean;
+// Auth
+interface AuthResponse {
+  token: string;
+  admin: Admin;
 }
 
-interface CompleteProduct {
+// Brand
+interface BrandConfig {
+  companyName: string;
+  logoUrl: string;
+  faviconUrl: string;
+  primaryColor: string;
+  secondaryColor: string;
+}
+
+// Color Theme
+interface ColorTheme {
   id: string;
   name: string;
-  charmDescription: string;
-  chainDescription: string;
-  productType: ProductType;
-  basePrice: number;
-  sku: string;
+  displayName: string;
+  isActive: boolean;
+  isDefault: boolean;
+  colors: Record<string, string>;
+  description: string;
+}
+
+// Product
+interface ProductCategory {
+  id: string;
+  name: string;
+  description: string;
+  isActive: boolean;
+}
+
+interface Product {
+  id: string;
+  productCode: string;
+  name: string;
+  description: string;
+  productType: string;
+  categoryId: string;
+  price: number;
+  discountedPrice: number;
   images: string[];
   isActive: boolean;
-  specifications: ProductSpecification[];
-  createdAt: string;
-  updatedAt: string;
 }
 
-// Order Types
-interface OrderItem {
-  id: string;
-  productId: string;
-  specificationId: string;
-  quantity: number;
-  unitPrice: number;
-  totalPrice: number;
-  productSnapshot: CompleteProduct;
-}
-
+// Order
 interface Order {
   id: string;
   orderNumber: string;
+  orderCode: string;
   customerName: string;
   customerEmail: string;
   customerPhone: string;
   customerAddress: string;
   totalAmount: number;
-  status: 'pending' | 'confirmed' | 'processing' | 'shipped' | 'delivered' | 'cancelled';
-  items: OrderItem[];
+  status: string;
   whatsappMessageSent: boolean;
   paymentReceived: boolean;
-  notes?: string;
-  createdAt: string;
-  updatedAt: string;
+  notes: string;
+  items: OrderItem[];
 }
 
-// API Request/Response Types
-interface CreateOrderRequest {
-  customerName: string;
-  customerEmail: string;
-  customerPhone: string;
-  customerAddress: string;
-  items: {
-    productId: string;
-    specificationId: string;
-    quantity: number;
-  }[];
-}
-
-interface WhatsAppMessageRequest {
+interface OrderItem {
+  id: string;
   orderId: string;
-  messageType: 'order' | 'status';
-  customMessage?: string;
+  productId: string;
+  quantity: number;
+  unitPrice: number;
+  totalPrice: number;
+  productSnapshot: Product;
 }
 
-interface WhatsAppMessageResponse {
-  whatsappUrl: string;
-  message: string;
+// Expense
+interface ExpenseCategory {
+  id: string;
+  name: string;
+  description: string;
+  isActive: boolean;
+}
+
+interface Expense {
+  id: string;
+  title: string;
+  description: string;
+  amount: number;
+  categoryId: string;
+  expenseDate: string;
+  receipt: string;
+  addedBy: string;
+  tags: string[];
+}
+
+// Analytics
+interface Analytics {
+  // ... to be defined
+}
+
+interface AnalyticsStatus {
+  // ... to be defined
+}
+
+// Dashboard
+interface DashboardStats {
+  // ... to be defined
+}
+
+interface DashboardWidgets {
+  // ... to be defined
+}
+
+// Other
+interface StatusResponse {
   success: boolean;
+  message: string;
+}
+
+interface DebugAOV {
+  // ... to be defined
 }
 ```
 
@@ -303,103 +393,53 @@ interface WhatsAppMessageResponse {
 
 ```typescript
 // GET /api/products
-interface ProductsResponse {
-  products: CompleteProduct[];
-  pagination: {
-    page: number;
-    limit: number;
-    total: number;
-    totalPages: number;
-  };
-  filters: {
-    types: ProductType[];
-    priceRange: { min: number; max: number };
-  };
-}
-
 // GET /api/products/:id
-interface ProductDetailResponse {
-  product: CompleteProduct;
-  relatedProducts: CompleteProduct[];
-}
-
+// GET /api/product-types
 // POST /api/orders
-interface CreateOrderResponse {
-  order: Order;
-  whatsappUrl: string;
-  message: string;
-}
-
-// POST /api/whatsapp/generate-message
-interface GenerateWhatsAppMessageResponse {
-  whatsappUrl: string;
-  message: string;
-  orderId?: string;
-}
+// GET /api/brand-config
+// GET /api/themes
 ```
-
 
 #### 2.2.2 Protected Admin API
 
 ```typescript
 // POST /api/admin/auth/login
-interface AdminLoginRequest {
-  email: string;
-  password: string;
-}
-
-interface AdminLoginResponse {
-  token: string;
-  admin: {
-    id: string;
-    name: string;
-    email: string;
-    role: string;
-  };
-  expiresIn: number;
-}
-
+// GET /api/admin/auth/profile
+// POST /api/admin/auth/change-password
 // GET /api/admin/dashboard
-interface DashboardResponse {
-  summary: {
-    totalOrders: number;
-    totalRevenue: number;
-    activeProducts: number;
-    lowStockAlerts: number;
-  };
-  recentOrders: Order[];
-  popularSpecifications: {
-    productId: string;
-    productName: string;
-    specificationId: string;
-    specificationName: string;
-    orderCount: number;
-  }[];
-  salesChart: {
-    date: string;
-    orders: number;
-    revenue: number;
-  }[];
-}
-
+// GET /api/admin/products
+// GET /api/admin/products/stats
+// GET /api/admin/products/:id
+// POST /api/admin/products
+// PUT /api/admin/products/:id
+// DELETE /api/admin/products/:id
 // GET /api/admin/orders
-interface AdminOrdersResponse {
-  orders: Order[];
-  pagination: {
-    page: number;
-    limit: number;
-    total: number;
-    totalPages: number;
-  };
-  statusCounts: Record<string, number>;
-}
-
-// PUT /api/admin/orders/:id/status
-interface UpdateOrderStatusRequest {
-  status: Order['status'];
-  notes?: string;
-  notifyCustomer?: boolean;
-}
+// GET /api/admin/orders/stats
+// GET /api/admin/orders/export
+// GET /api/admin/orders/:id
+// POST /api/admin/orders
+// PUT /api/admin/orders/:id
+// DELETE /api/admin/orders/:id
+// POST /api/admin/orders/:id/approve
+// POST /api/admin/orders/:id/send-payment-qr
+// POST /api/admin/orders/:id/confirm-payment
+// POST /api/admin/orders/:id/send-whatsapp
+// POST /api/admin/orders/:id/status-whatsapp
+// GET /api/admin/orders/find/:orderCode
+// POST /api/admin/orders/delete-stale
+// GET /api/admin/expenses
+// GET /api/admin/expenses/categories
+// GET /api/admin/expenses/stats
+// GET /api/admin/expenses/:id
+// POST /api/admin/expenses
+// PUT /api/admin/expenses/:id
+// DELETE /api/admin/expenses/:id
+// GET /api/admin/analytics
+// POST /api/admin/analytics/refresh
+// GET /api/admin/analytics/status
+// GET /api/admin/dashboard/widgets
+// POST /api/admin/dashboard/widgets/refresh
+// GET /api/admin/dashboard/debug/aov
 ```
 
 
@@ -1359,60 +1399,7 @@ export const asyncHandler = (fn: Function) => {
 
 ## 6. Data Flow Implementation
 
-### 6.1 OpenTelemetry Integration
 
-```typescript
-// src/utils/tracing.ts
-import { NodeSDK } from '@opentelemetry/sdk-node';
-import { getNodeAutoInstrumentations } from '@opentelemetry/auto-instrumentations-node';
-import { Resource } from '@opentelemetry/resources';
-import { SemanticResourceAttributes } from '@opentelemetry/semantic-conventions';
-import { JaegerExporter } from '@opentelemetry/exporter-jaeger';
-
-const jaegerExporter = new JaegerExporter({
-  endpoint: process.env.JAEGER_ENDPOINT || 'http://localhost:14268/api/traces',
-});
-
-const sdk = new NodeSDK({
-  resource: new Resource({
-    [SemanticResourceAttributes.SERVICE_NAME]: 'jewelry-inventory-api',
-    [SemanticResourceAttributes.SERVICE_VERSION]: '1.0.0',
-  }),
-  traceExporter: jaegerExporter,
-  instrumentations: [getNodeAutoInstrumentations()],
-});
-
-export const initializeTracing = () => {
-  if (process.env.NODE_ENV === 'production' || process.env.ENABLE_TRACING === 'true') {
-    sdk.start();
-    console.log('OpenTelemetry started successfully');
-  }
-};
-
-// Custom tracing utilities
-import { trace, context, SpanStatusCode } from '@opentelemetry/api';
-
-const tracer = trace.getTracer('jewelry-inventory', '1.0.0');
-
-export const createSpan = (name: string, fn: Function) => {
-  return tracer.startActiveSpan(name, async (span) => {
-    try {
-      const result = await fn(span);
-      span.setStatus({ code: SpanStatusCode.OK });
-      return result;
-    } catch (error) {
-      span.setStatus({
-        code: SpanStatusCode.ERROR,
-        message: error instanceof Error ? error.message : 'Unknown error'
-      });
-      span.recordException(error instanceof Error ? error : new Error(String(error)));
-      throw error;
-    } finally {
-      span.end();
-    }
-  });
-};
-```
 
 
 ### 6.2 Caching Strategy
@@ -1544,7 +1531,7 @@ src/
 │   ├── format.ts
 │   ├── logger.ts
 │   ├── order-utils.ts
-│   ├── tracing.ts
+
 │   └── validation.ts
 ├── config/               # Configuration
 │   ├── database.ts
@@ -1622,15 +1609,14 @@ import cors from 'cors';
 import helmet from 'helmet';
 import compression from 'compression';
 import { config, validateConfig } from './config/app';
-import { initializeTracing } from './utils/tracing';
+
 import { connectDatabase } from './db/connection';
 import { errorHandler } from './middleware/error-handler.middleware';
 import { apiRateLimit } from './middleware/auth.middleware';
 import adminRoutes from './routes/admin.routes';
 import publicRoutes from './routes/public.routes';
 
-// Initialize tracing before importing other modules
-initializeTracing();
+
 
 class Application {
   public app: express.Application;
@@ -1727,7 +1713,7 @@ class Application {
       this.app.listen(config.PORT, () => {
         console.log(`🚀 Server running on port ${config.PORT}`);
         console.log(`📊 Environment: ${config.NODE_ENV}`);
-        console.log(`🔧 Tracing: ${config.ENABLE_TRACING ? 'enabled' : 'disabled'}`);
+        
       });
     } catch (error) {
       console.error('Failed to start application:', error);

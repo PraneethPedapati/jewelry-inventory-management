@@ -1,21 +1,9 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
-import { ShoppingCart, Filter, Search, ChevronLeft, ChevronRight, Plus, Minus } from 'lucide-react';
+import { ShoppingCart, Filter, Search, ChevronLeft, ChevronRight, Plus, Minus, ChevronDown } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { useCart } from '@/hooks/useCart';
-
-interface Product {
-  id: string;
-  productCode: string;
-  name: string;
-  price: string;
-  discountedPrice?: string;
-  images: string[];
-  productType: 'chain' | 'bracelet-anklet';
-  description: string;
-  isActive: boolean;
-  createdAt: string;
-}
+import { Product } from '@/context/CartContext';
 
 const ProductCatalog: React.FC = () => {
   const { addToCart: addToCartContext, updateQuantity, removeFromCart, cart } = useCart();
@@ -35,6 +23,8 @@ const ProductCatalog: React.FC = () => {
   const [showSizePopup, setShowSizePopup] = useState(false);
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
   const [selectedSize, setSelectedSize] = useState<'S' | 'M' | 'L' | null>(null);
+  const [showSortDropdown, setShowSortDropdown] = useState(false);
+  const sortDropdownRef = useRef<HTMLDivElement>(null);
 
   // Product categories
   const productCategories = [
@@ -46,11 +36,8 @@ const ProductCatalog: React.FC = () => {
   // Sort options
   const sortOptions = [
     { value: 'newest', label: 'Newest First' },
-    { value: 'oldest', label: 'Oldest First' },
     { value: 'price-low', label: 'Price: Low to High' },
-    { value: 'price-high', label: 'Price: High to Low' },
-    { value: 'name-asc', label: 'Name: A to Z' },
-    { value: 'name-desc', label: 'Name: Z to A' }
+    { value: 'price-high', label: 'Price: High to Low' }
   ];
 
   // Check if API URL is configured
@@ -64,6 +51,20 @@ const ProductCatalog: React.FC = () => {
       apiUrl,
       isApiConfigured
     });
+  }, []);
+
+  // Close dropdown when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (sortDropdownRef.current && !sortDropdownRef.current.contains(event.target as Node)) {
+        setShowSortDropdown(false);
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
   }, []);
 
   // Helper function to check if product is new (created within last week)
@@ -118,7 +119,7 @@ const ProductCatalog: React.FC = () => {
       setLoading(false);
       isRequestingRef.current = false;
     }
-  }, [currentPage, searchTerm, selectedCategory, apiUrl]);
+  }, [currentPage, searchTerm, selectedCategory, sortBy, apiUrl]);
 
 
 
@@ -127,10 +128,9 @@ const ProductCatalog: React.FC = () => {
     fetchProducts();
   }, [currentPage, searchTerm, selectedCategory, sortBy]);
 
-  // Helper function to get cart quantity for a product
-  const getCartQuantity = (productId: string): number => {
-    const cartItem = cart.find(item => item.product.id === productId);
-    return cartItem ? cartItem.quantity : 0;
+  // Helper function to get cart item for a product
+  const getCartItem = (productId: string) => {
+    return cart.find(item => item.product.id === productId);
   };
 
   // Handle search with debouncing
@@ -179,20 +179,11 @@ const ProductCatalog: React.FC = () => {
   };
 
   const addToCart = (product: Product, qty: number, size?: string) => {
-    // Convert ProductCatalog Product to CartContext Product format
-    const cartProduct = {
-      id: product.id,
-      name: product.name,
-      images: product.images,
-      category: product.productType,
-      description: product.description
-    };
-
     // Calculate final price
     const finalPrice = parseFloat(product.discountedPrice || product.price);
 
     // Add to cart using the context with size information
-    addToCartContext(cartProduct, null, qty, finalPrice, size);
+    addToCartContext(product, qty, finalPrice, size);
   };
 
   const handleSizeSelection = (size: 'S' | 'M' | 'L') => {
@@ -215,14 +206,17 @@ const ProductCatalog: React.FC = () => {
   };
 
   const handleInlineQuantityChange = (product: Product, newQuantity: number) => {
+    const cartItem = getCartItem(product.id);
+    if (!cartItem) return;
+
     if (newQuantity <= 0) {
       // Remove from cart context
-      removeFromCart(product.id, '');
+      removeFromCart(product.id, cartItem.size);
       return;
     }
 
     // Update cart context using updateQuantity
-    updateQuantity(product.id, '', newQuantity);
+    updateQuantity(product.id, newQuantity, cartItem.size);
   };
 
   return (
@@ -260,43 +254,61 @@ const ProductCatalog: React.FC = () => {
           </Button>
         </div>
 
-        {/* Category Filter */}
+        {/* Category Filter and Sort */}
         <div className={`${showFilters ? 'block' : 'hidden'} md:block`}>
-          <div className="flex flex-wrap gap-2 md:flex-nowrap md:overflow-x-auto md:space-x-2 md:pb-2 md:scrollbar-hide">
-            {productCategories.map((category) => (
-              <Button
-                key={category.value}
-                variant={selectedCategory === category.value ? "default" : "outline"}
-                size="sm"
-                onClick={() => handleCategoryChange(category.value)}
-                className={`flex-shrink-0 transition-colors ${selectedCategory === category.value
-                  ? 'bg-primary text-white'
-                  : 'bg-muted text-muted-foreground hover:bg-primary/10 hover:text-primary'
-                  }`}
-              >
-                {category.label}
-              </Button>
-            ))}
-          </div>
-
-          {/* Sort Options */}
-          <div className="mt-4">
-            <label className="block text-sm font-medium text-muted-foreground mb-2">Sort by:</label>
-            <div className="flex flex-wrap gap-2">
-              {sortOptions.map((option) => (
+          <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+            {/* Category Filter */}
+            <div className="flex flex-wrap gap-2 md:flex-nowrap md:overflow-x-auto md:space-x-2 md:pb-2 md:scrollbar-hide">
+              {productCategories.map((category) => (
                 <Button
-                  key={option.value}
-                  variant={sortBy === option.value ? "default" : "outline"}
+                  key={category.value}
+                  variant={selectedCategory === category.value ? "default" : "outline"}
                   size="sm"
-                  onClick={() => handleSortChange(option.value)}
-                  className={`flex-shrink-0 transition-colors ${sortBy === option.value
+                  onClick={() => handleCategoryChange(category.value)}
+                  className={`flex-shrink-0 transition-colors ${selectedCategory === category.value
                     ? 'bg-primary text-white'
                     : 'bg-muted text-muted-foreground hover:bg-primary/10 hover:text-primary'
                     }`}
                 >
-                  {option.label}
+                  {category.label}
                 </Button>
               ))}
+            </div>
+
+            {/* Sort Options */}
+            <div className="flex items-center gap-2">
+              <label className="text-sm font-medium text-muted-foreground whitespace-nowrap">Sort by:</label>
+              <div className="relative" ref={sortDropdownRef}>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setShowSortDropdown(!showSortDropdown)}
+                  className="w-full md:w-auto justify-between min-w-[160px]"
+                >
+                  {sortOptions.find(option => option.value === sortBy)?.label || 'Sort by'}
+                  <ChevronDown className={`w-4 h-4 ml-2 transition-transform ${showSortDropdown ? 'rotate-180' : ''}`} />
+                </Button>
+
+                {showSortDropdown && (
+                  <div className="absolute top-full right-0 mt-1 bg-white border border-gray-200 rounded-md shadow-lg z-10 min-w-[200px]">
+                    {sortOptions.map((option) => (
+                      <button
+                        key={option.value}
+                        onClick={() => {
+                          handleSortChange(option.value);
+                          setShowSortDropdown(false);
+                        }}
+                        className={`w-full text-left px-4 py-2 text-sm hover:bg-gray-50 transition-colors ${sortBy === option.value
+                          ? 'bg-primary text-white'
+                          : 'text-gray-700'
+                          }`}
+                      >
+                        {option.label}
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
             </div>
           </div>
         </div>
@@ -425,21 +437,21 @@ const ProductCatalog: React.FC = () => {
 
                 {/* Add to Cart Button or Quantity Controls - Fixed at Bottom */}
                 <div className="product-card-actions">
-                  {getCartQuantity(product.id) > 0 ? (
+                  {getCartItem(product.id) ? (
                     <div className="flex items-center justify-between bg-brand-lightest border border-brand-border rounded-lg px-2 h-10">
                       <div
-                        onClick={() => handleInlineQuantityChange(product, getCartQuantity(product.id) - 1)}
+                        onClick={() => handleInlineQuantityChange(product, (getCartItem(product.id)?.quantity || 0) - 1)}
                         className="w-8 h-8 rounded-full bg-white border border-brand-border flex items-center justify-center cursor-pointer hover:bg-brand-primary hover:text-white hover:border-brand-primary transition-all duration-200 shadow-sm"
                       >
                         <Minus className="w-3 h-3" />
                       </div>
                       <div className="text-center">
                         <span className="text-sm font-semibold text-brand-shade">
-                          {getCartQuantity(product.id)}
+                          {getCartItem(product.id)?.quantity}
                         </span>
                       </div>
                       <div
-                        onClick={() => handleInlineQuantityChange(product, getCartQuantity(product.id) + 1)}
+                        onClick={() => handleInlineQuantityChange(product, (getCartItem(product.id)?.quantity || 0) + 1)}
                         className="w-8 h-8 rounded-full bg-brand-primary border border-brand-primary flex items-center justify-center cursor-pointer hover:bg-brand-shade transition-all duration-200 shadow-sm text-white"
                       >
                         <Plus className="w-3 h-3" />
@@ -546,8 +558,8 @@ const ProductCatalog: React.FC = () => {
                     <button
                       onClick={() => handleSizeSelection('S')}
                       className={`p-4 border-2 rounded-lg text-center transition-all ${selectedSize === 'S'
-                          ? 'border-brand-primary bg-brand-primary text-white'
-                          : 'border-gray-300 hover:border-brand-primary'
+                        ? 'border-brand-primary bg-brand-primary text-white'
+                        : 'border-gray-300 hover:border-brand-primary'
                         }`}
                     >
                       <div className="font-semibold text-lg">S</div>
@@ -557,8 +569,8 @@ const ProductCatalog: React.FC = () => {
                     <button
                       onClick={() => handleSizeSelection('M')}
                       className={`p-4 border-2 rounded-lg text-center transition-all ${selectedSize === 'M'
-                          ? 'border-brand-primary bg-brand-primary text-white'
-                          : 'border-gray-300 hover:border-brand-primary'
+                        ? 'border-brand-primary bg-brand-primary text-white'
+                        : 'border-gray-300 hover:border-brand-primary'
                         }`}
                     >
                       <div className="font-semibold text-lg">M</div>
@@ -568,8 +580,8 @@ const ProductCatalog: React.FC = () => {
                     <button
                       onClick={() => handleSizeSelection('L')}
                       className={`p-4 border-2 rounded-lg text-center transition-all ${selectedSize === 'L'
-                          ? 'border-brand-primary bg-brand-primary text-white'
-                          : 'border-gray-300 hover:border-brand-primary'
+                        ? 'border-brand-primary bg-brand-primary text-white'
+                        : 'border-gray-300 hover:border-brand-primary'
                         }`}
                     >
                       <div className="font-semibold text-lg">L</div>
@@ -600,4 +612,4 @@ const ProductCatalog: React.FC = () => {
   );
 };
 
-export default ProductCatalog; 
+export default ProductCatalog;

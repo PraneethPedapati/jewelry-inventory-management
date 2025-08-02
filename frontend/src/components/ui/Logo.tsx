@@ -11,7 +11,7 @@ interface LogoProps {
 interface BrandConfig {
   companyName: string;
   companyShortName: string;
-  companyDescription: string;
+  description: string;
   logoUrl: string;
   faviconUrl: string;
 }
@@ -25,7 +25,7 @@ const Logo: React.FC<LogoProps> = ({
   const [brandConfig, setBrandConfig] = useState<BrandConfig>({
     companyName: env.VITE_COMPANY_NAME, // Use frontend environment variable as default
     companyShortName: env.VITE_COMPANY_SHORT_NAME, // Use frontend environment variable as default
-    companyDescription: env.VITE_COMPANY_DESCRIPTION || 'Premium jewelry collection with elegant designs',
+    description: env.VITE_COMPANY_DESCRIPTION || 'Premium jewelry collection with elegant designs',
     logoUrl: env.VITE_LOGO_URL, // Use frontend environment variable directly
     faviconUrl: env.VITE_FAVICON_URL // Use frontend environment variable directly
   });
@@ -48,7 +48,7 @@ const Logo: React.FC<LogoProps> = ({
         setBrandConfig({
           companyName: env.VITE_COMPANY_NAME,
           companyShortName: env.VITE_COMPANY_SHORT_NAME,
-          companyDescription: env.VITE_COMPANY_DESCRIPTION || 'Premium jewelry collection with elegant designs',
+          description: env.VITE_COMPANY_DESCRIPTION || 'Premium jewelry collection with elegant designs',
           logoUrl: env.VITE_LOGO_URL,
           faviconUrl: env.VITE_FAVICON_URL
         });
@@ -120,8 +120,8 @@ const Logo: React.FC<LogoProps> = ({
           <span className={`${textSizes[size]} font-bold text-primary`}>
             {brandConfig.companyName}
           </span>
-          <span className={`${textSizes[size] === 'text-sm' ? 'text-xs' : textSizes[size] === 'text-base' ? 'text-sm' : 'text-sm'} text-muted-foreground`}>
-            {brandConfig.companyDescription}
+          <span className={`${textSizes[size] === 'text-sm' ? 'text-xs' : textSizes[size] === 'text-base' ? 'text-xs' : 'text-xs'} text-muted-foreground`}>
+            {brandConfig.description}
           </span>
           <span className={`${textSizes[size]} font-bold text-primary hidden`}>
             {brandConfig.companyShortName}

@@ -36,6 +36,13 @@ const handleApiError = (error: any, customMessage?: string) => {
   if (error.code === 'ECONNABORTED' || error.message?.includes('timeout')) {
     toast.error('Request timed out. Please check your internet connection and try again.');
   } else if (statusCode === 400) {
+    // Handle Zod validation errors
+    if (Array.isArray(errorResponse)) {
+      const messages = errorResponse.map((err: any) => err.message).join('\n');
+      toast.error(messages);
+      return error; // Stop further execution
+    }
+
     if (errorCode === 'VALIDATION_ERROR') {
       const details = errorResponse?.details;
       if (details && Array.isArray(details)) {
@@ -484,6 +491,24 @@ export const productService = {
     limit?: number;
   }) => {
     try {
+      // Check cache first (only for non-filtered requests)
+      const cacheKey = 'PRODUCTS_LIST';
+      if (!params || (Object.keys(params).length === 0) || (params.page === 1 && !params.search && !params.productType && params.isActive === undefined)) {
+        const cached = CacheService.get<{
+          products: Product[];
+          pagination: {
+            page: number;
+            limit: number;
+            total: number;
+            totalPages: number;
+          };
+        }>(cacheKey);
+        if (cached) {
+          console.log('📦 Using cached products data');
+          return cached;
+        }
+      }
+
       const response = await apiClient.get<ApiResponse<{
         products: Product[];
         pagination: {
@@ -493,6 +518,12 @@ export const productService = {
           totalPages: number;
         };
       }>>('/api/admin/products', { params });
+
+      // Cache only non-filtered requests
+      if (!params || (Object.keys(params).length === 0) || (params.page === 1 && !params.search && !params.productType && params.isActive === undefined)) {
+        CacheService.set(cacheKey, response.data.data, CacheService.DEFAULT_TTL, true);
+      }
+
       return response.data.data;
     } catch (error) {
       handleApiError(error, 'Failed to load products. Please try again.');
@@ -534,6 +565,10 @@ export const productService = {
       });
 
       const response = await uploadClient.post<ApiResponse<Product>>('/api/admin/products', formData);
+
+      // Invalidate cache after creating product
+      CacheService.invalidateOnDataChange('product');
+
       return response.data.data;
     } catch (error) {
       handleApiError(error, 'Failed to create product. Please try again.');
@@ -560,6 +595,10 @@ export const productService = {
       }
 
       const response = await uploadClient.put<ApiResponse<Product>>(`/api/admin/products/${id}`, formData);
+
+      // Invalidate cache after updating product
+      CacheService.invalidateOnDataChange('product');
+
       return response.data.data;
     } catch (error) {
       handleApiError(error, 'Failed to update product. Please try again.');
@@ -570,6 +609,9 @@ export const productService = {
   deleteProduct: async (id: string): Promise<void> => {
     try {
       await apiClient.delete(`/api/admin/products/${id}`);
+
+      // Invalidate cache after deleting product
+      CacheService.invalidateOnDataChange('product');
     } catch (error) {
       handleApiError(error, 'Failed to delete product. Please try again.');
       throw error;
@@ -592,7 +634,6 @@ export const publicOrderService = {
   createOrder: async (orderData: {
     customerName: string;
     customerPhone: string;
-    customerEmail: string;
     customerAddress: string;
     customerPincode: string;
     items: {
@@ -657,6 +698,10 @@ export const orderService = {
   createOrder: async (order: CreateOrderRequest): Promise<Order> => {
     try {
       const response = await apiClient.post<ApiResponse<Order>>('/api/admin/orders', order);
+
+      // Invalidate cache after creating order
+      CacheService.invalidateOnDataChange('order');
+
       return response.data.data;
     } catch (error) {
       handleApiError(error, 'Failed to create order. Please try again.');
@@ -667,6 +712,10 @@ export const orderService = {
   updateOrder: async (id: string, updates: Partial<Order>): Promise<Order> => {
     try {
       const response = await apiClient.put<ApiResponse<Order>>(`/api/admin/orders/${id}`, updates);
+
+      // Invalidate cache after updating order
+      CacheService.invalidateOnDataChange('order');
+
       return response.data.data;
     } catch (error) {
       handleApiError(error, 'Failed to update order. Please try again.');
@@ -677,6 +726,9 @@ export const orderService = {
   deleteOrder: async (id: string): Promise<void> => {
     try {
       await apiClient.delete(`/api/admin/orders/${id}`);
+
+      // Invalidate cache after deleting order
+      CacheService.invalidateOnDataChange('order');
     } catch (error) {
       handleApiError(error, 'Failed to delete order. Please try again.');
       throw error;
@@ -760,6 +812,10 @@ export const expenseService = {
   createExpense: async (expense: CreateExpenseRequest): Promise<Expense> => {
     try {
       const response = await apiClient.post<ApiResponse<Expense>>('/api/admin/expenses', expense);
+
+      // Invalidate cache after creating expense
+      CacheService.invalidateOnDataChange('expense');
+
       return response.data.data;
     } catch (error) {
       handleApiError(error, 'Failed to create expense. Please try again.');
@@ -770,6 +826,10 @@ export const expenseService = {
   updateExpense: async (id: string, updates: Partial<CreateExpenseRequest>): Promise<Expense> => {
     try {
       const response = await apiClient.put<ApiResponse<Expense>>(`/api/admin/expenses/${id}`, updates);
+
+      // Invalidate cache after updating expense
+      CacheService.invalidateOnDataChange('expense');
+
       return response.data.data;
     } catch (error) {
       handleApiError(error, 'Failed to update expense. Please try again.');
@@ -780,6 +840,9 @@ export const expenseService = {
   deleteExpense: async (id: string): Promise<void> => {
     try {
       await apiClient.delete(`/api/admin/expenses/${id}`);
+
+      // Invalidate cache after deleting expense
+      CacheService.invalidateOnDataChange('expense');
     } catch (error) {
       handleApiError(error, 'Failed to delete expense. Please try again.');
       throw error;
@@ -824,6 +887,7 @@ export const dashboardService = {
       // Check cache first
       const cached = CacheService.get<DashboardWidgets>('DASHBOARD_WIDGETS');
       if (cached) {
+        console.log('📊 Using cached dashboard widgets data');
         return cached;
       }
 
@@ -831,8 +895,8 @@ export const dashboardService = {
       console.log('📊 Fetching fresh dashboard widgets data');
       const response = await apiClient.get<ApiResponse<DashboardWidgets>>('/api/admin/dashboard/widgets');
 
-      // Cache the response
-      CacheService.set('DASHBOARD_WIDGETS', response.data.data);
+      // Cache the response persistently
+      CacheService.set('DASHBOARD_WIDGETS', response.data.data, CacheService.DEFAULT_TTL, true);
 
       return response.data.data;
     } catch (error) {
@@ -855,8 +919,8 @@ export const dashboardService = {
       console.log('✅ Received response status:', response.status);
       console.log('✅ Received response data:', response.data);
 
-      // Cache the fresh response
-      CacheService.set('DASHBOARD_WIDGETS', response.data.data);
+      // Cache the fresh response persistently
+      CacheService.set('DASHBOARD_WIDGETS', response.data.data, CacheService.DEFAULT_TTL, true);
       console.log('💾 Cached fresh widget data');
 
       return response.data.data;
@@ -889,6 +953,7 @@ export const analyticsService = {
       // Check cache first
       const cached = CacheService.get<AnalyticsData>('ANALYTICS_DATA');
       if (cached) {
+        console.log('📈 Using cached analytics data');
         return cached;
       }
 
@@ -898,8 +963,8 @@ export const analyticsService = {
         params: { period }
       });
 
-      // Cache the response
-      CacheService.set('ANALYTICS_DATA', response.data.data);
+      // Cache the response persistently
+      CacheService.set('ANALYTICS_DATA', response.data.data, CacheService.DEFAULT_TTL, true);
 
       return response.data.data;
     } catch (error) {
@@ -923,8 +988,8 @@ export const analyticsService = {
 
       const response = await apiClient.post<AnalyticsRefreshResponse>('/api/admin/analytics/refresh');
 
-      // Cache the fresh response
-      CacheService.set('ANALYTICS_DATA', response.data);
+      // Cache the fresh response persistently
+      CacheService.set('ANALYTICS_DATA', response.data, CacheService.DEFAULT_TTL, true);
 
       return response.data;
     } catch (error) {
@@ -938,14 +1003,15 @@ export const analyticsService = {
       // Check cache first
       const cached = CacheService.get<AnalyticsStatus>('ANALYTICS_STATUS');
       if (cached) {
+        console.log('📊 Using cached analytics status');
         return cached;
       }
 
       // Fetch from API if not cached
       const response = await apiClient.get<ApiResponse<AnalyticsStatus>>('/api/admin/analytics/status');
 
-      // Cache the response
-      CacheService.set('ANALYTICS_STATUS', response.data.data);
+      // Cache the response persistently
+      CacheService.set('ANALYTICS_STATUS', response.data.data, CacheService.DEFAULT_TTL, true);
 
       return response.data.data;
     } catch (error) {
