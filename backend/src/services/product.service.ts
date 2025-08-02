@@ -80,10 +80,10 @@ export class ProductService {
   static async getProducts(params: {
     page?: number;
     limit?: number;
-    search?: string;
-    productType?: string;
+    search?: string | undefined;
+    productType?: string | undefined;
     isActive?: boolean | undefined;
-    sortBy?: string;
+    sortBy?: string | undefined;
   } = {}) {
     const { page = 1, limit = 10, search, productType, isActive, sortBy } = params;
     const offset = (page - 1) * limit;
@@ -117,7 +117,7 @@ export class ProductService {
         conditions.length === 1
           ? conditions[0]
           : and(...conditions)
-      ) as typeof productsQuery;
+      ) as any;
     }
 
     // Get total count for pagination
@@ -130,7 +130,7 @@ export class ProductService {
         conditions.length === 1
           ? conditions[0]
           : and(...conditions)
-      ) as typeof countQuery;
+      ) as any;
     }
 
     const countResult = await countQuery;
@@ -139,15 +139,15 @@ export class ProductService {
     // Apply sorting
     switch (sortBy) {
       case 'price-low':
-        productsQuery = productsQuery.orderBy(sql`CAST(${products.price} AS NUMERIC)`);
+        productsQuery = (productsQuery as any).orderBy(sql`CAST(${products.price} AS NUMERIC)`);
         break;
       case 'price-high':
-        productsQuery = productsQuery.orderBy(desc(sql`CAST(${products.price} AS NUMERIC)`));
+        productsQuery = (productsQuery as any).orderBy(desc(sql`CAST(${products.price} AS NUMERIC)`));
         break;
       case 'newest':
       default:
         // Default to newest first
-        productsQuery = productsQuery.orderBy(desc(products.createdAt));
+        productsQuery = (productsQuery as any).orderBy(desc(products.createdAt));
         break;
     }
 
