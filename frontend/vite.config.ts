@@ -88,7 +88,7 @@ export default defineConfig(({ mode }) => ({
     port: 5173,
     proxy: {
       '/api': {
-        target: (import.meta as any).env?.VITE_API_URL || 'https://jewelry-inventory-management.railway.internal',
+        target: (import.meta as any).env?.VITE_API_URL || 'https://jewelry-inventory-management-production.up.railway.app',
         changeOrigin: true,
         secure: false
       }

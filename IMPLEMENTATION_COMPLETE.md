@@ -168,7 +168,7 @@ npm run dev
 ```
 
 ### **What happens when you run this:**
-- ✅ **Backend API** starts on `https://jewelry-inventory-management.railway.internal`
+- ✅ **Backend API** starts on `https://jewelry-inventory-management-production.up.railway.app`
 - ✅ **Frontend App** starts on `http://localhost:5173`
 - ✅ **Database** connected with sample jewelry products
 - ✅ **Color Themes** loaded and ready to use

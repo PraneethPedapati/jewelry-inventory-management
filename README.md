@@ -104,7 +104,7 @@ jewelry-inventory-management/
 
    The application will be available at:
    - Frontend: http://localhost:5173
-   - Backend: https://jewelry-inventory-management.railway.internal
+   - Backend: https://jewelry-inventory-management-production.up.railway.app
 
 ## 📊 Database Schema
 

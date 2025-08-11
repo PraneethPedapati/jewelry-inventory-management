@@ -742,7 +742,7 @@ sleep 10
 
 # Health check
 echo "🏥 Performing health check..."
-if curl -f https://jewelry-inventory-management.railway.internal/health; then
+if curl -f https://jewelry-inventory-management-production.up.railway.app/health; then
     echo "✅ Deployment successful!"
 else
     echo "❌ Health check failed!"
