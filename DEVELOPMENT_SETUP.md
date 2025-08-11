@@ -362,9 +362,9 @@ npm run dev
 ## Access the Application
 
 - **Frontend**: http://localhost:5173
-- **Backend API**: http://localhost:3000
-- **Health Check**: http://localhost:3000/health
-- **API Documentation**: http://localhost:3000/api/themes
+- **Backend API**: https://jewelry-inventory-management.railway.internal
+- **Health Check**: https://jewelry-inventory-management.railway.internal/health
+- **API Documentation**: https://jewelry-inventory-management.railway.internal/api/themes
 
 ## Default Admin Credentials
 
