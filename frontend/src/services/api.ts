@@ -3,7 +3,7 @@ import { toast } from 'sonner';
 import { CacheService } from './cache.service';
 
 // API Configuration
-const API_BASE_URL = (import.meta as any).env?.VITE_API_URL || 'https://jewelry-inventory-management.railway.internal';
+const API_BASE_URL = (import.meta as any).env?.VITE_API_URL || 'jewelry-inventory-management-production.up.railway.app';
 
 const apiClient = axios.create({
   baseURL: API_BASE_URL,
