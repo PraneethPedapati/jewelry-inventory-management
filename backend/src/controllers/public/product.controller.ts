@@ -1,10 +1,10 @@
 import { Request, Response } from 'express';
 import { z } from 'zod';
-import { db } from '@/db/connection';
-import { products } from '@/db/schema';
+import { db } from '../../db/connection.js';
+import { products } from '../../db/schema.js';
 import { eq, desc, and, like, or, count, sql } from 'drizzle-orm';
-import { asyncHandler } from '@/middleware/error-handler.middleware';
-import { ProductService } from '@/services/product.service';
+import { asyncHandler } from '../../middleware/error-handler.middleware.js';
+import { ProductService } from '../../services/product.service.js';
 
 
 // Validation schemas
