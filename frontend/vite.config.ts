@@ -3,7 +3,10 @@ import react from '@vitejs/plugin-react';
 import { VitePWA } from 'vite-plugin-pwa';
 import path from 'path';
 
-export default defineConfig({
+export default defineConfig(({ mode }) => ({
+  // Load environment variables based on mode
+  envDir: '.',
+  envPrefix: 'VITE_',
   plugins: [
     react(),
     VitePWA({
@@ -85,7 +88,7 @@ export default defineConfig({
     port: 5173,
     proxy: {
       '/api': {
-        target: process.env.VITE_API_URL || 'http://localhost:3000',
+        target: (import.meta as any).env?.VITE_API_URL || 'http://localhost:3000',
         changeOrigin: true,
         secure: false
       }
@@ -105,7 +108,12 @@ export default defineConfig({
       }
     }
   },
+  define: {
+    // Ensure environment variables are available at build time
+    'import.meta.env.VITE_API_URL': JSON.stringify(process.env.VITE_API_URL),
+    'import.meta.env.VITE_API_BASE_URL': JSON.stringify(process.env.VITE_API_BASE_URL),
+  },
   optimizeDeps: {
     include: ['react', 'react-dom', 'react-router-dom']
   }
-}); 
+})); 

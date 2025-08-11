@@ -4,6 +4,7 @@ import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { useCart } from '@/hooks/useCart';
 import { Product } from '@/context/CartContext';
+import { productService } from '@/services/api';
 
 const ProductCatalog: React.FC = () => {
   const { addToCart: addToCartContext, updateQuantity, removeFromCart, cart } = useCart();
@@ -40,18 +41,7 @@ const ProductCatalog: React.FC = () => {
     { value: 'price-high', label: 'Price: High to Low' }
   ];
 
-  // Check if API URL is configured
-  const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:3000';
-  const isApiConfigured = apiUrl !== 'http://localhost:3000' || import.meta.env.VITE_API_URL;
 
-  // Debug logging
-  useEffect(() => {
-    console.log('API Configuration Debug:', {
-      VITE_API_URL: import.meta.env.VITE_API_URL,
-      apiUrl,
-      isApiConfigured
-    });
-  }, []);
 
   // Close dropdown when clicking outside
   useEffect(() => {
@@ -85,32 +75,28 @@ const ProductCatalog: React.FC = () => {
       setLoading(true);
       setError(null);
 
-      const params = new URLSearchParams({
-        page: currentPage.toString(),
-        limit: itemsPerPage.toString()
-      });
+      const params: {
+        page: number;
+        limit: number;
+        search?: string;
+        productType?: string;
+        sortBy?: string;
+      } = {
+        page: currentPage,
+        limit: itemsPerPage
+      };
 
-      if (searchTerm) params.append('search', searchTerm);
-      if (selectedCategory !== 'all') params.append('productType', selectedCategory);
-      if (sortBy) params.append('sortBy', sortBy);
+      if (searchTerm) params.search = searchTerm;
+      if (selectedCategory !== 'all') params.productType = selectedCategory;
+      if (sortBy) params.sortBy = sortBy;
 
-      console.log('Fetching products from:', `${apiUrl}/api/products?${params}`);
+      console.log('Fetching products with params:', params);
 
-      const response = await fetch(`${apiUrl}/api/products?${params}`);
-
-      if (!response.ok) {
-        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
-      }
-
-      const data = await response.json();
+      const data = await productService.getProducts(params);
       console.log('API response:', data);
 
-      if (data.success) {
-        setProducts(data.data.products || []);
-        setTotalPages(data.data.pagination?.totalPages || 1);
-      } else {
-        throw new Error(data.error || 'Failed to load products');
-      }
+      setProducts(data.products || []);
+      setTotalPages(data.pagination?.totalPages || 1);
     } catch (err) {
       console.error('Error fetching products:', err);
       setError(err instanceof Error ? err.message : 'An error occurred');
@@ -119,7 +105,7 @@ const ProductCatalog: React.FC = () => {
       setLoading(false);
       isRequestingRef.current = false;
     }
-  }, [currentPage, searchTerm, selectedCategory, sortBy, apiUrl]);
+  }, [currentPage, searchTerm, selectedCategory, sortBy]);
 
 
 
@@ -327,22 +313,8 @@ const ProductCatalog: React.FC = () => {
         </div>
       </div>
 
-      {/* Configuration Error State */}
-      {!isApiConfigured && (
-        <div className="text-center py-12">
-          <div className="text-red-600 mb-4">
-            <p className="text-lg font-medium">API Configuration Error</p>
-            <p className="text-sm">VITE_API_URL environment variable is not set.</p>
-            <p className="text-sm">Please check your .env file and restart the development server.</p>
-          </div>
-          <Button onClick={() => window.location.reload()} variant="outline">
-            Retry
-          </Button>
-        </div>
-      )}
-
       {/* Loading State */}
-      {loading && isApiConfigured && (
+      {loading && (
         <div className="flex justify-center items-center py-12">
           <div className="text-center">
             <div className="brand-spinner mx-auto mb-4"></div>
@@ -352,7 +324,7 @@ const ProductCatalog: React.FC = () => {
       )}
 
       {/* Error State */}
-      {error && isApiConfigured && (
+      {error && (
         <div className="text-center py-12">
           <p className="text-red-600 mb-4">{error}</p>
           <Button onClick={fetchProducts} variant="outline">
@@ -362,7 +334,7 @@ const ProductCatalog: React.FC = () => {
       )}
 
       {/* Product Grid */}
-      {!loading && !error && isApiConfigured && products.length === 0 ? (
+      {!loading && !error && products.length === 0 ? (
         <div className="text-center py-12">
           <div className="text-muted-foreground mb-4">
             <ShoppingCart className="w-12 h-12 mx-auto mb-2 opacity-50" />
@@ -370,7 +342,7 @@ const ProductCatalog: React.FC = () => {
             <p className="text-sm">Try adjusting your search or filter criteria</p>
           </div>
         </div>
-      ) : !loading && !error && isApiConfigured ? (
+      ) : !loading && !error ? (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 md:gap-6">
           {products.map((product) => (
             <div key={product.id} className="product-card product-card-customer">
